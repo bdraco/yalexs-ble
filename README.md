@@ -38,6 +38,15 @@ Install this via pip (or your favourite package manager):
 
 `pip install yalexs-ble`
 
+## Fork history
+
+Thanks to:
+
+https://github.com/Friendly0Fire/augustpy
+https://github.com/terrcin/augustctl
+https://github.com/ethitter/augustctl
+https://github.com/robson83/augustctl
+
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
