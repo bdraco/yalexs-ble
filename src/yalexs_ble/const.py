@@ -1,0 +1,24 @@
+__version__ = "0.0.1"
+
+import uuid
+from enum import Enum
+
+COMMAND_SERVICE_UUID = uuid.UUID("0000fe24-0000-1000-8000-00805f9b34fb")
+WRITE_CHARACTERISTIC = uuid.UUID("bd4ac611-0b45-11e3-8ffd-0800200c9a66")
+READ_CHARACTERISTIC = uuid.UUID("bd4ac612-0b45-11e3-8ffd-0800200c9a66")
+SECURE_WRITE_CHARACTERISTIC = uuid.UUID("bd4ac613-0b45-11e3-8ffd-0800200c9a66")
+SECURE_READ_CHARACTERISTIC = uuid.UUID("bd4ac614-0b45-11e3-8ffd-0800200c9a66")
+
+
+class Commands(Enum):
+
+    UNLOCK = 0x0A
+    LOCK = 0x0B
+
+
+class Status(Enum):
+
+    UNLOCKING = 0x02
+    LOCKING = 0x03
+    UNLOCKED = 0x04
+    LOCKED = 0x05
