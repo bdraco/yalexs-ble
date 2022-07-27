@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.0 (2022-07-27)
+### Feature
+* Start now return a cancel callable ([#11](https://github.com/bdraco/yalexs-ble/issues/11)) ([`5ff3a36`](https://github.com/bdraco/yalexs-ble/commit/5ff3a36d8a7a0b3720f4ca5022d5bef48f5d712b))
+
 ## v0.3.1 (2022-07-27)
 ### Fix
 * Add missing imports ([#10](https://github.com/bdraco/yalexs-ble/issues/10)) ([`4a76d51`](https://github.com/bdraco/yalexs-ble/commit/4a76d5103e8b1d26469847cc7afe1bf7ca9ddaa5))
