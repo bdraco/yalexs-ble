@@ -92,11 +92,11 @@ class Lock:
         await self.session.execute(self.session.build_command(Commands.UNLOCK.value))
 
     async def lock(self) -> None:
-        if await self.status() == "unlocked":
+        if (await self.status()).lock == LockStatus.UNLOCKED:
             await self.force_lock()
 
     async def unlock(self) -> None:
-        if await self.status() == "locked":
+        if (await self.status()).lock == LockStatus.LOCKED:
             await self.force_unlock()
 
     async def status(self) -> LockState:
