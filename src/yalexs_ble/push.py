@@ -216,11 +216,19 @@ class PushLock:
         if not self._update_queue.full() and has_update:
             self._update_queue.put_nowait(ble_device)
 
-    async def start(self) -> None:
+    async def start(self) -> Callable[[], None]:
         """Start watching for updates."""
         if self._runner:
             raise RuntimeError("Already running")
         self._runner = asyncio.create_task(self._queue_watcher())
+
+        def _cancel() -> None:
+            self._update_queue.put_nowait(None)
+            if self._runner:
+                self._runner.cancel()
+                self._runner = None
+
+        return _cancel
 
     async def _queue_watcher(self) -> None:
         """Watch for updates."""
@@ -232,13 +240,6 @@ class PushLock:
                 _LOGGER.error(
                     "%s: Auth error, key or slot (key index) is incorrect", self.name
                 )
-
-    async def stop(self) -> None:
-        """Stop watching for updates."""
-        self._update_queue.put_nowait(None)
-        await asyncio.sleep(0)
-        if self._runner:
-            self._runner.cancel()
 
 
 def get_homekit_state_num(data: bytes) -> int:

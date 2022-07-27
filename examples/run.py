@@ -27,16 +27,18 @@ async def run():
     def new_state(new_state: LockState) -> None:
         _LOGGER.info("New state: %s", new_state)
 
-    cancel = push_lock.register_callback(new_state)
+    cancel_callback = push_lock.register_callback(new_state)
     scanner.register_detection_callback(push_lock.update_advertisement)
     await scanner.start()
-    await push_lock.start()
+    cancel = await push_lock.start()
     _LOGGER.info(
         "Started, waiting for lock to be discovered with local_name: %s",
         push_lock.local_name,
     )
     await asyncio.sleep(1000000)
+    cancel_callback()
     cancel()
+    await scanner.stop()
 
 
 logging.basicConfig(level=logging.INFO)
