@@ -8,7 +8,14 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak_retry_connector import BleakError
 
-from .const import LockState
+from .const import (
+    APPLE_MFR_ID,
+    HAP_FIRST_BYTE,
+    YALE_MFR_ID,
+    DoorStatus,
+    LockState,
+    LockStatus,
+)
 from .lock import Lock
 from .session import AuthError
 
@@ -18,27 +25,6 @@ _LOGGER = logging.getLogger(__name__)
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 3
-
-
-def lock_connection(func: WrapFuncType) -> WrapFuncType:
-    """Define a wrapper to connect and disconnect from the lock."""
-
-    async def _async_wrap_lock_connection(
-        self: "PushLock", *args: Any, **kwargs: Any
-    ) -> None:
-        _LOGGER.debug("%s: Starting operation: %s", self.name, func)
-
-        self._lock = self._get_lock_instance()
-        await self._lock.connect()
-        try:
-            return await func(self, *args, **kwargs)
-        except Exception:
-            raise
-        finally:
-            await self._lock.disconnect()
-            self._lock = None
-
-    return cast(WrapFuncType, _async_wrap_lock_connection)
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -101,22 +87,20 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
 class PushLock:
     """A lock with push updates."""
 
-    def __init__(self, serial_number: str) -> None:
+    def __init__(self, local_name: str) -> None:
         """Init the lock watcher."""
-        self._serial_number = serial_number
-        # M1FBA011ZZ -> M1FBA011
-        self._local_name = f"{serial_number[0:2]}{serial_number[-5:]}"
+        self._local_name = local_name
         self._lock_state: LockState | None = None
         self._update_queue: asyncio.Queue[BLEDevice] = asyncio.Queue(1)
         self._last_adv_value = -1
         self._last_hk_state = -1
-        self._lock: Lock | None = None
         self._lock_key: str | None = None
         self._lock_key_index: int | None = None
         self._ble_device: BLEDevice | None = None
         self._operation_lock = asyncio.Lock()
         self._runner: asyncio.Task | None = None  # type: ignore[type-arg]
         self._callbacks: list[Callable[[LockState], None]] = []
+        self._update_task: asyncio.Task | None = None  # type: ignore[type-arg]
 
     @property
     def local_name(self) -> str:
@@ -146,7 +130,7 @@ class PushLock:
     @property
     def name(self) -> str:
         """Get the name of the lock."""
-        return self._ble_device.name if self._ble_device else "Unknown"
+        return self._local_name
 
     def _get_lock_instance(self) -> Lock:
         """Get the lock instance."""
@@ -155,31 +139,92 @@ class PushLock:
         assert self._lock_key_index is not None  # nosec
         return Lock(self._ble_device, self._lock_key, self._lock_key_index)
 
+    async def _cancel_any_update(self) -> None:
+        """Cancel any update task."""
+        await asyncio.sleep(0)
+        _LOGGER.warning("Canceling in progress update: %s", self._update_task)
+        if self._update_task:
+            self._update_task.cancel()
+            self._update_task = None
+
+    @property
+    def door_status(self) -> DoorStatus:
+        """Return the current door status."""
+        return self._lock_state.door if self._lock_state else DoorStatus.UNKNOWN
+
+    @property
+    def lock_status(self) -> LockStatus:
+        """Return the current lock status."""
+        return self._lock_state.lock if self._lock_state else LockStatus.UNKNOWN
+
     @operation_lock
     @retry_bluetooth_connection_error
-    @lock_connection
     async def lock(self) -> None:
         """Lock the lock."""
-        assert self._lock is not None  # nosec
-        await self._lock.force_lock()
+        _LOGGER.debug("Starting lock")
+        await self._cancel_any_update()
+        self._callback_state(LockState(LockStatus.LOCKING, self.door_status))
+        lock = self._get_lock_instance()
+        try:
+            await lock.connect()
+            await lock.force_lock()
+        except Exception:
+            self._callback_state(LockState(LockStatus.UNKNOWN, self.door_status))
+            raise
+        finally:
+            await lock.disconnect()
+        self._callback_state(LockState(LockStatus.LOCKED, self.door_status))
+        await self._cancel_any_update()
+        _LOGGER.debug("Finished lock")
 
     @operation_lock
     @retry_bluetooth_connection_error
-    @lock_connection
     async def unlock(self) -> None:
         """Unlock the lock."""
-        assert self._lock is not None  # nosec
-        await self._lock.force_unlock()
+        _LOGGER.debug("Starting unlock")
+        await self._cancel_any_update()
+        self._callback_state(LockState(LockStatus.UNLOCKING, self.door_status))
+        lock = self._get_lock_instance()
+        try:
+            await lock.connect()
+            await lock.force_unlock()
+        except Exception:
+            self._callback_state(LockState(LockStatus.UNKNOWN, self.door_status))
+            raise
+        finally:
+            await lock.disconnect()
+        self._callback_state(LockState(LockStatus.UNLOCKED, self.door_status))
+        await self._cancel_any_update()
+        _LOGGER.debug("Finished unlock")
 
     @operation_lock
     @retry_bluetooth_connection_error
-    @lock_connection
-    async def update(self) -> None:
+    async def update(self) -> LockState:
         """Update the lock state."""
-        assert self._lock is not None  # nosec
+        lock = self._get_lock_instance()
+        try:
+            await lock.connect()
+            state = await lock.status()
+        except asyncio.CancelledError:
+            _LOGGER.debug(
+                "%s: In-progress update canceled due to lock operation", self.name
+            )
+            raise
+        finally:
+            await lock.disconnect()
         _LOGGER.debug("%s: Updating lock state", self.name)
-        self._lock_state = await self._lock.status()
-        _LOGGER.info("%s: New lock state: %s", self.name, self._lock_state)
+        self._callback_state(state)
+        return state
+
+    def _callback_state(self, lock_state: LockState) -> None:
+        """Call the callbacks."""
+        self._lock_state = lock_state
+        _LOGGER.debug("%s: New lock state: %s", self.name, self._lock_state)
+        for callback in self._callbacks:
+            try:
+                callback(lock_state)
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("%s: Error calling callback", self.name)
 
     def update_advertisement(
         self, ble_device: BLEDevice, ad: AdvertisementData
@@ -195,19 +240,23 @@ class PushLock:
         )
         self.set_ble_device(ble_device)
         has_update = False
-        if 76 in ad.manufacturer_data and ad.manufacturer_data[76][0] == 0x06:
-            hk_state = get_homekit_state_num(ad.manufacturer_data[76])
+        if (
+            APPLE_MFR_ID in ad.manufacturer_data
+            and ad.manufacturer_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE
+        ):
+            hk_state = get_homekit_state_num(ad.manufacturer_data[APPLE_MFR_ID])
             if hk_state != self._last_hk_state:
                 # has_update = True
                 self._last_hk_state = hk_state
-        if 465 in ad.manufacturer_data:
-            current_value = ad.manufacturer_data[465][0]
+        if YALE_MFR_ID in ad.manufacturer_data:
+            current_value = ad.manufacturer_data[YALE_MFR_ID][0]
             if current_value != self._last_adv_value:
                 has_update = True
                 self._last_adv_value = current_value
         _LOGGER.debug(
-            "State: (current_state: %s) (hk_state: %s) "
+            "%s: State: (current_state: %s) (hk_state: %s) "
             "(adv_value: %s) (has_update: %s)",
+            self.name,
             self._lock_state,
             self._last_hk_state,
             self._last_adv_value,
@@ -218,6 +267,7 @@ class PushLock:
 
     async def start(self) -> Callable[[], None]:
         """Start watching for updates."""
+        _LOGGER.debug("Waiting for advertisement callbacks for %s", self.name)
         if self._runner:
             raise RuntimeError("Already running")
         self._runner = asyncio.create_task(self._queue_watcher())
@@ -235,11 +285,16 @@ class PushLock:
         while await self._update_queue.get():
             _LOGGER.debug("%s: Starting update", self.name)
             try:
-                await self.update()
+                self._update_task = asyncio.create_task(self.update())
+                await self._update_task
             except AuthError:
                 _LOGGER.error(
                     "%s: Auth error, key or slot (key index) is incorrect", self.name
                 )
+            except asyncio.CancelledError:
+                pass
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("%s: Error updating", self.name)
 
 
 def get_homekit_state_num(data: bytes) -> int:

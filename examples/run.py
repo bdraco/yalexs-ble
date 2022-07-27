@@ -3,7 +3,7 @@ import logging
 
 from bleak import BleakScanner
 
-from yalexs_ble import LockState, PushLock
+from yalexs_ble import LockState, PushLock, serial_to_local_name
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ assert isinstance(LOCK_KEY_INDEX, int)  # nosec
 
 
 async def run():
-    push_lock = PushLock(LOCK_SERIAL)
+    push_lock = PushLock(serial_to_local_name(LOCK_SERIAL))
     push_lock.set_lock_key(LOCK_KEY, LOCK_KEY_INDEX)
     _LOGGER.info("Expected local_name: %s", push_lock.local_name)
 
