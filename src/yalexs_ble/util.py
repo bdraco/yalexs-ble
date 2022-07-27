@@ -16,3 +16,13 @@ def _security_checksum(buffer: bytes) -> int:
 
 def _copy(dest: bytearray, src: bytes, destLocation: int = 0) -> None:
     dest[destLocation : (destLocation + len(src))] = src  # noqa: E203
+
+
+def serial_to_local_name(serial: str) -> str:
+    """Convert a serial to a local name."""
+    return f"{serial[0:2]}{serial[-5:]}"
+
+
+def local_name_to_serial(serial: str) -> str:
+    """Convert a local name to a serial."""
+    return f"{serial[0:2]}XXX{serial[2:]}"

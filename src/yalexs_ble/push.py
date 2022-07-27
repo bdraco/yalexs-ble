@@ -116,14 +116,16 @@ class PushLock:
         self._ble_device: BLEDevice | None = None
         self._operation_lock = asyncio.Lock()
         self._runner: asyncio.Task | None = None  # type: ignore[type-arg]
-        self._callbacks: list[Callable[[], None]] = []
+        self._callbacks: list[Callable[[LockState], None]] = []
 
     @property
     def local_name(self) -> str:
         """Get the local name."""
         return self._local_name
 
-    def register_callback(self, callback: Callable[[], None]) -> Callable[[], None]:
+    def register_callback(
+        self, callback: Callable[[LockState], None]
+    ) -> Callable[[], None]:
         """Register a callback to be called when the lock state changes."""
 
         def unregister_callback() -> None:

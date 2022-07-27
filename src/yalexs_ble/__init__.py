@@ -5,4 +5,13 @@ from .session import AuthError
 
 __version__ = "0.2.0"
 
-__all__ = ["AuthError", "Lock", "DoorStatus", "LockState", "LockStatus", "PushLock"]
+__all__ = [
+    "AuthError",
+    "Lock",
+    "DoorStatus",
+    "LockState",
+    "LockStatus",
+    "PushLock",
+    "serial_to_local_name",
+    "local_name_to_serial",
+]
