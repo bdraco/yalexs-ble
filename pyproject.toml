@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "yalexs-ble"
-version = "0.0.1"
+version = "0.1.0"
 description = "Bluetooth control of Yale and August locks"
 authors = ["J. Nick Koston <nick@koston.org>"]
 license = "GNU General Public License v3.0"
