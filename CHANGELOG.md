@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.2 (2022-07-27)
+### Fix
+* Unlock and lock calls without force ([#7](https://github.com/bdraco/yalexs-ble/issues/7)) ([`c660cbb`](https://github.com/bdraco/yalexs-ble/commit/c660cbb0913579fdb4306abaf8c14917e6a458eb))
+
 ## v0.1.1 (2022-07-27)
 ### Fix
 * Fix release process ([#6](https://github.com/bdraco/yalexs-ble/issues/6)) ([`551ebc6`](https://github.com/bdraco/yalexs-ble/commit/551ebc6d0f566ddd97d2a4d4cdfd17a943ffabc0))
