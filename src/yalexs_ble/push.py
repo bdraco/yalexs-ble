@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import struct
@@ -122,6 +124,26 @@ class PushLock:
         """Get the local name."""
         return self._local_name
 
+    @property
+    def name(self) -> str:
+        """Get the name of the lock."""
+        return self._local_name
+
+    @property
+    def door_status(self) -> DoorStatus:
+        """Return the current door status."""
+        return self._lock_state.door if self._lock_state else DoorStatus.UNKNOWN
+
+    @property
+    def lock_status(self) -> LockStatus:
+        """Return the current lock status."""
+        return self._lock_state.lock if self._lock_state else LockStatus.UNKNOWN
+
+    @property
+    def lock_state(self) -> LockState | None:
+        """Return the current lock state."""
+        return self._lock_state
+
     def register_callback(
         self, callback: Callable[[LockState], None]
     ) -> Callable[[], None]:
@@ -142,11 +164,6 @@ class PushLock:
         """Set the ble device."""
         self._ble_device = ble_device
 
-    @property
-    def name(self) -> str:
-        """Get the name of the lock."""
-        return self._local_name
-
     def _get_lock_instance(self) -> Lock:
         """Get the lock instance."""
         assert self._ble_device is not None  # nosec
@@ -161,16 +178,6 @@ class PushLock:
             _LOGGER.debug("Canceling in progress update: %s", self._update_task)
             self._update_task.cancel()
             self._update_task = None
-
-    @property
-    def door_status(self) -> DoorStatus:
-        """Return the current door status."""
-        return self._lock_state.door if self._lock_state else DoorStatus.UNKNOWN
-
-    @property
-    def lock_status(self) -> LockStatus:
-        """Return the current lock status."""
-        return self._lock_state.lock if self._lock_state else LockStatus.UNKNOWN
 
     @operation_lock
     @retry_bluetooth_connection_error
