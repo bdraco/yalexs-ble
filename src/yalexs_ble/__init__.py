@@ -3,7 +3,7 @@ from .lock import Lock
 from .push import PushLock
 from .session import AuthError
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "AuthError",
