@@ -84,6 +84,15 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                     func,
                     exc_info=True,
                 )
+            except EOFError:
+                if attempt == max_attempts:
+                    raise
+                _LOGGER.debug(
+                    "%s: D-bus error calling %s, retrying...",
+                    self.name,
+                    func,
+                    exc_info=True,
+                )
             except AuthError:
                 raise
 
