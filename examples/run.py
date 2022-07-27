@@ -16,6 +16,7 @@ LOCK_ADDRESS = None
 LOCK_KEY = None
 LOCK_KEY_INDEX = None
 
+
 assert isinstance(LOCK_ADDRESS, str)  # nosec
 assert isinstance(LOCK_KEY, str)  # type: ignore[unreachable] # nosec
 assert isinstance(LOCK_KEY_INDEX, int)  # nosec
@@ -72,6 +73,7 @@ async def run():
                 await lock.connect()
                 lock_state = await lock.status()
                 _LOGGER.info("New lock state: %s", lock_state)
+                # await lock.lock()
                 await lock.disconnect()
                 break
             except asyncio.TimeoutError:
