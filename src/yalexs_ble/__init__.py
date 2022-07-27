@@ -3,6 +3,6 @@ from .lock import Lock
 from .push import PushLock
 from .session import AuthError
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 __all__ = ["AuthError", "Lock", "DoorStatus", "LockState", "LockStatus", "PushLock"]

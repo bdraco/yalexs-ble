@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.0 (2022-07-27)
+### Feature
+* Change example to use serial number ([#8](https://github.com/bdraco/yalexs-ble/issues/8)) ([`696cd0e`](https://github.com/bdraco/yalexs-ble/commit/696cd0e1d4a9990bf25780e627ebd700c595bf75))
+
 ## v0.1.2 (2022-07-27)
 ### Fix
 * Unlock and lock calls without force ([#7](https://github.com/bdraco/yalexs-ble/issues/7)) ([`c660cbb`](https://github.com/bdraco/yalexs-ble/commit/c660cbb0913579fdb4306abaf8c14917e6a458eb))
