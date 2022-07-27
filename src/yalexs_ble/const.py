@@ -1,5 +1,3 @@
-__version__ = "0.0.1"
-
 from dataclasses import dataclass
 from enum import Enum
 
@@ -21,8 +19,8 @@ class LockStatus(Enum):
     UNKNOWN = 0x00
     UNKNOWN_01 = 0x01
     UNLOCKING = 0x02
-    LOCKING = 0x03
-    UNLOCKED = 0x04
+    UNLOCKED = 0x03
+    LOCKING = 0x04
     LOCKED = 0x05
     UNKNOWN_06 = 0x06
 

@@ -6,7 +6,7 @@ import os
 from typing import Any
 
 from bleak import BleakClient
-from bleak_retry_connector import establish_connection
+from bleak_retry_connector import BLEDevice, establish_connection
 
 from . import session, util
 from .const import (
@@ -22,11 +22,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Lock:
-    def __init__(self, address: str, keyString: str, keyIndex: int) -> None:
-        self.address = address
+    def __init__(self, device: BLEDevice, keyString: str, keyIndex: int) -> None:
+        self.device = device
         self.key = bytes.fromhex(keyString)
         self.key_index = keyIndex
-        self.name = address
+        self.name = device.name
         self.session: session.Session | None = None
         self.secure_session: session.SecureSession | None = None
         self.is_secure = False
@@ -37,13 +37,13 @@ class Lock:
         self.name = name
 
     def disconnected(self, *args: Any, **kwargs: Any) -> None:
-        _LOGGER.error("%s: Disconnected from lock", self.name)
+        _LOGGER.debug("%s: Disconnected from lock", self.name)
 
     async def connect(self) -> None:
         """Connect to the lock."""
         _LOGGER.debug("%s: Connecting to the lock", self.name)
         self.client = await establish_connection(
-            BleakClient, self.address, self.name, self.disconnected
+            BleakClient, self.device, self.name, self.disconnected
         )
         _LOGGER.debug("%s: Connected", self.name)
         self.session = session.Session(self.client, self.name, self._lock)
