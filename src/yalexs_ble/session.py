@@ -116,13 +116,14 @@ class Session:
             notified = True
             future.set_result(decrypted_data)
 
-        _LOGGER.debug("%s: Starting notify")
+        _LOGGER.debug("%s: Starting notify", self.name)
         await self.client.start_notify(self.read_characteristic, _notify)
         try:
             _LOGGER.debug(
-                "%s:  Writing command to %s with props %s",
+                "%s: Writing command to %s: %s",
                 self.name,
                 self.write_characteristic,
+                command,
             )
             await self.client.write_gatt_char(self.write_characteristic, command, True)
             _LOGGER.debug("%s: Waiting for response", self.name)
