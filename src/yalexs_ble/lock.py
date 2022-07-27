@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Any
 
-from bleak import BleakClient
+from bleak import BleakClient, BleakError
 from bleak_retry_connector import BLEDevice, establish_connection
 
 from . import session, util
@@ -43,9 +43,13 @@ class Lock:
     async def connect(self) -> None:
         """Connect to the lock."""
         _LOGGER.debug("%s: Connecting to the lock", self.name)
-        self.client = await establish_connection(
-            BleakClient, self.device, self.name, self.disconnected
-        )
+        try:
+            self.client = await establish_connection(
+                BleakClient, self.device, self.name, self.disconnected
+            )
+        except (asyncio.TimeoutError, BleakError) as err:
+            _LOGGER.error("%s: Failed to connect to the lock: %s", self.name, err)
+            raise err
         _LOGGER.debug("%s: Connected", self.name)
         self.session = session.Session(self.client, self.name, self._lock)
         self.secure_session = session.SecureSession(
