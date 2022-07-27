@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.1 (2022-07-27)
+### Fix
+* Cancel lock status update when unlocking/locking ([#12](https://github.com/bdraco/yalexs-ble/issues/12)) ([`1c08fb6`](https://github.com/bdraco/yalexs-ble/commit/1c08fb68ccc360fac7d1c64bd24390819a548db2))
+
 ## v0.4.0 (2022-07-27)
 ### Feature
 * Start now return a cancel callable ([#11](https://github.com/bdraco/yalexs-ble/issues/11)) ([`5ff3a36`](https://github.com/bdraco/yalexs-ble/commit/5ff3a36d8a7a0b3720f4ca5022d5bef48f5d712b))
