@@ -17,6 +17,7 @@ from .const import (
     LockState,
     LockStatus,
 )
+from .session import AuthError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class Lock:
         util._copy(cmd, handshake_keys[0x00:0x08], destLocation=0x04)
         response = await self.secure_session.execute(cmd)
         if response[0x00] != 0x02:
-            raise Exception(
+            raise AuthError(
                 "Unexpected response to SEC_LOCK_TO_MOBILE_KEY_EXCHANGE: "
                 + response.hex()
             )
@@ -77,7 +78,7 @@ class Lock:
         util._copy(cmd, handshake_keys[0x08:0x10], destLocation=0x04)
         response = await self.secure_session.execute(cmd)
         if response[0] != 0x04:
-            raise ValueError(
+            raise AuthError(
                 "Unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
             )
 
