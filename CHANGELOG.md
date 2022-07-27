@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.2 (2022-07-27)
+### Fix
+* Error reporting ([#13](https://github.com/bdraco/yalexs-ble/issues/13)) ([`e7822cf`](https://github.com/bdraco/yalexs-ble/commit/e7822cf483df07b9611a9bab1c4f35b7eb6cc2d8))
+
 ## v0.4.1 (2022-07-27)
 ### Fix
 * Cancel lock status update when unlocking/locking ([#12](https://github.com/bdraco/yalexs-ble/issues/12)) ([`1c08fb6`](https://github.com/bdraco/yalexs-ble/commit/1c08fb68ccc360fac7d1c64bd24390819a548db2))
