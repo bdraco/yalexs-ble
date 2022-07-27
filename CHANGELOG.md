@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.5.1 (2022-07-27)
+### Fix
+* Error handling for d-bus ([#16](https://github.com/bdraco/yalexs-ble/issues/16)) ([`a4c92a0`](https://github.com/bdraco/yalexs-ble/commit/a4c92a056f5ac58877166189a71ffea9fabeac75))
+
 ## v0.5.0 (2022-07-27)
 ### Feature
 * Expose lock state ([#15](https://github.com/bdraco/yalexs-ble/issues/15)) ([`2384592`](https://github.com/bdraco/yalexs-ble/commit/2384592dafdc3a9f79a0f98bcdb42b675da403a1))
