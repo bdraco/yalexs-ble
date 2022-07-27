@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.1 (2022-07-27)
+### Fix
+* Add missing imports ([#10](https://github.com/bdraco/yalexs-ble/issues/10)) ([`4a76d51`](https://github.com/bdraco/yalexs-ble/commit/4a76d5103e8b1d26469847cc7afe1bf7ca9ddaa5))
+
 ## v0.3.0 (2022-07-27)
 ### Feature
 * Add serial number helpers ([#9](https://github.com/bdraco/yalexs-ble/issues/9)) ([`3d532dc`](https://github.com/bdraco/yalexs-ble/commit/3d532dc36b0ab53c47762ccdccffb8452c36be75))
