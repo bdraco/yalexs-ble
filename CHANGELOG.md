@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.3 (2022-07-27)
+### Fix
+* Add dbus error handler ([#14](https://github.com/bdraco/yalexs-ble/issues/14)) ([`2046a95`](https://github.com/bdraco/yalexs-ble/commit/2046a95240c4cf40dfcb923b55b3f9d404698422))
+
 ## v0.4.2 (2022-07-27)
 ### Fix
 * Error reporting ([#13](https://github.com/bdraco/yalexs-ble/issues/13)) ([`e7822cf`](https://github.com/bdraco/yalexs-ble/commit/e7822cf483df07b9611a9bab1c4f35b7eb6cc2d8))
