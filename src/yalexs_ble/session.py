@@ -145,18 +145,25 @@ class Session:
             _LOGGER.debug("%s: Got response: %s", self.name, result.hex())
         except asyncio.TimeoutError:
             _LOGGER.debug("%s: Timeout", self.name)
+            await self._stop_notify()
+        except Exception:  # pylint: disable=broad-except
+            await self._stop_notify()
             raise
-        finally:
-            _LOGGER.debug("%s: Stopping notify", self.name)
-            try:
-                await self.client.stop_notify(self.read_characteristic)
-            except BleakError as err:
-                if "not found" in str(err):
-                    raise AuthError(f"{self.name}: {err}") from err
-                raise
 
         _LOGGER.debug("%s: Received response: %s", self.name, result.hex())
         return result
+
+    async def _stop_notify(self) -> None:
+        """Stop notify."""
+        _LOGGER.debug("%s: Stopping notify", self.name)
+        try:
+            await self.client.stop_notify(self.read_characteristic)
+        except EOFError as err:
+            _LOGGER.debug("%s: D-Bus stopping notify: %s", self.name, err)
+            pass
+        except BleakError as err:
+            _LOGGER.debug("%s: Bleak error stopping notify: %s", self.name, err)
+            pass
 
     async def execute(self, command: bytearray) -> bytes:
         self._write_checksum(command)

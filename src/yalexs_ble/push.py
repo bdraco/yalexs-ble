@@ -314,7 +314,7 @@ class PushLock:
                     "%s: Auth error, key or slot (key index) is incorrect", self.name
                 )
             except asyncio.CancelledError:
-                pass
+                raise
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("%s: Error updating", self.name)
 
