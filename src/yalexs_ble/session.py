@@ -5,6 +5,7 @@ import logging
 
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak_retry_connector import BleakError
 from Crypto.Cipher import AES  # nosec
 
 from . import util
@@ -16,6 +17,10 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class AuthError(Exception):
+    pass
 
 
 class Session:
@@ -117,7 +122,12 @@ class Session:
             future.set_result(decrypted_data)
 
         _LOGGER.debug("%s: Starting notify", self.name)
-        await self.client.start_notify(self.read_characteristic, _notify)
+        try:
+            await self.client.start_notify(self.read_characteristic, _notify)
+        except BleakError as err:
+            if "not found" in str(err):
+                raise AuthError(f"{self.name}: {err}") from err
+            raise
         try:
             _LOGGER.debug(
                 "%s: Writing command to %s: %s",
@@ -134,7 +144,12 @@ class Session:
             raise
         finally:
             _LOGGER.debug("%s: Stopping notify", self.name)
-            await self.client.stop_notify(self.read_characteristic)
+            try:
+                await self.client.stop_notify(self.read_characteristic)
+            except BleakError as err:
+                if "not found" in str(err):
+                    raise AuthError(f"{self.name}: {err}") from err
+                raise
 
         _LOGGER.debug("%s: Received response: %s", self.name, result.hex())
         return result
