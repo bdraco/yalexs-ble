@@ -23,6 +23,10 @@ class AuthError(Exception):
     pass
 
 
+class ResponseError(Exception):
+    pass
+
+
 class Session:
 
     write_characteristic = WRITE_CHARACTERISTIC
@@ -74,10 +78,10 @@ class Session:
             str(util._simple_checksum(response)),
         )
         if util._simple_checksum(response) != 0:
-            raise ValueError(f"Simple checksum mismatch {response!r}")
+            raise ResponseError(f"Simple checksum mismatch {response!r}")
 
         if response[0x00] != 0xBB and response[0x00] != 0xAA:
-            raise ValueError(f"Incorrect flag in response: {response[0x00]}")
+            raise ResponseError(f"Incorrect flag in response: {response[0x00]}")
 
     async def _write(self, command: bytearray) -> bytes:
         """Write under the lock."""
@@ -115,7 +119,7 @@ class Session:
             )
             try:
                 self._validate_response(data)
-            except ValueError:
+            except ResponseError:
                 _LOGGER.debug("%s: Invalid response, waiting for next one", self.name)
                 return
             notified = True
@@ -199,7 +203,7 @@ class SecureSession(Session):
             "%s: Response security checksum: %s", self.name, str(response_checksum)
         )
         if util._security_checksum(data) != response_checksum:
-            raise ValueError(
+            raise ResponseError(
                 "Security checksum mismatch: %s != %s"
                 % (util._security_checksum(data), response_checksum)
             )

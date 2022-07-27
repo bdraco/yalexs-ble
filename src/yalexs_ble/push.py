@@ -17,7 +17,7 @@ from .const import (
     LockStatus,
 )
 from .lock import Lock
-from .session import AuthError
+from .session import AuthError, ResponseError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,25 +51,33 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
         self: "PushLock", *args: Any, **kwargs: Any
     ) -> Any:
         _LOGGER.debug("%s: Starting retry loop", self.name)
+        attempts = DEFAULT_ATTEMPTS
+        max_attempts = attempts - 1
 
-        for attempt in range(DEFAULT_ATTEMPTS):
+        for attempt in range(attempts):
             try:
                 return await func(self, *args, **kwargs)
             except asyncio.TimeoutError:
+                if attempt == max_attempts:
+                    raise
                 _LOGGER.debug(
                     "%s: Timeout error calling %s, retrying...",
                     self.name,
                     func,
                     exc_info=True,
                 )
-            except ValueError:
+            except ResponseError:
+                if attempt == max_attempts:
+                    raise
                 _LOGGER.debug(
-                    "%s: Encryption error calling %s, retrying...",
+                    "%s: Response error calling %s, retrying...",
                     self.name,
                     func,
                     exc_info=True,
                 )
             except BleakError:
+                if attempt == max_attempts:
+                    raise
                 _LOGGER.debug(
                     "%s: Bleak error calling %s, retrying...",
                     self.name,
@@ -78,8 +86,6 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 )
             except AuthError:
                 raise
-            except Exception as e:
-                _LOGGER.exception("%s: Failed: %s", self.name, e)
 
     return cast(WrapFuncType, _async_wrap_retry_bluetooth_connection_error)
 
@@ -142,8 +148,8 @@ class PushLock:
     async def _cancel_any_update(self) -> None:
         """Cancel any update task."""
         await asyncio.sleep(0)
-        _LOGGER.warning("Canceling in progress update: %s", self._update_task)
         if self._update_task:
+            _LOGGER.debug("Canceling in progress update: %s", self._update_task)
             self._update_task.cancel()
             self._update_task = None
 
