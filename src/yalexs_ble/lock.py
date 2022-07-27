@@ -1,65 +1,57 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
+from typing import Any
 
 from bleak import BleakClient
+from bleak_retry_connector import establish_connection
 
 from . import session, util
-from .const import Commands
+from .const import (
+    VALUE_TO_DOOR_STATUS,
+    VALUE_TO_LOCK_STATUS,
+    Commands,
+    DoorStatus,
+    LockState,
+    LockStatus,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Lock:
-    COMMAND_SERVICE_UUID = "0000fe24-0000-1000-8000-00805f9b34fb"
-    WRITE_CHARACTERISTIC = "bd4ac611-0b45-11e3-8ffd-0800200c9a66"
-    READ_CHARACTERISTIC = "bd4ac612-0b45-11e3-8ffd-0800200c9a66"
-    SECURE_WRITE_CHARACTERISTIC = "bd4ac613-0b45-11e3-8ffd-0800200c9a66"
-    SECURE_READ_CHARACTERISTIC = "bd4ac614-0b45-11e3-8ffd-0800200c9a66"
-
     def __init__(self, address: str, keyString: str, keyIndex: int) -> None:
         self.address = address
         self.key = bytes.fromhex(keyString)
         self.key_index = keyIndex
-        self.name: str | None = None
+        self.name = address
         self.session: session.Session | None = None
         self.secure_session: session.SecureSession | None = None
         self.is_secure = False
         self._lock = asyncio.Lock()
+        self.client: BleakClient | None = None
 
     def set_name(self, name: str) -> None:
         self.name = name
 
+    def disconnected(self, *args: Any, **kwargs: Any) -> None:
+        _LOGGER.error("%s: Disconnected from lock", self.name)
+
     async def connect(self) -> None:
         """Connect to the lock."""
-        self.client = BleakClient(self.address)
-        self.session = session.Session(self.client, self._lock)
+        _LOGGER.debug("%s: Connecting to the lock", self.name)
+        self.client = await establish_connection(
+            BleakClient, self.address, self.name, self.disconnected
+        )
+        _LOGGER.debug("%s: Connected", self.name)
+        self.session = session.Session(self.client, self.name, self._lock)
         self.secure_session = session.SecureSession(
-            self.client, self._lock, self.key_index
+            self.client, self.name, self._lock, self.key_index
         )
 
-        await self.client.connect()
-        for service in self.client.services:
-            for characteristic in service.characteristics:
-                if characteristic.uuid == self.WRITE_CHARACTERISTIC:
-                    self.session.set_write(characteristic)
-                elif characteristic.uuid == self.READ_CHARACTERISTIC:
-                    self.session.set_read(characteristic)
-                elif characteristic.uuid == self.SECURE_WRITE_CHARACTERISTIC:
-                    self.secure_session.set_write(characteristic)
-                elif characteristic.uuid == self.SECURE_READ_CHARACTERISTIC:
-                    self.secure_session.set_read(characteristic)
-
-        if not self.secure_session.write_characteristic:
-            raise RuntimeWarning("No secure write characteristic found")
-        if not self.secure_session.read_characteristic:
-            raise RuntimeWarning("No secure read characteristic found")
-        if not self.session.write_characteristic:
-            raise RuntimeWarning("No write characteristic found")
-        if not self.session.read_characteristic:
-            raise RuntimeWarning("No read characteristic found")
-
         self.secure_session.set_key(self.key)
-
         handshake_keys = os.urandom(16)
 
         # Send SEC_LOCK_TO_MOBILE_KEY_EXCHANGE
@@ -107,32 +99,31 @@ class Lock:
         if await self.status() == "locked":
             await self.force_unlock()
 
-    async def status(self) -> str:
+    async def status(self) -> LockState:
         if not self.is_connected or not self.session:
             raise RuntimeError("Not connected")
         cmd = bytearray(0x12)
         cmd[0x00] = 0xEE
         cmd[0x01] = 0x02
-        cmd[0x04] = 0x02
+        cmd[0x04] = 0x2F  # We want door status as well
         cmd[0x10] = 0x02
-
         response = await self.session.execute(cmd)
-        status = response[0x08]
+        _LOGGER.debug("%s: Status response: [%s]", self.name, response.hex())
+        lock_status = response[0x08]
+        door_status = response[0x09]
 
-        strstatus = "unknown"
-        if status == 0x02:
-            strstatus = "unlocking"
-        elif status == 0x03:
-            strstatus = "unlocked"
-        elif status == 0x04:
-            strstatus = "locking"
-        elif status == 0x05:
-            strstatus = "locked"
+        lock_status_enum = VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
+        door_status_enum = VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)
 
-        if strstatus == "unknown":
-            print("Unrecognized status code: " + hex(status))
-
-        return strstatus
+        if lock_status_enum == LockStatus.UNKNOWN:
+            _LOGGER.debug(
+                "%s: Unrecognized lock_status_str code: %s", self.name, hex(lock_status)
+            )
+        if door_status_enum == DoorStatus.UNKNOWN:
+            _LOGGER.debug(
+                "%s: Unrecognized door_status_str code: %s", self.name, hex(door_status)
+            )
+        return LockState(lock_status_enum, door_status_enum)
 
     async def disconnect(self) -> None:
 
@@ -144,8 +135,8 @@ class Lock:
         #     if response[0] != 0x8b:
         #         raise Exception("Unexpected response to DISCONNECT: " +
         #                         response.hex())
-
-        await self.client.disconnect()
+        if self.client:
+            await self.client.disconnect()
 
     @property
     def is_connected(self) -> bool:
