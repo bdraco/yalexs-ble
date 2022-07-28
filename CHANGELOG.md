@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.0 (2022-07-28)
+### Feature
+* Coalesce updates ([#19](https://github.com/bdraco/yalexs-ble/issues/19)) ([`9f5fe74`](https://github.com/bdraco/yalexs-ble/commit/9f5fe74c77d5705d1b6f9e19f4ae177619653895))
+
 ## v0.6.1 (2022-07-28)
 ### Fix
 * Handle disconnect race ([#18](https://github.com/bdraco/yalexs-ble/issues/18)) ([`ecd6916`](https://github.com/bdraco/yalexs-ble/commit/ecd691621527144cd1b859090d4182956421e113))
