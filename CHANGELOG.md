@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.6.0 (2022-07-28)
+### Feature
+* Speed up init ([#17](https://github.com/bdraco/yalexs-ble/issues/17)) ([`61f3fbc`](https://github.com/bdraco/yalexs-ble/commit/61f3fbc65bae5386f16e2b1609f7f4666660a6a6))
+
 ## v0.5.1 (2022-07-27)
 ### Fix
 * Error handling for d-bus ([#16](https://github.com/bdraco/yalexs-ble/issues/16)) ([`a4c92a0`](https://github.com/bdraco/yalexs-ble/commit/a4c92a056f5ac58877166189a71ffea9fabeac75))
