@@ -19,7 +19,7 @@ from .const import (
     LockStatus,
 )
 from .lock import Lock
-from .session import AuthError, ResponseError
+from .session import AuthError, DisconnectedError, ResponseError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,39 +59,19 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
         for attempt in range(attempts):
             try:
                 return await func(self, *args, **kwargs)
-            except asyncio.TimeoutError:
+            except (
+                asyncio.TimeoutError,
+                ResponseError,
+                DisconnectedError,
+                BleakError,
+                EOFError,
+            ) as err:
                 if attempt == max_attempts:
                     raise
                 _LOGGER.debug(
-                    "%s: Timeout error calling %s, retrying...",
+                    "%s: %s error calling %s, retrying...",
                     self.name,
-                    func,
-                    exc_info=True,
-                )
-            except ResponseError:
-                if attempt == max_attempts:
-                    raise
-                _LOGGER.debug(
-                    "%s: Response error calling %s, retrying...",
-                    self.name,
-                    func,
-                    exc_info=True,
-                )
-            except BleakError:
-                if attempt == max_attempts:
-                    raise
-                _LOGGER.debug(
-                    "%s: Bleak error calling %s, retrying...",
-                    self.name,
-                    func,
-                    exc_info=True,
-                )
-            except EOFError:
-                if attempt == max_attempts:
-                    raise
-                _LOGGER.debug(
-                    "%s: D-bus error calling %s, retrying...",
-                    self.name,
+                    type(err),
                     func,
                     exc_info=True,
                 )
@@ -268,7 +248,10 @@ class PushLock:
         ):
             hk_state = get_homekit_state_num(ad.manufacturer_data[APPLE_MFR_ID])
             if hk_state != self._last_hk_state:
-                # has_update = True
+                if self._last_adv_value == -1:
+                    # Init on the homekit update as well
+                    has_update = True
+                    self._last_adv_value = 0
                 self._last_hk_state = hk_state
         if YALE_MFR_ID in ad.manufacturer_data:
             current_value = ad.manufacturer_data[YALE_MFR_ID][0]
@@ -309,12 +292,15 @@ class PushLock:
             try:
                 self._update_task = asyncio.create_task(self.update())
                 await self._update_task
-            except AuthError:
+            except AuthError as ex:
                 _LOGGER.error(
-                    "%s: Auth error, key or slot (key index) is incorrect", self.name
+                    "%s: Auth error, key or slot (key index) is incorrect: %s",
+                    self.name,
+                    ex,
+                    exc_info=True,
                 )
             except asyncio.CancelledError:
-                raise
+                _LOGGER.debug("%s: In-progress update canceled", self.name)
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("%s: Error updating", self.name)
 
