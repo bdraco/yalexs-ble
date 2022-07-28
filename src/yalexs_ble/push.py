@@ -27,6 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 3
+UPDATE_COALESCE_SECONDS = 3.5
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -88,16 +89,18 @@ class PushLock:
         """Init the lock watcher."""
         self._local_name = local_name
         self._lock_state: LockState | None = None
-        self._update_queue: asyncio.Queue[BLEDevice] = asyncio.Queue(1)
         self._last_adv_value = -1
         self._last_hk_state = -1
         self._lock_key: str | None = None
         self._lock_key_index: int | None = None
         self._ble_device: BLEDevice | None = None
         self._operation_lock = asyncio.Lock()
-        self._runner: asyncio.Task | None = None  # type: ignore[type-arg]
+        self._running = False
         self._callbacks: list[Callable[[LockState], None]] = []
         self._update_task: asyncio.Task | None = None  # type: ignore[type-arg]
+        self._debounce_lock = asyncio.Lock()
+        self.loop = asyncio._get_running_loop()
+        self._cancel_deferred_update: asyncio.TimerHandle | None = None
 
     @property
     def local_name(self) -> str:
@@ -154,6 +157,10 @@ class PushLock:
     async def _cancel_any_update(self) -> None:
         """Cancel any update task."""
         await asyncio.sleep(0)
+        self._cancel_in_progress_update()
+
+    def _cancel_in_progress_update(self) -> None:
+        """Cancel any in progress update task."""
         if self._update_task:
             _LOGGER.debug("Canceling in progress update: %s", self._update_task)
             self._update_task.cancel()
@@ -242,19 +249,19 @@ class PushLock:
         )
         self.set_ble_device(ble_device)
         has_update = False
-        if (
-            APPLE_MFR_ID in ad.manufacturer_data
-            and ad.manufacturer_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE
-        ):
-            hk_state = get_homekit_state_num(ad.manufacturer_data[APPLE_MFR_ID])
+        mfr_data = dict(ad.manufacturer_data)
+        if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
+            hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
+            # Sometimes the yale data is glued on to the end of the HomeKit data
+            # but in that case it seems wrong so we don't process it
+            #
+            # if len(mfr_data[APPLE_MFR_ID]) > 20 and YALE_MFR_ID not in mfr_data:
+            # mfr_data[YALE_MFR_ID] = mfr_data[APPLE_MFR_ID][20:]
             if hk_state != self._last_hk_state:
-                if self._last_adv_value == -1:
-                    # Init on the homekit update as well
-                    has_update = True
-                    self._last_adv_value = 0
+                has_update = True
                 self._last_hk_state = hk_state
-        if YALE_MFR_ID in ad.manufacturer_data:
-            current_value = ad.manufacturer_data[YALE_MFR_ID][0]
+        if YALE_MFR_ID in mfr_data:
+            current_value = mfr_data[YALE_MFR_ID][0]
             if current_value != self._last_adv_value:
                 has_update = True
                 self._last_adv_value = current_value
@@ -267,27 +274,48 @@ class PushLock:
             self._last_adv_value,
             has_update,
         )
-        if not self._update_queue.full() and has_update:
-            self._update_queue.put_nowait(ble_device)
+        if has_update:
+            self._schedule_update()
 
     async def start(self) -> Callable[[], None]:
         """Start watching for updates."""
         _LOGGER.debug("Waiting for advertisement callbacks for %s", self.name)
-        if self._runner:
+        if self._running:
             raise RuntimeError("Already running")
-        self._runner = asyncio.create_task(self._queue_watcher())
+        self._running = True
 
         def _cancel() -> None:
-            self._update_queue.put_nowait(None)
-            if self._runner:
-                self._runner.cancel()
-                self._runner = None
+            self._running = False
+            self._cancel_in_progress_update()
 
         return _cancel
 
-    async def _queue_watcher(self) -> None:
+    def _schedule_update(self) -> None:
+        """Schedule an update."""
+        if self._cancel_deferred_update:
+            _LOGGER.debug("%s: Rescheduling update", self.name)
+            self._cancel_deferred_update.cancel()
+            self._cancel_deferred_update = None
+        self._cancel_deferred_update = self.loop.call_later(
+            UPDATE_COALESCE_SECONDS, self._deferred_update
+        )
+
+    def _deferred_update(self) -> None:
+        """Update the lock state."""
+        if self._debounce_lock.locked():
+            _LOGGER.debug(
+                "%s: Rescheduling update since one already in progress", self.name
+            )
+            self._schedule_update()
+            return
+        self._cancel_deferred_update = None
+        self.loop.create_task(self.update())
+
+    async def _queue_update(self) -> None:
         """Watch for updates."""
-        while await self._update_queue.get():
+        async with self._debounce_lock:
+            if not self._running:
+                return
             _LOGGER.debug("%s: Starting update", self.name)
             try:
                 self._update_task = asyncio.create_task(self.update())
