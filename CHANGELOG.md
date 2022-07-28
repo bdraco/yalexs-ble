@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.6.1 (2022-07-28)
+### Fix
+* Handle disconnect race ([#18](https://github.com/bdraco/yalexs-ble/issues/18)) ([`ecd6916`](https://github.com/bdraco/yalexs-ble/commit/ecd691621527144cd1b859090d4182956421e113))
+
 ## v0.6.0 (2022-07-28)
 ### Feature
 * Speed up init ([#17](https://github.com/bdraco/yalexs-ble/issues/17)) ([`61f3fbc`](https://github.com/bdraco/yalexs-ble/commit/61f3fbc65bae5386f16e2b1609f7f4666660a6a6))
