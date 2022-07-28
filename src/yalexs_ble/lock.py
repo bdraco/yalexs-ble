@@ -18,7 +18,7 @@ from .const import (
     LockStatus,
 )
 from .secure_session import SecureSession
-from .session import AuthError, Session
+from .session import AuthError, DisconnectedError, Session
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -159,6 +159,9 @@ class Lock:
                 response = await self.secure_session.execute(
                     self._disconnected_event, cmd
                 )
+            except DisconnectedError:
+                # Lock already disconnected us
+                pass
             except (BleakError, asyncio.TimeoutError, EOFError) as err:
                 if "disconnected" not in str(err):
                     _LOGGER.debug(
