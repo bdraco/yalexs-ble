@@ -35,6 +35,14 @@ HK_UPDATE_COALESCE_SECONDS = 1
 
 UPDATE_IN_PROGRESS_DEFER_SECONDS = 60
 
+RETRY_EXCEPTIONS = (
+    asyncio.TimeoutError,
+    ResponseError,
+    DisconnectedError,
+    BleakError,
+    EOFError,
+)
+
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
@@ -66,13 +74,9 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
         for attempt in range(attempts):
             try:
                 return await func(self, *args, **kwargs)
-            except (
-                asyncio.TimeoutError,
-                ResponseError,
-                DisconnectedError,
-                BleakError,
-                EOFError,
-            ) as err:
+            except AuthError:
+                raise
+            except RETRY_EXCEPTIONS as err:
                 if attempt == max_attempts:
                     raise
                 _LOGGER.debug(
@@ -82,8 +86,6 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                     func,
                     exc_info=True,
                 )
-            except AuthError:
-                raise
 
     return cast(WrapFuncType, _async_wrap_retry_bluetooth_connection_error)
 
@@ -178,8 +180,8 @@ class PushLock:
             self._update_task.cancel()
             self._update_task = None
 
-    @operation_lock
     @retry_bluetooth_connection_error
+    @operation_lock
     async def lock(self) -> None:
         """Lock the lock."""
         _LOGGER.debug("Starting lock")
@@ -196,8 +198,8 @@ class PushLock:
         await self._cancel_any_update()
         _LOGGER.debug("Finished lock")
 
-    @operation_lock
     @retry_bluetooth_connection_error
+    @operation_lock
     async def unlock(self) -> None:
         """Unlock the lock."""
         _LOGGER.debug("Starting unlock")
@@ -214,8 +216,8 @@ class PushLock:
         await self._cancel_any_update()
         _LOGGER.debug("Finished unlock")
 
-    @operation_lock
     @retry_bluetooth_connection_error
+    @operation_lock
     async def update(self) -> LockState:
         """Update the lock state."""
         lock = self._get_lock_instance()

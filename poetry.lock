@@ -393,6 +393,20 @@ tomli = ">=1.0.0"
 testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "xmlschema"]
 
 [[package]]
+name = "pytest-asyncio"
+version = "0.19.0"
+description = "Pytest support for asyncio"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+pytest = ">=6.1.0"
+
+[package.extras]
+testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)", "flaky (>=3.5.0)", "mypy (>=0.931)", "pytest-trio (>=0.7.0)"]
+
+[[package]]
 name = "pytest-cov"
 version = "3.0.0"
 description = "Pytest plugin for measuring coverage."
@@ -614,7 +628,7 @@ docs = ["myst-parser", "Sphinx", "sphinx-rtd-theme"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "55787b0845bfc7ee18a2a135a26f45adb5660f2f8f5538e43dbc1b02b9ace11e"
+content-hash = "a3f555c8f169dc686eb21ba85425c0acf9accf8d6546d080c1ba8bb252bdb873"
 
 [metadata.files]
 alabaster = []
@@ -652,6 +666,7 @@ pyobjc-framework-corebluetooth = []
 pyobjc-framework-libdispatch = []
 pyparsing = []
 pytest = []
+pytest-asyncio = []
 pytest-cov = []
 pytz = []
 pyyaml = []
