@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.1 (2022-08-02)
+### Fix
+* Ensure homekit updates take precedence ([#23](https://github.com/bdraco/yalexs-ble/issues/23)) ([`6897092`](https://github.com/bdraco/yalexs-ble/commit/6897092ea6b7a0b5cc8fe1d36e43ed1dda6b37ae))
+
 ## v0.9.0 (2022-08-02)
 ### Feature
 * Add lock_info property ([#22](https://github.com/bdraco/yalexs-ble/issues/22)) ([`ac7f956`](https://github.com/bdraco/yalexs-ble/commit/ac7f956cc10753fe1f7e093c95846541912003aa))
