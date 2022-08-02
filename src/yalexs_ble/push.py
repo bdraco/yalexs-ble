@@ -134,6 +134,11 @@ class PushLock:
         """Return the current lock state."""
         return self._lock_state
 
+    @property
+    def lock_info(self) -> LockInfo | None:
+        """Return the current lock info."""
+        return self._lock_info
+
     def register_callback(
         self, callback: Callable[[LockState, LockInfo], None]
     ) -> Callable[[], None]:
