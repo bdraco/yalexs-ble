@@ -275,15 +275,22 @@ class PushLock:
                 if not next_update:
                     next_update = ADV_UPDATE_COALESCE_SECONDS
                 self._last_adv_value = current_value
-        _LOGGER.debug(
-            "%s: State: (current_state: %s) (hk_state: %s) "
-            "(adv_value: %s) (next_update: %s)",
-            self.name,
-            self._lock_state,
-            self._last_hk_state,
-            self._last_adv_value,
-            next_update,
-        )
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            scheduled_update = None
+            if self._cancel_deferred_update:
+                scheduled_update = (
+                    self._cancel_deferred_update.when() - self.loop.time()
+                )
+            _LOGGER.debug(
+                "%s: State: (current_state: %s) (hk_state: %s) "
+                "(adv_value: %s) (next_update: %s) (scheduled_update: %s)",
+                self.name,
+                self._lock_state,
+                self._last_hk_state,
+                self._last_adv_value,
+                next_update,
+                scheduled_update,
+            )
         if next_update:
             self._schedule_update(next_update)
 
