@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.0 (2022-08-02)
+### Feature
+* Add lock_info property ([#22](https://github.com/bdraco/yalexs-ble/issues/22)) ([`ac7f956`](https://github.com/bdraco/yalexs-ble/commit/ac7f956cc10753fe1f7e093c95846541912003aa))
+
 ## v0.8.0 (2022-08-02)
 ### Feature
 * Add lock info ([#21](https://github.com/bdraco/yalexs-ble/issues/21)) ([`6bd635d`](https://github.com/bdraco/yalexs-ble/commit/6bd635d1d055d86a26534cc0b0c761388b417dac))
