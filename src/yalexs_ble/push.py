@@ -35,6 +35,14 @@ HK_UPDATE_COALESCE_SECONDS = 1
 
 UPDATE_IN_PROGRESS_DEFER_SECONDS = 60
 
+RETRY_EXCEPTIONS = (
+    asyncio.TimeoutError,
+    ResponseError,
+    DisconnectedError,
+    BleakError,
+    EOFError,
+)
+
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
@@ -66,13 +74,9 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
         for attempt in range(attempts):
             try:
                 return await func(self, *args, **kwargs)
-            except (
-                asyncio.TimeoutError,
-                ResponseError,
-                DisconnectedError,
-                BleakError,
-                EOFError,
-            ) as err:
+            except AuthError:
+                raise
+            except RETRY_EXCEPTIONS as err:
                 if attempt == max_attempts:
                     raise
                 _LOGGER.debug(
@@ -82,8 +86,6 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                     func,
                     exc_info=True,
                 )
-            except AuthError:
-                raise
 
     return cast(WrapFuncType, _async_wrap_retry_bluetooth_connection_error)
 
