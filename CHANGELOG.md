@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.11.0 (2022-08-02)
+### Feature
+* Speed up first update ([#29](https://github.com/bdraco/yalexs-ble/issues/29)) ([`764894b`](https://github.com/bdraco/yalexs-ble/commit/764894b7400163eefcddf3b846f6365827efa7db))
+
 ## v0.10.0 (2022-08-02)
 ### Feature
 * Add connection information ([#28](https://github.com/bdraco/yalexs-ble/issues/28)) ([`36ff430`](https://github.com/bdraco/yalexs-ble/commit/36ff4300f332a8e1a2e1dc37fdfecf6e646fe0b0))
