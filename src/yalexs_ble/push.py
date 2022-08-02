@@ -221,7 +221,6 @@ class PushLock:
         lock = self._get_lock_instance()
         try:
             async with lock:
-                await lock.force_unlock()
                 if not self._lock_info:
                     self._lock_info = await lock.lock_info()
                 state = await lock.status()
