@@ -30,8 +30,8 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 3
 
+FIRST_UPDATE_COALESCE_SECONDS = 3
 ADV_UPDATE_COALESCE_SECONDS = 10
-
 HK_UPDATE_COALESCE_SECONDS = 1
 
 UPDATE_IN_PROGRESS_DEFER_SECONDS = 60
@@ -195,8 +195,8 @@ class PushLock:
             self._update_task.cancel()
             self._update_task = None
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def lock(self) -> None:
         """Lock the lock."""
         _LOGGER.debug("Starting lock")
@@ -213,8 +213,8 @@ class PushLock:
         await self._cancel_any_update()
         _LOGGER.debug("Finished lock")
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def unlock(self) -> None:
         """Unlock the lock."""
         _LOGGER.debug("Starting unlock")
@@ -231,8 +231,8 @@ class PushLock:
         await self._cancel_any_update()
         _LOGGER.debug("Finished unlock")
 
-    @retry_bluetooth_connection_error
     @operation_lock
+    @retry_bluetooth_connection_error
     async def update(self) -> LockState:
         """Update the lock state."""
         lock = self._get_lock_instance()
@@ -291,13 +291,19 @@ class PushLock:
             # if len(mfr_data[APPLE_MFR_ID]) > 20 and YALE_MFR_ID not in mfr_data:
             # mfr_data[YALE_MFR_ID] = mfr_data[APPLE_MFR_ID][20:]
             if hk_state != self._last_hk_state:
-                next_update = HK_UPDATE_COALESCE_SECONDS
+                if self._last_hk_state == -1:
+                    next_update = FIRST_UPDATE_COALESCE_SECONDS
+                else:
+                    next_update = HK_UPDATE_COALESCE_SECONDS
                 self._last_hk_state = hk_state
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
             if current_value != self._last_adv_value:
                 if not next_update:
-                    next_update = ADV_UPDATE_COALESCE_SECONDS
+                    if self._last_adv_value == -1:
+                        next_update = FIRST_UPDATE_COALESCE_SECONDS
+                    else:
+                        next_update = ADV_UPDATE_COALESCE_SECONDS
                 self._last_adv_value = current_value
         if _LOGGER.isEnabledFor(logging.DEBUG):
             scheduled_update = None
@@ -380,6 +386,7 @@ class PushLock:
         """Watch for updates."""
         _LOGGER.debug("%s: Update queued", self.name)
         async with self._debounce_lock:
+            _LOGGER.debug("%s: Queued update starting", self.name)
             if not self._running:
                 return
             _LOGGER.debug("%s: Starting update", self.name)
