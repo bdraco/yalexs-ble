@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.3 (2022-08-02)
+### Fix
+* Ensure adv updates are processed ([#25](https://github.com/bdraco/yalexs-ble/issues/25)) ([`b655379`](https://github.com/bdraco/yalexs-ble/commit/b655379b93fd6a8b5c54871699f35613c627391c))
+
 ## v0.9.2 (2022-08-02)
 ### Fix
 * Schedule race ([#24](https://github.com/bdraco/yalexs-ble/issues/24)) ([`6a5d4cd`](https://github.com/bdraco/yalexs-ble/commit/6a5d4cda45c8286a5b891ef587ff4e0f577a7aaa))
