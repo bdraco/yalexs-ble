@@ -44,6 +44,13 @@ class Lock:
     def set_name(self, name: str) -> None:
         self.name = name
 
+    async def __aenter__(self) -> Lock:
+        await self.connect()
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        await self.disconnect()
+
     def disconnected(self, *args: Any, **kwargs: Any) -> None:
         _LOGGER.debug("%s: Disconnected from lock callback", self.name)
         assert self._disconnected_event is not None  # nosec
