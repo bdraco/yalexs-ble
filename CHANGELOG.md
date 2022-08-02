@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.12.1 (2022-08-02)
+### Fix
+* Double update when adv and homekit update at the same time ([#31](https://github.com/bdraco/yalexs-ble/issues/31)) ([`760e429`](https://github.com/bdraco/yalexs-ble/commit/760e42984461ae086599d9fc60395f50d2facffd))
+
 ## v0.12.0 (2022-08-02)
 ### Feature
 * Add manual update request ([#30](https://github.com/bdraco/yalexs-ble/issues/30)) ([`26c49a7`](https://github.com/bdraco/yalexs-ble/commit/26c49a7ae7a1ec53c82f4aa20b3c7dcd52a807b6))
