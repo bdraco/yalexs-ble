@@ -30,9 +30,8 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 3
 
-FIRST_UPDATE_COALESCE_SECONDS = 3
-ADV_UPDATE_COALESCE_SECONDS = 10
-HK_UPDATE_COALESCE_SECONDS = 1
+ADV_UPDATE_COALESCE_SECONDS = 8.75
+FIRST_UPDATE_COALESCE_SECONDS = HK_UPDATE_COALESCE_SECONDS = 1.5
 
 UPDATE_IN_PROGRESS_DEFER_SECONDS = 60
 
@@ -281,7 +280,7 @@ class PushLock:
             ad,
         )
         self.set_ble_device(ble_device)
-        next_update = 0
+        next_update = 0.0
         mfr_data = dict(ad.manufacturer_data)
         if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
             hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
