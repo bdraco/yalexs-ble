@@ -352,7 +352,7 @@ class PushLock:
             )
             self._schedule_update(UPDATE_IN_PROGRESS_DEFER_SECONDS)
             return
-        self.loop.create_task(self.update())
+        self.loop.create_task(self._queue_update())
 
     async def _queue_update(self) -> None:
         """Watch for updates."""
