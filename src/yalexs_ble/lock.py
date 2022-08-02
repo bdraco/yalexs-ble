@@ -101,17 +101,15 @@ class Lock:
         """Probe the lock for information."""
         _LOGGER.debug("%s: Probing the lock", self.name)
         assert self.client is not None  # nosec
-        return LockInfo(
-            *(
-                (await self.client.read_gatt_char(char)).decode()
-                for char in (
-                    MANUFACTURER_NAME_CHARACTERISTIC,
-                    MODEL_NUMBER_CHARACTERISTIC,
-                    SERIAL_NUMBER_CHARACTERISTIC,
-                    FIRMWARE_REVISION_CHARACTERISTIC,
-                )
-            )
-        )
+        lock_info = []
+        for char in (
+            MANUFACTURER_NAME_CHARACTERISTIC,
+            MODEL_NUMBER_CHARACTERISTIC,
+            SERIAL_NUMBER_CHARACTERISTIC,
+            FIRMWARE_REVISION_CHARACTERISTIC,
+        ):
+            lock_info.append((await self.client.read_gatt_char(char)).decode())
+        return LockInfo(*lock_info)
 
     async def force_lock(self) -> None:
         if not self.is_connected or not self.session:
