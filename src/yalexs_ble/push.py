@@ -278,7 +278,8 @@ class PushLock:
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
             if current_value != self._last_adv_value:
-                next_update = min(next_update, ADV_UPDATE_COALESCE_SECONDS)
+                if next_update:
+                    next_update = min(next_update, ADV_UPDATE_COALESCE_SECONDS)
                 self._last_adv_value = current_value
         _LOGGER.debug(
             "%s: State: (current_state: %s) (hk_state: %s) "
