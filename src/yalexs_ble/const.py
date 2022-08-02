@@ -12,6 +12,12 @@ YALE_MFR_ID = 465
 HAP_FIRST_BYTE = 0x06
 
 
+MANUFACTURER_NAME_CHARACTERISTIC = "00002a29-0000-1000-8000-00805f9b34fb"
+MODEL_NUMBER_CHARACTERISTIC = "00002a24-0000-1000-8000-00805f9b34fb"
+SERIAL_NUMBER_CHARACTERISTIC = "00002a25-0000-1000-8000-00805f9b34fb"
+FIRMWARE_REVISION_CHARACTERISTIC = "00002a26-0000-1000-8000-00805f9b34fb"
+
+
 class Commands(Enum):
 
     UNLOCK = 0x0A
@@ -49,3 +55,12 @@ class LockState:
 
     lock: LockStatus
     door: DoorStatus
+
+
+@dataclass
+class LockInfo:
+
+    manufacturer: str
+    model: str
+    serial: str
+    firmware: str
