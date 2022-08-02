@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.4 (2022-08-02)
+### Fix
+* Race in the operation locking ([#26](https://github.com/bdraco/yalexs-ble/issues/26)) ([`ccb3653`](https://github.com/bdraco/yalexs-ble/commit/ccb36530bbd936b875f91579a2e1d661b0c7e13f))
+
 ## v0.9.3 (2022-08-02)
 ### Fix
 * Ensure adv updates are processed ([#25](https://github.com/bdraco/yalexs-ble/issues/25)) ([`b655379`](https://github.com/bdraco/yalexs-ble/commit/b655379b93fd6a8b5c54871699f35613c627391c))
