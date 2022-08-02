@@ -1,4 +1,4 @@
-from .const import DoorStatus, LockState, LockStatus
+from .const import DoorStatus, LockInfo, LockState, LockStatus
 from .lock import Lock
 from .push import PushLock
 from .session import AuthError
@@ -10,6 +10,7 @@ __all__ = [
     "AuthError",
     "Lock",
     "DoorStatus",
+    "LockInfo",
     "LockState",
     "LockStatus",
     "PushLock",
