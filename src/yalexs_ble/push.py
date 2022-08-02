@@ -178,8 +178,8 @@ class PushLock:
             self._update_task.cancel()
             self._update_task = None
 
-    @operation_lock
     @retry_bluetooth_connection_error
+    @operation_lock
     async def lock(self) -> None:
         """Lock the lock."""
         _LOGGER.debug("Starting lock")
@@ -196,8 +196,8 @@ class PushLock:
         await self._cancel_any_update()
         _LOGGER.debug("Finished lock")
 
-    @operation_lock
     @retry_bluetooth_connection_error
+    @operation_lock
     async def unlock(self) -> None:
         """Unlock the lock."""
         _LOGGER.debug("Starting unlock")
@@ -214,8 +214,8 @@ class PushLock:
         await self._cancel_any_update()
         _LOGGER.debug("Finished unlock")
 
-    @operation_lock
     @retry_bluetooth_connection_error
+    @operation_lock
     async def update(self) -> LockState:
         """Update the lock state."""
         lock = self._get_lock_instance()
