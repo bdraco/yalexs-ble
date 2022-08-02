@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.10.0 (2022-08-02)
+### Feature
+* Add connection information ([#28](https://github.com/bdraco/yalexs-ble/issues/28)) ([`36ff430`](https://github.com/bdraco/yalexs-ble/commit/36ff4300f332a8e1a2e1dc37fdfecf6e646fe0b0))
+
 ## v0.9.5 (2022-08-02)
 ### Fix
 * Debounced updates ([#27](https://github.com/bdraco/yalexs-ble/issues/27)) ([`a9ce949`](https://github.com/bdraco/yalexs-ble/commit/a9ce949dc8b71992d8d5d5116c227ab5e39597b3))
