@@ -187,13 +187,11 @@ class PushLock:
         self._callback_state(LockState(LockStatus.LOCKING, self.door_status))
         lock = self._get_lock_instance()
         try:
-            await lock.connect()
-            await lock.force_lock()
+            async with lock:
+                await lock.force_lock()
         except Exception:
             self._callback_state(LockState(LockStatus.UNKNOWN, self.door_status))
             raise
-        finally:
-            await lock.disconnect()
         self._callback_state(LockState(LockStatus.LOCKED, self.door_status))
         await self._cancel_any_update()
         _LOGGER.debug("Finished lock")
@@ -207,13 +205,11 @@ class PushLock:
         self._callback_state(LockState(LockStatus.UNLOCKING, self.door_status))
         lock = self._get_lock_instance()
         try:
-            await lock.connect()
-            await lock.force_unlock()
+            async with lock:
+                await lock.force_unlock()
         except Exception:
             self._callback_state(LockState(LockStatus.UNKNOWN, self.door_status))
             raise
-        finally:
-            await lock.disconnect()
         self._callback_state(LockState(LockStatus.UNLOCKED, self.door_status))
         await self._cancel_any_update()
         _LOGGER.debug("Finished unlock")
@@ -224,17 +220,15 @@ class PushLock:
         """Update the lock state."""
         lock = self._get_lock_instance()
         try:
-            await lock.connect()
-            if not self._lock_info:
-                self._lock_info = await lock.lock_info()
-            state = await lock.status()
+            async with lock:
+                if not self._lock_info:
+                    self._lock_info = await lock.lock_info()
+                state = await lock.status()
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: In-progress update canceled due to lock operation", self.name
             )
             raise
-        finally:
-            await lock.disconnect()
         _LOGGER.debug("%s: Updating lock state", self.name)
         self._callback_state(state)
         return state
@@ -278,18 +272,25 @@ class PushLock:
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
             if current_value != self._last_adv_value:
-                if next_update:
-                    next_update = min(next_update, ADV_UPDATE_COALESCE_SECONDS)
+                if not next_update:
+                    next_update = ADV_UPDATE_COALESCE_SECONDS
                 self._last_adv_value = current_value
-        _LOGGER.debug(
-            "%s: State: (current_state: %s) (hk_state: %s) "
-            "(adv_value: %s) (next_update: %s)",
-            self.name,
-            self._lock_state,
-            self._last_hk_state,
-            self._last_adv_value,
-            next_update,
-        )
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            scheduled_update = None
+            if self._cancel_deferred_update:
+                scheduled_update = (
+                    self._cancel_deferred_update.when() - self.loop.time()
+                )
+            _LOGGER.debug(
+                "%s: State: (current_state: %s) (hk_state: %s) "
+                "(adv_value: %s) (next_update: %s) (scheduled_update: %s)",
+                self.name,
+                self._lock_state,
+                self._last_hk_state,
+                self._last_adv_value,
+                next_update,
+                scheduled_update,
+            )
         if next_update:
             self._schedule_update(next_update)
 

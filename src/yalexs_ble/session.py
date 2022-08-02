@@ -4,6 +4,7 @@ import asyncio
 import logging
 from typing import Callable
 
+import async_timeout
 from bleak import BleakClient
 from bleak_retry_connector import BleakError
 from Crypto.Cipher import AES  # nosec
@@ -139,7 +140,8 @@ class Session:
         )
         await self.client.write_gatt_char(self.write_characteristic, command, True)
         _LOGGER.debug("%s: Waiting for response", self.name)
-        result = await asyncio.wait_for(future, timeout=5)
+        async with async_timeout.timeout(5):
+            result = await future
         _LOGGER.debug("%s: Got response: %s", self.name, result.hex())
         return result
 
