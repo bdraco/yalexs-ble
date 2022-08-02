@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.5 (2022-08-02)
+### Fix
+* Debounced updates ([#27](https://github.com/bdraco/yalexs-ble/issues/27)) ([`a9ce949`](https://github.com/bdraco/yalexs-ble/commit/a9ce949dc8b71992d8d5d5116c227ab5e39597b3))
+
 ## v0.9.4 (2022-08-02)
 ### Fix
 * Race in the operation locking ([#26](https://github.com/bdraco/yalexs-ble/issues/26)) ([`ccb3653`](https://github.com/bdraco/yalexs-ble/commit/ccb36530bbd936b875f91579a2e1d661b0c7e13f))
