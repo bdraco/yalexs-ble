@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.1 (2022-08-02)
+### Fix
+* Defer updates for 10s when there is an update storm ([#20](https://github.com/bdraco/yalexs-ble/issues/20)) ([`142a5c8`](https://github.com/bdraco/yalexs-ble/commit/142a5c8a0f1a2545cccc857c2bbd43779564cafc))
+
 ## v0.7.0 (2022-07-28)
 ### Feature
 * Coalesce updates ([#19](https://github.com/bdraco/yalexs-ble/issues/19)) ([`9f5fe74`](https://github.com/bdraco/yalexs-ble/commit/9f5fe74c77d5705d1b6f9e19f4ae177619653895))
