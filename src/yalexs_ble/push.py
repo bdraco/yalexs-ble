@@ -14,6 +14,7 @@ from .const import (
     APPLE_MFR_ID,
     HAP_FIRST_BYTE,
     YALE_MFR_ID,
+    ConnectionInfo,
     DoorStatus,
     LockInfo,
     LockState,
@@ -96,8 +97,10 @@ class PushLock:
     def __init__(self, local_name: str) -> None:
         """Init the lock watcher."""
         self._local_name = local_name
+        self._name = local_name
         self._lock_info: LockInfo | None = None
         self._lock_state: LockState | None = None
+        self._connection_info: ConnectionInfo | None = None
         self._last_adv_value = -1
         self._last_hk_state = -1
         self._lock_key: str | None = None
@@ -105,7 +108,9 @@ class PushLock:
         self._ble_device: BLEDevice | None = None
         self._operation_lock = asyncio.Lock()
         self._running = False
-        self._callbacks: list[Callable[[LockState, LockInfo], None]] = []
+        self._callbacks: list[
+            Callable[[LockState, LockInfo, ConnectionInfo], None]
+        ] = []
         self._update_task: asyncio.Task | None = None  # type: ignore[type-arg]
         self._debounce_lock = asyncio.Lock()
         self.loop = asyncio._get_running_loop()
@@ -119,7 +124,7 @@ class PushLock:
     @property
     def name(self) -> str:
         """Get the name of the lock."""
-        return self._local_name
+        return self._name
 
     @property
     def door_status(self) -> DoorStatus:
@@ -141,8 +146,17 @@ class PushLock:
         """Return the current lock info."""
         return self._lock_info
 
+    @property
+    def connection_info(self) -> ConnectionInfo | None:
+        """Return the current connection info."""
+        return self._connection_info
+
+    def set_name(self, name: str) -> None:
+        """Set the name of the lock."""
+        self._name = name
+
     def register_callback(
-        self, callback: Callable[[LockState, LockInfo], None]
+        self, callback: Callable[[LockState, LockInfo, ConnectionInfo], None]
     ) -> Callable[[], None]:
         """Register a callback to be called when the lock state changes."""
 
@@ -160,13 +174,14 @@ class PushLock:
     def set_ble_device(self, ble_device: BLEDevice) -> None:
         """Set the ble device."""
         self._ble_device = ble_device
+        self._connection_info = ConnectionInfo(ble_device.rssi)
 
     def _get_lock_instance(self) -> Lock:
         """Get the lock instance."""
         assert self._ble_device is not None  # nosec
         assert self._lock_key is not None  # nosec
         assert self._lock_key_index is not None  # nosec
-        return Lock(self._ble_device, self._lock_key, self._lock_key_index)
+        return Lock(self._ble_device, self._lock_key, self._lock_key_index, self._name)
 
     async def _cancel_any_update(self) -> None:
         """Cancel any update task."""
@@ -238,11 +253,18 @@ class PushLock:
     def _callback_state(self, lock_state: LockState) -> None:
         """Call the callbacks."""
         assert self._lock_info is not None  # nosec
+        assert self._connection_info is not None  # nosec
         self._lock_state = lock_state
-        _LOGGER.debug("%s: New lock state: %s", self.name, self._lock_state)
+        _LOGGER.debug(
+            "%s: New state: %s %s %s",
+            self.name,
+            self._lock_state,
+            self._lock_info,
+            self._connection_info,
+        )
         for callback in self._callbacks:
             try:
-                callback(lock_state, self._lock_info)
+                callback(lock_state, self._lock_info, self._connection_info)
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("%s: Error calling callback", self.name)
 
@@ -356,6 +378,7 @@ class PushLock:
 
     async def _queue_update(self) -> None:
         """Watch for updates."""
+        _LOGGER.debug("%s: Update queued", self.name)
         async with self._debounce_lock:
             if not self._running:
                 return
