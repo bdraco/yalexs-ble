@@ -29,11 +29,13 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Lock:
-    def __init__(self, device: BLEDevice, keyString: str, keyIndex: int) -> None:
+    def __init__(
+        self, device: BLEDevice, keyString: str, keyIndex: int, name: str | None = None
+    ) -> None:
         self.device = device
         self.key = bytes.fromhex(keyString)
         self.key_index = keyIndex
-        self.name = device.name
+        self.name = name or device.name
         self.session: Session | None = None
         self.secure_session: SecureSession | None = None
         self.is_secure = False

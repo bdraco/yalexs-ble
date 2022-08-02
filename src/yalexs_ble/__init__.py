@@ -1,4 +1,4 @@
-from .const import DoorStatus, LockInfo, LockState, LockStatus
+from .const import ConnectionInfo, DoorStatus, LockInfo, LockState, LockStatus
 from .lock import Lock
 from .push import PushLock
 from .session import AuthError
@@ -8,8 +8,9 @@ __version__ = "0.9.5"
 
 __all__ = [
     "AuthError",
-    "Lock",
+    "ConnectionInfo",
     "DoorStatus",
+    "Lock",
     "LockInfo",
     "LockState",
     "LockStatus",

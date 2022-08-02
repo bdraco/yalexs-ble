@@ -64,3 +64,9 @@ class LockInfo:
     model: str
     serial: str
     firmware: str
+
+
+@dataclass
+class ConnectionInfo:
+
+    rssi: int
