@@ -27,7 +27,12 @@ _LOGGER = logging.getLogger(__name__)
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 3
-UPDATE_COALESCE_SECONDS = 3.5
+
+ADV_UPDATE_COALESCE_SECONDS = 10
+
+HK_UPDATE_COALESCE_SECONDS = 1
+
+UPDATE_IN_PROGRESS_DEFER_SECONDS = 60
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -248,7 +253,7 @@ class PushLock:
             ad,
         )
         self.set_ble_device(ble_device)
-        has_update = False
+        has_update = 0
         mfr_data = dict(ad.manufacturer_data)
         if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
             hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
@@ -258,12 +263,12 @@ class PushLock:
             # if len(mfr_data[APPLE_MFR_ID]) > 20 and YALE_MFR_ID not in mfr_data:
             # mfr_data[YALE_MFR_ID] = mfr_data[APPLE_MFR_ID][20:]
             if hk_state != self._last_hk_state:
-                has_update = True
+                has_update = HK_UPDATE_COALESCE_SECONDS
                 self._last_hk_state = hk_state
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
             if current_value != self._last_adv_value:
-                has_update = True
+                has_update = ADV_UPDATE_COALESCE_SECONDS
                 self._last_adv_value = current_value
         _LOGGER.debug(
             "%s: State: (current_state: %s) (hk_state: %s) "
@@ -275,7 +280,7 @@ class PushLock:
             has_update,
         )
         if has_update:
-            self._schedule_update()
+            self._schedule_update(has_update)
 
     async def start(self) -> Callable[[], None]:
         """Start watching for updates."""
@@ -290,14 +295,38 @@ class PushLock:
 
         return _cancel
 
-    def _schedule_update(self) -> None:
+    def _schedule_update(self, seconds: float) -> None:
         """Schedule an update."""
+        now = self.loop.time()
+        future_update_time = seconds
         if self._cancel_deferred_update:
+            time_till_update = self._cancel_deferred_update.when() - now
+            if future_update_time < HK_UPDATE_COALESCE_SECONDS:
+                future_update_time = HK_UPDATE_COALESCE_SECONDS
+                _LOGGER.debug(
+                    "%s: Existing update too soon %s, "
+                    "rescheduling update for in %s seconds",
+                    self.name,
+                    time_till_update,
+                    future_update_time,
+                )
+            elif time_till_update < seconds:
+                _LOGGER.debug(
+                    "%s: Existing update in %s seconds will happen sooner than now",
+                    self.name,
+                    time_till_update,
+                )
+                return
             _LOGGER.debug("%s: Rescheduling update", self.name)
             self._cancel_deferred_update.cancel()
             self._cancel_deferred_update = None
-        self._cancel_deferred_update = self.loop.call_later(
-            UPDATE_COALESCE_SECONDS, self._deferred_update
+        _LOGGER.debug(
+            "%s: Scheduling update to happen in %s seconds",
+            self.name,
+            future_update_time,
+        )
+        self._cancel_deferred_update = self.loop.call_at(
+            now + future_update_time, self._deferred_update
         )
 
     def _deferred_update(self) -> None:
@@ -306,7 +335,7 @@ class PushLock:
             _LOGGER.debug(
                 "%s: Rescheduling update since one already in progress", self.name
             )
-            self._schedule_update()
+            self._schedule_update(UPDATE_IN_PROGRESS_DEFER_SECONDS)
             return
         self._cancel_deferred_update = None
         self.loop.create_task(self.update())
