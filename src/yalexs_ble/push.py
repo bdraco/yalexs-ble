@@ -312,7 +312,7 @@ class PushLock:
         future_update_time = seconds
         if self._cancel_deferred_update:
             time_till_update = self._cancel_deferred_update.when() - now
-            if future_update_time < HK_UPDATE_COALESCE_SECONDS:
+            if time_till_update < HK_UPDATE_COALESCE_SECONDS:
                 future_update_time = HK_UPDATE_COALESCE_SECONDS
                 _LOGGER.debug(
                     "%s: Existing update too soon %s, "
