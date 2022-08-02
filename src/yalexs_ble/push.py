@@ -342,13 +342,13 @@ class PushLock:
 
     def _deferred_update(self) -> None:
         """Update the lock state."""
+        self._cancel_deferred_update = None
         if self._debounce_lock.locked():
             _LOGGER.debug(
                 "%s: Rescheduling update since one already in progress", self.name
             )
             self._schedule_update(UPDATE_IN_PROGRESS_DEFER_SECONDS)
             return
-        self._cancel_deferred_update = None
         self.loop.create_task(self.update())
 
     async def _queue_update(self) -> None:
