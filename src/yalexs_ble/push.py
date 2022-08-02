@@ -335,6 +335,7 @@ class PushLock:
         _LOGGER.debug("Waiting for advertisement callbacks for %s", self.name)
         if self._running:
             raise RuntimeError("Already running")
+        self.last_error = "No Bluetooth advertisement received"
         self._running = True
 
         def _cancel() -> None:
@@ -414,6 +415,9 @@ class PushLock:
                 )
             except asyncio.CancelledError:
                 _LOGGER.debug("%s: In-progress update canceled", self.name)
+            except asyncio.TimeoutError:
+                self.last_error = "Timed out updating"
+                _LOGGER.exception("%s: Timed out updating", self.name)
             except Exception as ex:  # pylint: disable=broad-except
                 self.last_error = str(ex)
                 _LOGGER.exception("%s: Error updating", self.name)
