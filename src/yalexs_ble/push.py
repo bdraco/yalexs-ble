@@ -263,7 +263,7 @@ class PushLock:
             ad,
         )
         self.set_ble_device(ble_device)
-        has_update = 0
+        next_update = 0
         mfr_data = dict(ad.manufacturer_data)
         if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
             hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
@@ -273,25 +273,24 @@ class PushLock:
             # if len(mfr_data[APPLE_MFR_ID]) > 20 and YALE_MFR_ID not in mfr_data:
             # mfr_data[YALE_MFR_ID] = mfr_data[APPLE_MFR_ID][20:]
             if hk_state != self._last_hk_state:
-                has_update = HK_UPDATE_COALESCE_SECONDS
+                next_update = HK_UPDATE_COALESCE_SECONDS
                 self._last_hk_state = hk_state
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
             if current_value != self._last_adv_value:
-                if not has_update:
-                    has_update = ADV_UPDATE_COALESCE_SECONDS
+                next_update = min(next_update, ADV_UPDATE_COALESCE_SECONDS)
                 self._last_adv_value = current_value
         _LOGGER.debug(
             "%s: State: (current_state: %s) (hk_state: %s) "
-            "(adv_value: %s) (has_update: %s)",
+            "(adv_value: %s) (next_update: %s)",
             self.name,
             self._lock_state,
             self._last_hk_state,
             self._last_adv_value,
-            has_update,
+            next_update,
         )
-        if has_update:
-            self._schedule_update(has_update)
+        if next_update:
+            self._schedule_update(next_update)
 
     async def start(self) -> Callable[[], None]:
         """Start watching for updates."""
