@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.8.0 (2022-08-02)
+### Feature
+* Add lock info ([#21](https://github.com/bdraco/yalexs-ble/issues/21)) ([`6bd635d`](https://github.com/bdraco/yalexs-ble/commit/6bd635d1d055d86a26534cc0b0c761388b417dac))
+
 ## v0.7.1 (2022-08-02)
 ### Fix
 * Defer updates for 10s when there is an update storm ([#20](https://github.com/bdraco/yalexs-ble/issues/20)) ([`142a5c8`](https://github.com/bdraco/yalexs-ble/commit/142a5c8a0f1a2545cccc857c2bbd43779564cafc))
