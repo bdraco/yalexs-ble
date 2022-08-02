@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.12.0 (2022-08-02)
+### Feature
+* Add manual update request ([#30](https://github.com/bdraco/yalexs-ble/issues/30)) ([`26c49a7`](https://github.com/bdraco/yalexs-ble/commit/26c49a7ae7a1ec53c82f4aa20b3c7dcd52a807b6))
+
 ## v0.11.0 (2022-08-02)
 ### Feature
 * Speed up first update ([#29](https://github.com/bdraco/yalexs-ble/issues/29)) ([`764894b`](https://github.com/bdraco/yalexs-ble/commit/764894b7400163eefcddf3b846f6365827efa7db))
