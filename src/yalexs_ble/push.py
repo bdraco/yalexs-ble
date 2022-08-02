@@ -388,6 +388,9 @@ class PushLock:
         async with self._debounce_lock:
             _LOGGER.debug("%s: Queued update starting", self.name)
             if not self._running:
+                _LOGGER.debug(
+                    "%s: Queued updated ignored because not running", self.name
+                )
                 return
             _LOGGER.debug("%s: Starting update", self.name)
             try:
