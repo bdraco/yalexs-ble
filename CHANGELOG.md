@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.2 (2022-08-02)
+### Fix
+* Schedule race ([#24](https://github.com/bdraco/yalexs-ble/issues/24)) ([`6a5d4cd`](https://github.com/bdraco/yalexs-ble/commit/6a5d4cda45c8286a5b891ef587ff4e0f577a7aaa))
+
 ## v0.9.1 (2022-08-02)
 ### Fix
 * Ensure homekit updates take precedence ([#23](https://github.com/bdraco/yalexs-ble/issues/23)) ([`6897092`](https://github.com/bdraco/yalexs-ble/commit/6897092ea6b7a0b5cc8fe1d36e43ed1dda6b37ae))
