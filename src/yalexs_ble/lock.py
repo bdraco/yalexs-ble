@@ -10,10 +10,15 @@ from bleak_retry_connector import BLEDevice, establish_connection
 
 from . import util
 from .const import (
+    FIRMWARE_REVISION_CHARACTERISTIC,
+    MANUFACTURER_NAME_CHARACTERISTIC,
+    MODEL_NUMBER_CHARACTERISTIC,
+    SERIAL_NUMBER_CHARACTERISTIC,
     VALUE_TO_DOOR_STATUS,
     VALUE_TO_LOCK_STATUS,
     Commands,
     DoorStatus,
+    LockInfo,
     LockState,
     LockStatus,
 )
@@ -56,6 +61,7 @@ class Lock:
             _LOGGER.error("%s: Failed to connect to the lock: %s", self.name, err)
             raise err
         _LOGGER.debug("%s: Connected", self.name)
+
         self.session = Session(self.client, self.name, self._lock)
         self.secure_session = SecureSession(
             self.client, self.name, self._lock, self.key_index
@@ -90,6 +96,22 @@ class Lock:
             raise AuthError(
                 "Unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
             )
+
+    async def lock_info(self) -> LockInfo:
+        """Probe the lock for information."""
+        _LOGGER.debug("%s: Probing the lock", self.name)
+        assert self.client is not None  # nosec
+        return LockInfo(
+            *(
+                (await self.client.read_gatt_char(char)).decode()
+                for char in (
+                    MANUFACTURER_NAME_CHARACTERISTIC,
+                    MODEL_NUMBER_CHARACTERISTIC,
+                    SERIAL_NUMBER_CHARACTERISTIC,
+                    FIRMWARE_REVISION_CHARACTERISTIC,
+                )
+            )
+        )
 
     async def force_lock(self) -> None:
         if not self.is_connected or not self.session:

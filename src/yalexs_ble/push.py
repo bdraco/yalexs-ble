@@ -15,6 +15,7 @@ from .const import (
     HAP_FIRST_BYTE,
     YALE_MFR_ID,
     DoorStatus,
+    LockInfo,
     LockState,
     LockStatus,
 )
@@ -93,6 +94,7 @@ class PushLock:
     def __init__(self, local_name: str) -> None:
         """Init the lock watcher."""
         self._local_name = local_name
+        self._lock_info: LockInfo | None = None
         self._lock_state: LockState | None = None
         self._last_adv_value = -1
         self._last_hk_state = -1
@@ -101,7 +103,7 @@ class PushLock:
         self._ble_device: BLEDevice | None = None
         self._operation_lock = asyncio.Lock()
         self._running = False
-        self._callbacks: list[Callable[[LockState], None]] = []
+        self._callbacks: list[Callable[[LockState, LockInfo], None]] = []
         self._update_task: asyncio.Task | None = None  # type: ignore[type-arg]
         self._debounce_lock = asyncio.Lock()
         self.loop = asyncio._get_running_loop()
@@ -133,7 +135,7 @@ class PushLock:
         return self._lock_state
 
     def register_callback(
-        self, callback: Callable[[LockState], None]
+        self, callback: Callable[[LockState, LockInfo], None]
     ) -> Callable[[], None]:
         """Register a callback to be called when the lock state changes."""
 
@@ -218,6 +220,8 @@ class PushLock:
         lock = self._get_lock_instance()
         try:
             await lock.connect()
+            if not self._lock_info:
+                self._lock_info = await lock.lock_info()
             state = await lock.status()
         except asyncio.CancelledError:
             _LOGGER.debug(
@@ -232,11 +236,12 @@ class PushLock:
 
     def _callback_state(self, lock_state: LockState) -> None:
         """Call the callbacks."""
+        assert self._lock_info is not None  # nosec
         self._lock_state = lock_state
         _LOGGER.debug("%s: New lock state: %s", self.name, self._lock_state)
         for callback in self._callbacks:
             try:
-                callback(lock_state)
+                callback(lock_state, self._lock_info)
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("%s: Error calling callback", self.name)
 

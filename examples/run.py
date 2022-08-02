@@ -4,6 +4,7 @@ import logging
 from bleak import BleakScanner
 
 from yalexs_ble import LockState, PushLock, serial_to_local_name
+from yalexs_ble.const import LockInfo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,8 +25,8 @@ async def run():
 
     scanner = BleakScanner()
 
-    def new_state(new_state: LockState) -> None:
-        _LOGGER.info("New state: %s", new_state)
+    def new_state(new_state: LockState, lock_info: LockInfo) -> None:
+        _LOGGER.info("New state: %s, lock_info: %s", new_state, lock_info)
 
     cancel_callback = push_lock.register_callback(new_state)
     scanner.register_detection_callback(push_lock.update_advertisement)
