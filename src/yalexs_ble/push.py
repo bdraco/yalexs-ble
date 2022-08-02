@@ -30,9 +30,9 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 3
 
-FIRST_UPDATE_COALESCE_SECONDS = 3
-ADV_UPDATE_COALESCE_SECONDS = 10
-HK_UPDATE_COALESCE_SECONDS = 1
+ADV_UPDATE_COALESCE_SECONDS = 8.75
+FIRST_UPDATE_COALESCE_SECONDS = HK_UPDATE_COALESCE_SECONDS = 1.5
+MANUAL_UPDATE_COALESCE_SECONDS = 0.75
 
 UPDATE_IN_PROGRESS_DEFER_SECONDS = 60
 
@@ -115,6 +115,7 @@ class PushLock:
         self._debounce_lock = asyncio.Lock()
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
+        self.last_error: str | None = None
 
     @property
     def local_name(self) -> str:
@@ -231,9 +232,13 @@ class PushLock:
         await self._cancel_any_update()
         _LOGGER.debug("Finished unlock")
 
+    async def update(self) -> None:
+        """Request that status be updated."""
+        self._schedule_update(MANUAL_UPDATE_COALESCE_SECONDS)
+
     @operation_lock
     @retry_bluetooth_connection_error
-    async def update(self) -> LockState:
+    async def _update(self) -> LockState:
         """Update the lock state."""
         lock = self._get_lock_instance()
         try:
@@ -281,7 +286,7 @@ class PushLock:
             ad,
         )
         self.set_ble_device(ble_device)
-        next_update = 0
+        next_update = 0.0
         mfr_data = dict(ad.manufacturer_data)
         if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
             hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
@@ -394,18 +399,22 @@ class PushLock:
                 return
             _LOGGER.debug("%s: Starting update", self.name)
             try:
-                self._update_task = asyncio.create_task(self.update())
+                self._update_task = asyncio.create_task(self._update())
                 await self._update_task
             except AuthError as ex:
+                self.last_error = (
+                    "Authentication error: key or slot (key index) is incorrect"
+                )
                 _LOGGER.error(
-                    "%s: Auth error, key or slot (key index) is incorrect: %s",
+                    "%s: Auth error: key or slot (key index) is incorrect: %s",
                     self.name,
                     ex,
                     exc_info=True,
                 )
             except asyncio.CancelledError:
                 _LOGGER.debug("%s: In-progress update canceled", self.name)
-            except Exception:  # pylint: disable=broad-except
+            except Exception as ex:  # pylint: disable=broad-except
+                self.last_error = str(ex)
                 _LOGGER.exception("%s: Error updating", self.name)
 
 
