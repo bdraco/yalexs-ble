@@ -125,6 +125,7 @@ class PushLock:
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
         self.last_error: str | None = None
+        self.auth_error = False
 
     @property
     def local_name(self) -> str:
@@ -244,6 +245,12 @@ class PushLock:
     async def update(self) -> None:
         """Request that status be updated."""
         self._schedule_update(MANUAL_UPDATE_COALESCE_SECONDS)
+
+    async def validate(self) -> None:
+        """Validate lock credentials."""
+        _LOGGER.debug("Starting validate")
+        await self._update()
+        _LOGGER.debug("Finished validate")
 
     @operation_lock
     @retry_bluetooth_connection_error
@@ -415,11 +422,24 @@ class PushLock:
                 self._update_task = asyncio.create_task(self._update())
                 await self._update_task
             except AuthError as ex:
+                self.auth_error = True
                 self.last_error = (
-                    "Authentication error: key or slot (key index) is incorrect"
+                    f"Authentication error: key or slot (key index) is incorrect: {ex}"
                 )
                 _LOGGER.error(
                     "%s: Auth error: key or slot (key index) is incorrect: %s",
+                    self.name,
+                    ex,
+                    exc_info=True,
+                )
+            except ValueError as ex:
+                self.auth_error = True
+                self.last_error = (
+                    "Authentication value error: key or slot "
+                    f"(key index) is incorrect: {ex}"
+                )
+                _LOGGER.error(
+                    "%s: Auth value error: key or slot (key index) is incorrect: %s",
                     self.name,
                     ex,
                     exc_info=True,
