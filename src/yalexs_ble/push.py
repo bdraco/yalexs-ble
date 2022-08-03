@@ -31,7 +31,7 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 DEFAULT_ATTEMPTS = 3
 
 # How long to wait before processing an advertisement change
-ADV_UPDATE_COALESCE_SECONDS = 4.75
+ADV_UPDATE_COALESCE_SECONDS = 5.50
 
 # How long to wait before processing the first update
 FIRST_UPDATE_COALESCE_SECONDS = 0.50
@@ -43,7 +43,7 @@ HK_UPDATE_COALESCE_SECONDS = 2.75
 MANUAL_UPDATE_COALESCE_SECONDS = 0.75
 
 # How long to wait if we get an update storm from the lock
-UPDATE_IN_PROGRESS_DEFER_SECONDS = 30
+UPDATE_IN_PROGRESS_DEFER_SECONDS = 29.50
 
 RETRY_EXCEPTIONS = (
     asyncio.TimeoutError,
