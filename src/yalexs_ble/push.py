@@ -92,6 +92,8 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 raise
             except RETRY_EXCEPTIONS as err:
                 if attempt == max_attempts:
+                    if isinstance(err, BleakError) and "disconnect" in str(err):
+                        raise DisconnectedError(str(err))
                     raise
                 _LOGGER.debug(
                     "%s: %s error calling %s, retrying...",
