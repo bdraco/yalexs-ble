@@ -166,6 +166,11 @@ class PushLock:
         """Return the current connection info."""
         return self._connection_info
 
+    @property
+    def ble_device(self) -> BLEDevice | None:
+        """Return the current BLEDevice."""
+        return self._ble_device
+
     def set_name(self, name: str) -> None:
         """Set the name of the lock."""
         self._name = name
