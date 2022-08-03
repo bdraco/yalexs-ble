@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.16.0 (2022-08-03)
+### Feature
+* Throw disconnected error if lock disconnects us ([#35](https://github.com/bdraco/yalexs-ble/issues/35)) ([`c1bcf62`](https://github.com/bdraco/yalexs-ble/commit/c1bcf620dbd0270a13a4de79f3dc41aaef28f86d))
+
 ## v0.15.1 (2022-08-03)
 ### Fix
 * Do not keep retrying 10x more time if the lock cannot be found ([#34](https://github.com/bdraco/yalexs-ble/issues/34)) ([`704f7bb`](https://github.com/bdraco/yalexs-ble/commit/704f7bb03e40345e6e4c8cae79ae7aeb0b9dc9b8))
