@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.14.0 (2022-08-03)
+### Feature
+* Improve error reporting ([#32](https://github.com/bdraco/yalexs-ble/issues/32)) ([`d81121d`](https://github.com/bdraco/yalexs-ble/commit/d81121dbc367320b2e80db79715536ecc24f1a6c))
+
 ## v0.13.0 (2022-08-03)
 ### Feature
 * Tweak update times to improve responsiveness ([`be2278c`](https://github.com/bdraco/yalexs-ble/commit/be2278cf8d75ca23b60f4f0e52345bf24674575b))
