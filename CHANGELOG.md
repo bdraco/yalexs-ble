@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.15.1 (2022-08-03)
+### Fix
+* Do not keep retrying 10x more time if the lock cannot be found ([#34](https://github.com/bdraco/yalexs-ble/issues/34)) ([`704f7bb`](https://github.com/bdraco/yalexs-ble/commit/704f7bb03e40345e6e4c8cae79ae7aeb0b9dc9b8))
+
 ## v0.15.0 (2022-08-03)
 ### Feature
 * Add validate function to check creds ([#33](https://github.com/bdraco/yalexs-ble/issues/33)) ([`aadfc76`](https://github.com/bdraco/yalexs-ble/commit/aadfc765618af19b357feab98781c58667a5f8b3))
