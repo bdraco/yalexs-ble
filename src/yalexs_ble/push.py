@@ -30,12 +30,20 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 3
 
-ADV_UPDATE_COALESCE_SECONDS = 8.75
+# How long to wait before processing an advertisement change
+ADV_UPDATE_COALESCE_SECONDS = 4.75
+
+# How long to wait before processing the first update
 FIRST_UPDATE_COALESCE_SECONDS = 0.50
+
+# How long to wait before processing a HomeKit advertisement change
 HK_UPDATE_COALESCE_SECONDS = 2.75
+
+# How long to wait before processing a manual update request
 MANUAL_UPDATE_COALESCE_SECONDS = 0.75
 
-UPDATE_IN_PROGRESS_DEFER_SECONDS = 60
+# How long to wait if we get an update storm from the lock
+UPDATE_IN_PROGRESS_DEFER_SECONDS = 30
 
 RETRY_EXCEPTIONS = (
     asyncio.TimeoutError,
