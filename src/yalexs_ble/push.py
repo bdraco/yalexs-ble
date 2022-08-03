@@ -8,7 +8,7 @@ from typing import Any, TypeVar, cast
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
-from bleak_retry_connector import BleakError
+from bleak_retry_connector import BleakError, BleakNotFoundError
 
 from .const import (
     APPLE_MFR_ID,
@@ -85,6 +85,10 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
             try:
                 return await func(self, *args, **kwargs)
             except AuthError:
+                raise
+            except BleakNotFoundError:
+                # The lock cannot be found so there is no
+                # point in retrying.
                 raise
             except RETRY_EXCEPTIONS as err:
                 if attempt == max_attempts:
