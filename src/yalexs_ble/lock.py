@@ -192,7 +192,7 @@ class Lock:
                 # Lock already disconnected us
                 pass
             except (BleakError, asyncio.TimeoutError, EOFError) as err:
-                if "disconnected" not in str(err):
+                if "disconnect" not in str(err):
                     _LOGGER.debug(
                         "%s: Failed to cleanly disconnect from lock: %s", self.name, err
                     )
