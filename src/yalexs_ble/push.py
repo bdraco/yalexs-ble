@@ -257,7 +257,9 @@ class PushLock:
                 state = await lock.status()
         except asyncio.CancelledError:
             _LOGGER.debug(
-                "%s: In-progress update canceled due to lock operation", self.name
+                "%s: In-progress update canceled due "
+                "to lock operation or setup timeout",
+                self.name,
             )
             raise
         _LOGGER.debug("%s: Updating lock state", self.name)
@@ -409,6 +411,7 @@ class PushLock:
                 return
             _LOGGER.debug("%s: Starting update", self.name)
             try:
+                self.last_error = "Could not connect"
                 self._update_task = asyncio.create_task(self._update())
                 await self._update_task
             except AuthError as ex:
