@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.0 (2022-08-03)
+### Feature
+* Expose bledevice ([#36](https://github.com/bdraco/yalexs-ble/issues/36)) ([`476abea`](https://github.com/bdraco/yalexs-ble/commit/476abea9393900d5a858b1beb1ef6ba7b9f1bb35))
+
 ## v0.16.0 (2022-08-03)
 ### Feature
 * Throw disconnected error if lock disconnects us ([#35](https://github.com/bdraco/yalexs-ble/issues/35)) ([`c1bcf62`](https://github.com/bdraco/yalexs-ble/commit/c1bcf620dbd0270a13a4de79f3dc41aaef28f86d))
