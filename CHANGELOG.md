@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.15.0 (2022-08-03)
+### Feature
+* Add validate function to check creds ([#33](https://github.com/bdraco/yalexs-ble/issues/33)) ([`aadfc76`](https://github.com/bdraco/yalexs-ble/commit/aadfc765618af19b357feab98781c58667a5f8b3))
+
 ## v0.14.0 (2022-08-03)
 ### Feature
 * Improve error reporting ([#32](https://github.com/bdraco/yalexs-ble/issues/32)) ([`d81121d`](https://github.com/bdraco/yalexs-ble/commit/d81121dbc367320b2e80db79715536ecc24f1a6c))
