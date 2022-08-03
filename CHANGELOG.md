@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v0.13.0 (2022-08-03)
+### Feature
+* Tweak update times to improve responsiveness ([`be2278c`](https://github.com/bdraco/yalexs-ble/commit/be2278cf8d75ca23b60f4f0e52345bf24674575b))
+* Tweak update times to improve responsiveness ([`b47121c`](https://github.com/bdraco/yalexs-ble/commit/b47121cc1054c001a7e4b7bcc797c6991db95d64))
+
 ## v0.12.1 (2022-08-02)
 ### Fix
 * Double update when adv and homekit update at the same time ([#31](https://github.com/bdraco/yalexs-ble/issues/31)) ([`760e429`](https://github.com/bdraco/yalexs-ble/commit/760e42984461ae086599d9fc60395f50d2facffd))
