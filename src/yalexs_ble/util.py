@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from bleak import BleakError
 
 
@@ -40,3 +42,18 @@ def is_disconnected_error(error: Exception) -> bool:
             or "Connection Rejected Due To Security Reasons" in str(error)
         )
     )
+
+
+@dataclass
+class ValidatedLockConfig:
+    """A validated lock configuration."""
+
+    name: str
+    serial: str
+    key: str
+    slot: int
+
+    @property
+    def local_name(self) -> str:
+        """Get the local name from the serial."""
+        return serial_to_local_name(self.serial)

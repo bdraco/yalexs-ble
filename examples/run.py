@@ -19,8 +19,9 @@ assert isinstance(LOCK_KEY_INDEX, int)  # nosec
 
 
 async def run():
-    push_lock = PushLock(serial_to_local_name(LOCK_SERIAL))
-    push_lock.set_lock_key(LOCK_KEY, LOCK_KEY_INDEX)
+    push_lock = PushLock(
+        serial_to_local_name(LOCK_SERIAL), key=LOCK_KEY, key_index=LOCK_KEY_INDEX
+    )
     _LOGGER.info("Expected local_name: %s", push_lock.local_name)
 
     scanner = BleakScanner()
