@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.1 (2022-08-04)
+### Fix
+* Only validate callback_state if there are callbacks ([#39](https://github.com/bdraco/yalexs-ble/issues/39)) ([`c368456`](https://github.com/bdraco/yalexs-ble/commit/c368456b2cdd855d327e4b984fb2d3a9d4ebc845))
+
 ## v0.18.0 (2022-08-04)
 ### Feature
 * Small cleanups ([#38](https://github.com/bdraco/yalexs-ble/issues/38)) ([`26c6c79`](https://github.com/bdraco/yalexs-ble/commit/26c6c795b7fb5c4870d5c9de587361d7b49f75b2))

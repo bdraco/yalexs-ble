@@ -4,7 +4,7 @@ from .push import PushLock
 from .session import AuthError, DisconnectedError
 from .util import ValidatedLockConfig, local_name_to_serial, serial_to_local_name
 
-__version__ = "0.18.0"
+__version__ = "0.18.1"
 
 __all__ = [
     "AuthError",
