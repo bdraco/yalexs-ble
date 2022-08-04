@@ -110,7 +110,13 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
 class PushLock:
     """A lock with push updates."""
 
-    def __init__(self, local_name: str) -> None:
+    def __init__(
+        self,
+        local_name: str,
+        ble_device: BLEDevice | None = None,
+        key: str | None = None,
+        key_index: int | None = None,
+    ) -> None:
         """Init the lock watcher."""
         self._local_name = local_name
         self._name = local_name
@@ -119,9 +125,9 @@ class PushLock:
         self._connection_info: ConnectionInfo | None = None
         self._last_adv_value = -1
         self._last_hk_state = -1
-        self._lock_key: str | None = None
-        self._lock_key_index: int | None = None
-        self._ble_device: BLEDevice | None = None
+        self._lock_key = key
+        self._lock_key_index = key_index
+        self._ble_device = ble_device
         self._operation_lock = asyncio.Lock()
         self._running = False
         self._callbacks: list[
