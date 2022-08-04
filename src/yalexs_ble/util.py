@@ -1,3 +1,6 @@
+from bleak import BleakError
+
+
 def _simple_checksum(buf: bytes) -> int:
     cs = 0
     for i in range(0x12):
@@ -26,3 +29,14 @@ def serial_to_local_name(serial: str) -> str:
 def local_name_to_serial(serial: str) -> str:
     """Convert a local name to a serial."""
     return f"{serial[0:2]}XXX{serial[2:]}"
+
+
+def is_disconnected_error(error: Exception) -> bool:
+    """Check if the error is a disconnected error."""
+    return bool(
+        isinstance(error, BleakError)
+        and (
+            "disconnect" in str(error)
+            or "Connection Rejected Due To Security Reasons" in str(error)
+        )
+    )

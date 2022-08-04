@@ -22,6 +22,7 @@ from .const import (
 )
 from .lock import Lock
 from .session import AuthError, DisconnectedError, ResponseError
+from .util import is_disconnected_error
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -92,6 +93,8 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 raise
             except RETRY_EXCEPTIONS as err:
                 if attempt == max_attempts:
+                    if is_disconnected_error(err):
+                        raise DisconnectedError(str(err))
                     raise
                 _LOGGER.debug(
                     "%s: %s error calling %s, retrying...",
