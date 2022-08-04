@@ -183,7 +183,7 @@ class Session:
                 return_when=asyncio.FIRST_COMPLETED,
             )
         except BleakError as err:
-            if "disconnect" in str(err):
+            if util.is_disconnected_error(err):
                 raise DisconnectedError(f"{self.name}: {err}") from err
             raise
         if write_task.done():
