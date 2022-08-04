@@ -122,7 +122,6 @@ class PushLock:
         self._name = local_name
         self._lock_info: LockInfo | None = None
         self._lock_state: LockState | None = None
-        self._connection_info: ConnectionInfo | None = None
         self._last_adv_value = -1
         self._last_hk_state = -1
         self._lock_key = key
@@ -173,7 +172,7 @@ class PushLock:
     @property
     def connection_info(self) -> ConnectionInfo | None:
         """Return the current connection info."""
-        return self._connection_info
+        return ConnectionInfo(self._ble_device.rssi) if self._ble_device else None
 
     @property
     def ble_device(self) -> BLEDevice | None:
@@ -203,7 +202,6 @@ class PushLock:
     def set_ble_device(self, ble_device: BLEDevice) -> None:
         """Set the ble device."""
         self._ble_device = ble_device
-        self._connection_info = ConnectionInfo(ble_device.rssi)
 
     def _get_lock_instance(self) -> Lock:
         """Get the lock instance."""
@@ -293,19 +291,22 @@ class PushLock:
 
     def _callback_state(self, lock_state: LockState) -> None:
         """Call the callbacks."""
-        assert self._lock_info is not None  # nosec
-        assert self._connection_info is not None  # nosec
         self._lock_state = lock_state
         _LOGGER.debug(
             "%s: New state: %s %s %s",
             self.name,
             self._lock_state,
             self._lock_info,
-            self._connection_info,
+            self.connection_info,
         )
+        if not self._callbacks:
+            return
+        assert self._lock_info is not None  # nosec
+        connection_info = self.connection_info
+        assert connection_info is not None  # nosec
         for callback in self._callbacks:
             try:
-                callback(lock_state, self._lock_info, self._connection_info)
+                callback(lock_state, self._lock_info, connection_info)
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("%s: Error calling callback", self.name)
 
