@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.1 (2022-08-04)
+### Fix
+* Wrap BleakError as DisconnectedError on disconnect from write ([#37](https://github.com/bdraco/yalexs-ble/issues/37)) ([`30d0a7e`](https://github.com/bdraco/yalexs-ble/commit/30d0a7ef9105ce032949e9fbd4621fb9929861b9))
+
 ## v0.17.0 (2022-08-03)
 ### Feature
 * Expose bledevice ([#36](https://github.com/bdraco/yalexs-ble/issues/36)) ([`476abea`](https://github.com/bdraco/yalexs-ble/commit/476abea9393900d5a858b1beb1ef6ba7b9f1bb35))
