@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.0 (2022-08-04)
+### Feature
+* Small cleanups ([#38](https://github.com/bdraco/yalexs-ble/issues/38)) ([`26c6c79`](https://github.com/bdraco/yalexs-ble/commit/26c6c795b7fb5c4870d5c9de587361d7b49f75b2))
+
 ## v0.17.1 (2022-08-04)
 ### Fix
 * Wrap BleakError as DisconnectedError on disconnect from write ([#37](https://github.com/bdraco/yalexs-ble/issues/37)) ([`30d0a7e`](https://github.com/bdraco/yalexs-ble/commit/30d0a7ef9105ce032949e9fbd4621fb9929861b9))
