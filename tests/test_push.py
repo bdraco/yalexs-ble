@@ -2,7 +2,12 @@ import asyncio
 
 import pytest
 
-from yalexs_ble.push import operation_lock, retry_bluetooth_connection_error
+from yalexs_ble.push import (
+    PushLock,
+    cancelable_operation,
+    operation_lock,
+    retry_bluetooth_connection_error,
+)
 
 
 @pytest.mark.asyncio
@@ -126,3 +131,30 @@ async def test_retry_bluetooth_connection_error_with_operation_lock():
     for task in tasks:
         task.cancel()
     await asyncio.sleep(0)
+
+
+@pytest.mark.asyncio
+async def test_operation_lock_with_cancelable_operation():
+    """Test the operation_lock and rcancelable_operation function."""
+
+    counter = 0
+
+    class MockPushLock(PushLock):
+        @property
+        def name(self):
+            return "lock"
+
+        @cancelable_operation
+        @operation_lock
+        async def do_something(self):
+            nonlocal counter
+            await asyncio.sleep(0.05)
+            counter += 1
+
+    lock = MockPushLock("a")
+    tasks = []
+    for _ in range(10):
+        tasks.append(asyncio.create_task(lock.do_something()))
+
+    await asyncio.sleep(0.1)
+    assert counter == 1
