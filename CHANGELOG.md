@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.20.0 (2022-08-05)
+### Feature
+* Cancel an update in progress on lock/unlock ([#41](https://github.com/bdraco/yalexs-ble/issues/41)) ([`d1905ae`](https://github.com/bdraco/yalexs-ble/commit/d1905ae2ea75cc47ee794cc413a90727df17774c))
+
 ## v0.19.0 (2022-08-05)
 ### Feature
 * Cancel previous lock/unlock requests when a new one comes in ([#40](https://github.com/bdraco/yalexs-ble/issues/40)) ([`4b670d5`](https://github.com/bdraco/yalexs-ble/commit/4b670d53c62bd45f85b0a48f6bd7ac7d62cbbd02))
