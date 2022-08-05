@@ -62,7 +62,7 @@ def cancelable_operation(func: WrapFuncType) -> WrapFuncType:
         self: "PushLock", *args: Any, **kwargs: Any
     ) -> None:
         self._cancel_in_progress_operation()
-        self._cancel_any_update()
+        self._cancel_in_progress_update()
         self._operation_task = asyncio.create_task(func(self, *args, **kwargs))
         await self._operation_task
 
