@@ -56,7 +56,7 @@ RETRY_EXCEPTIONS = (
 
 
 def cancelable_operation(func: WrapFuncType) -> WrapFuncType:
-    """Define a wrapper to make an operation cancelable."""
+    """Define a wrapper to make mutually exclusive operations cancelable."""
 
     async def _async_wrap_cancelable_operation(
         self: "PushLock", *args: Any, **kwargs: Any
