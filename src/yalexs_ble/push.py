@@ -55,6 +55,19 @@ RETRY_EXCEPTIONS = (
 )
 
 
+def cancelable_operation(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to make an operation cancelable."""
+
+    async def _async_wrap_cancelable_operation(
+        self: "PushLock", *args: Any, **kwargs: Any
+    ) -> None:
+        self._cancel_in_progress_operation()
+        self._operation_task = asyncio.create_task(func(self, *args, **kwargs))
+        await self._operation_task
+
+    return cast(WrapFuncType, _async_wrap_cancelable_operation)
+
+
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
 
@@ -132,6 +145,7 @@ class PushLock:
         self._callbacks: list[
             Callable[[LockState, LockInfo, ConnectionInfo], None]
         ] = []
+        self._operation_task: asyncio.Task | None = None  # type: ignore[type-arg]
         self._update_task: asyncio.Task | None = None  # type: ignore[type-arg]
         self._debounce_lock = asyncio.Lock()
         self.loop = asyncio._get_running_loop()
@@ -222,6 +236,14 @@ class PushLock:
             self._update_task.cancel()
             self._update_task = None
 
+    def _cancel_in_progress_operation(self) -> None:
+        """Cancel any in progress operation task."""
+        if self._operation_task:
+            _LOGGER.debug("Canceling in progress task: %s", self._operation_task)
+            self._operation_task.cancel()
+            self._operation_task = None
+
+    @cancelable_operation
     @operation_lock
     @retry_bluetooth_connection_error
     async def lock(self) -> None:
@@ -240,6 +262,7 @@ class PushLock:
         await self._cancel_any_update()
         _LOGGER.debug("Finished lock")
 
+    @cancelable_operation
     @operation_lock
     @retry_bluetooth_connection_error
     async def unlock(self) -> None:
