@@ -32,13 +32,13 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 DEFAULT_ATTEMPTS = 3
 
 # How long to wait before processing an advertisement change
-ADV_UPDATE_COALESCE_SECONDS = 5.50
+ADV_UPDATE_COALESCE_SECONDS = 2.75
 
 # How long to wait before processing the first update
 FIRST_UPDATE_COALESCE_SECONDS = 0.50
 
 # How long to wait before processing a HomeKit advertisement change
-HK_UPDATE_COALESCE_SECONDS = 2.75
+HK_UPDATE_COALESCE_SECONDS = 2.00
 
 # How long to wait before processing a manual update request
 MANUAL_UPDATE_COALESCE_SECONDS = 0.75
