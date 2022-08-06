@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.21.0 (2022-08-06)
+### Feature
+* Tweak debounce to see door close/open faster ([#42](https://github.com/bdraco/yalexs-ble/issues/42)) ([`ee78cdb`](https://github.com/bdraco/yalexs-ble/commit/ee78cdb24779e6f2d210b598d29d2a4b78b425ce))
+
 ## v0.20.0 (2022-08-05)
 ### Feature
 * Cancel an update in progress on lock/unlock ([#41](https://github.com/bdraco/yalexs-ble/issues/41)) ([`d1905ae`](https://github.com/bdraco/yalexs-ble/commit/d1905ae2ea75cc47ee794cc413a90727df17774c))
