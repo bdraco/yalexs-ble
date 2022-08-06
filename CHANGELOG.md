@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.1 (2022-08-06)
+### Fix
+* Format strings for debug logging ([#44](https://github.com/bdraco/yalexs-ble/issues/44)) ([`2295773`](https://github.com/bdraco/yalexs-ble/commit/22957735073d7ba60bbbe3c837eab1ec6b667a7b))
+
 ## v1.0.0 (2022-08-06)
 ### Feature
 * Add support for gen2 locks ([#43](https://github.com/bdraco/yalexs-ble/issues/43)) ([`40d2b65`](https://github.com/bdraco/yalexs-ble/commit/40d2b652d1e67be352e642ff73c417afaedd61cc))
