@@ -359,12 +359,14 @@ class PushLock:
         if self._local_name_is_unique and self._local_name == ad.local_name:
             _LOGGER.debug(
                 "%s: Accepting new advertisement since local_name %s matches: %s",
+                self.name,
                 ad.local_name,
                 ad,
             )
         elif self.address and self.address == ble_device.address:
             _LOGGER.debug(
                 "%s: Accepting new advertisement since address %s matches: %s",
+                self.name,
                 self.address,
                 ad,
             )
