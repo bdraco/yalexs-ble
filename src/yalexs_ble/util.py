@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from bleak import BleakError
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+
+UNIQUE_LOCAL_NAME_LEN = 7
 
 
 def _simple_checksum(buf: bytes) -> int:
@@ -49,6 +55,7 @@ class ValidatedLockConfig:
     """A validated lock configuration."""
 
     name: str
+    address: str
     serial: str
     key: str
     slot: int
@@ -57,3 +64,20 @@ class ValidatedLockConfig:
     def local_name(self) -> str:
         """Get the local name from the serial."""
         return serial_to_local_name(self.serial)
+
+
+def unique_id_from_device_adv(
+    device: BLEDevice, advertisement: AdvertisementData
+) -> str:
+    """Get the unique id from the advertisement."""
+    return unique_id_from_local_name_address(advertisement.local_name, device.address)
+
+
+def unique_id_from_local_name_address(local_name: str, address: str) -> str:
+    """Get the unique id from the advertisement."""
+    return local_name if local_name_is_unique(local_name) else address
+
+
+def local_name_is_unique(local_name: str | None) -> bool:
+    """Check if the local name is unique."""
+    return bool(local_name and len(local_name) == UNIQUE_LOCAL_NAME_LEN)
