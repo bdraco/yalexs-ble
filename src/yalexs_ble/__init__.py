@@ -11,7 +11,7 @@ from .util import (
     unique_id_from_local_name_address,
 )
 
-__version__ = "0.21.0"
+__version__ = "1.0.0"
 
 __all__ = [
     "AuthError",

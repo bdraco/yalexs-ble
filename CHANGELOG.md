@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.0 (2022-08-06)
+### Feature
+* Add support for gen2 locks ([#43](https://github.com/bdraco/yalexs-ble/issues/43)) ([`40d2b65`](https://github.com/bdraco/yalexs-ble/commit/40d2b652d1e67be352e642ff73c417afaedd61cc))
+
+### Breaking
+* The arguments for PushLock are now all keyword. Either a unique local_name or an address must be provided ([`40d2b65`](https://github.com/bdraco/yalexs-ble/commit/40d2b652d1e67be352e642ff73c417afaedd61cc))
+
 ## v0.21.0 (2022-08-06)
 ### Feature
 * Tweak debounce to see door close/open faster ([#42](https://github.com/bdraco/yalexs-ble/issues/42)) ([`ee78cdb`](https://github.com/bdraco/yalexs-ble/commit/ee78cdb24779e6f2d210b598d29d2a4b78b425ce))
