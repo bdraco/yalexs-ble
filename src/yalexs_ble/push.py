@@ -357,25 +357,28 @@ class PushLock:
         self, ble_device: BLEDevice, ad: AdvertisementData
     ) -> None:
         """Update the advertisement."""
+        debug_enabled = _LOGGER.isEnabledFor(logging.DEBUG)
         if self._local_name_is_unique and self._local_name == ad.local_name:
-            _LOGGER.debug(
-                "%s: Accepting new advertisement since local_name %s matches: %s",
-                self.name,
-                ad.local_name,
-                ad,
-            )
+            if debug_enabled:
+                _LOGGER.debug(
+                    "%s: Accepting new advertisement since local_name %s matches: %s",
+                    self.name,
+                    ad.local_name,
+                    ad,
+                )
         elif self.address and self.address == ble_device.address:
-            _LOGGER.debug(
-                "%s: Accepting new advertisement since address %s matches: %s",
-                self.name,
-                self.address,
-                ad,
-            )
+            if debug_enabled:
+                _LOGGER.debug(
+                    "%s: Accepting new advertisement since address %s matches: %s",
+                    self.name,
+                    self.address,
+                    ad,
+                )
         else:
             return
         self.set_ble_device(ble_device)
         next_update = 0.0
-        mfr_data = dict(ad.manufacturer_data)
+        mfr_data = ad.manufacturer_data
         if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
             hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
             # Sometimes the yale data is glued on to the end of the HomeKit data
@@ -398,7 +401,7 @@ class PushLock:
                     else:
                         next_update = ADV_UPDATE_COALESCE_SECONDS
                 self._last_adv_value = current_value
-        if _LOGGER.isEnabledFor(logging.DEBUG):
+        if debug_enabled:
             scheduled_update = None
             if self._cancel_deferred_update:
                 scheduled_update = (
