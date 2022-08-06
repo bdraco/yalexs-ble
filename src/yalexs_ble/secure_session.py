@@ -47,19 +47,16 @@ class SecureSession(Session):
         util._copy(command, checksum_bytes, destLocation=0x0C)
 
     def _validate_response(self, data: bytes) -> None:
-        _LOGGER.debug(
-            "%s: Response security checksum: %s",
-            self.name,
-            str(util._security_checksum(data)),
-        )
         response_checksum = int.from_bytes(
             data[0x0C:0x10], byteorder="little", signed=False
         )
+        expected = util._security_checksum(data)
         _LOGGER.debug(
-            "%s: Response security checksum: %s", self.name, str(response_checksum)
+            "%s: Response security checksum: %s, expected: %s",
+            self.name,
+            expected,
         )
-        if util._security_checksum(data) != response_checksum:
+        if expected != response_checksum:
             raise ResponseError(
-                "Security checksum mismatch: %s != %s"
-                % (util._security_checksum(data), response_checksum)
+                f"Security checksum mismatch: {response_checksum} != {expected}"
             )
