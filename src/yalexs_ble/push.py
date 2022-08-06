@@ -26,6 +26,8 @@ from .util import is_disconnected_error, local_name_is_unique
 
 _LOGGER = logging.getLogger(__name__)
 
+# Advertisement debugger (this one is quite noisy so it has its only logger)
+_ADV_LOGGER = logging.getLogger("yalexs_ble_adv")
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
@@ -357,18 +359,18 @@ class PushLock:
         self, ble_device: BLEDevice, ad: AdvertisementData
     ) -> None:
         """Update the advertisement."""
-        debug_enabled = _LOGGER.isEnabledFor(logging.DEBUG)
+        adv_debug_enabled = _ADV_LOGGER.isEnabledFor(logging.DEBUG)
         if self._local_name_is_unique and self._local_name == ad.local_name:
-            if debug_enabled:
-                _LOGGER.debug(
+            if adv_debug_enabled:
+                _ADV_LOGGER.debug(
                     "%s: Accepting new advertisement since local_name %s matches: %s",
                     self.name,
                     ad.local_name,
                     ad,
                 )
         elif self.address and self.address == ble_device.address:
-            if debug_enabled:
-                _LOGGER.debug(
+            if adv_debug_enabled:
+                _ADV_LOGGER.debug(
                     "%s: Accepting new advertisement since address %s matches: %s",
                     self.name,
                     self.address,
@@ -401,13 +403,13 @@ class PushLock:
                     else:
                         next_update = ADV_UPDATE_COALESCE_SECONDS
                 self._last_adv_value = current_value
-        if debug_enabled:
+        if adv_debug_enabled:
             scheduled_update = None
             if self._cancel_deferred_update:
                 scheduled_update = (
                     self._cancel_deferred_update.when() - self.loop.time()
                 )
-            _LOGGER.debug(
+            _ADV_LOGGER.debug(
                 "%s: State: (current_state: %s) (hk_state: %s) "
                 "(adv_value: %s) (next_update: %s) (scheduled_update: %s)",
                 self.name,
