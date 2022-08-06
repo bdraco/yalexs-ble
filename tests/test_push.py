@@ -151,7 +151,7 @@ async def test_operation_lock_with_cancelable_operation():
             await asyncio.sleep(0.05)
             counter += 1
 
-    lock = MockPushLock("a")
+    lock = MockPushLock("Z102MY0")
     tasks = []
     for _ in range(10):
         tasks.append(asyncio.create_task(lock.do_something()))

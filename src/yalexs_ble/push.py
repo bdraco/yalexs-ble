@@ -22,7 +22,7 @@ from .const import (
 )
 from .lock import Lock
 from .session import AuthError, DisconnectedError, ResponseError
-from .util import is_disconnected_error
+from .util import is_disconnected_error, local_name_is_unique
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -126,14 +126,22 @@ class PushLock:
 
     def __init__(
         self,
-        local_name: str,
+        local_name: str | None = None,
+        address: str | None = None,
         ble_device: BLEDevice | None = None,
         key: str | None = None,
         key_index: int | None = None,
     ) -> None:
         """Init the lock watcher."""
+        if local_name is None and address is None:
+            raise ValueError("Must specify either local_name or address")
+        if not address and not local_name_is_unique(local_name):
+            raise ValueError("local_name must be unique when address is not provided")
+
         self._local_name = local_name
-        self._name = local_name
+        self._local_name_is_unique = local_name_is_unique(local_name)
+        self._address = address
+        self._name: str | None = None
         self._lock_info: LockInfo | None = None
         self._lock_state: LockState | None = None
         self._last_adv_value = -1
@@ -155,14 +163,23 @@ class PushLock:
         self.auth_error = False
 
     @property
-    def local_name(self) -> str:
+    def local_name(self) -> str | None:
         """Get the local name."""
         return self._local_name
 
     @property
     def name(self) -> str:
         """Get the name of the lock."""
-        return self._name
+        if self._name:
+            return self._name
+        if self._local_name_is_unique and self._local_name:
+            return self._local_name
+        return self.address
+
+    @property
+    def address(self) -> str:
+        """Get the address of the lock."""
+        return self._ble_device.address if self._ble_device else self._address
 
     @property
     def door_status(self) -> DoorStatus:
@@ -217,13 +234,14 @@ class PushLock:
     def set_ble_device(self, ble_device: BLEDevice) -> None:
         """Set the ble device."""
         self._ble_device = ble_device
+        self._address = ble_device.address
 
     def _get_lock_instance(self) -> Lock:
         """Get the lock instance."""
         assert self._ble_device is not None  # nosec
         assert self._lock_key is not None  # nosec
         assert self._lock_key_index is not None  # nosec
-        return Lock(self._ble_device, self._lock_key, self._lock_key_index, self._name)
+        return Lock(self._ble_device, self._lock_key, self._lock_key_index, self.name)
 
     async def _cancel_any_update(self) -> None:
         """Cancel any update task."""
@@ -338,14 +356,20 @@ class PushLock:
         self, ble_device: BLEDevice, ad: AdvertisementData
     ) -> None:
         """Update the advertisement."""
-        if ble_device.name != self._local_name:
+        if self._local_name_is_unique and self._local_name == ad.local_name:
+            _LOGGER.debug(
+                "%s: Accepting new advertisement since local_name %s matches: %s",
+                ad.local_name,
+                ad,
+            )
+        elif self.address and self.address == ble_device.address:
+            _LOGGER.debug(
+                "%s: Accepting new advertisement since address %s matches: %s",
+                self.address,
+                ad,
+            )
+        else:
             return
-        _LOGGER.debug(
-            "%s: Accepting new advertisement since local name does match: %s: %s",
-            self.name,
-            ble_device.name,
-            ad,
-        )
         self.set_ble_device(ble_device)
         next_update = 0.0
         mfr_data = dict(ad.manufacturer_data)
