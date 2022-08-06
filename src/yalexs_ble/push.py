@@ -267,7 +267,7 @@ class PushLock:
     @retry_bluetooth_connection_error
     async def lock(self) -> None:
         """Lock the lock."""
-        _LOGGER.debug("Starting lock")
+        _LOGGER.debug("%s: Starting lock", self.name)
         await self._cancel_any_update()
         self._callback_state(LockState(LockStatus.LOCKING, self.door_status))
         lock = self._get_lock_instance()
@@ -279,14 +279,14 @@ class PushLock:
             raise
         self._callback_state(LockState(LockStatus.LOCKED, self.door_status))
         await self._cancel_any_update()
-        _LOGGER.debug("Finished lock")
+        _LOGGER.debug("%s: Finished lock", self.name)
 
     @cancelable_operation
     @operation_lock
     @retry_bluetooth_connection_error
     async def unlock(self) -> None:
         """Unlock the lock."""
-        _LOGGER.debug("Starting unlock")
+        _LOGGER.debug("%s: Starting unlock", self.name)
         await self._cancel_any_update()
         self._callback_state(LockState(LockStatus.UNLOCKING, self.door_status))
         lock = self._get_lock_instance()
@@ -298,7 +298,7 @@ class PushLock:
             raise
         self._callback_state(LockState(LockStatus.UNLOCKED, self.door_status))
         await self._cancel_any_update()
-        _LOGGER.debug("Finished unlock")
+        _LOGGER.debug("%s: Finished unlock", self.name)
 
     async def update(self) -> None:
         """Request that status be updated."""
@@ -306,14 +306,15 @@ class PushLock:
 
     async def validate(self) -> None:
         """Validate lock credentials."""
-        _LOGGER.debug("Starting validate")
+        _LOGGER.debug("%s: Starting validate", self.name)
         await self._update()
-        _LOGGER.debug("Finished validate")
+        _LOGGER.debug("%s: Finished validate", self.name)
 
     @operation_lock
     @retry_bluetooth_connection_error
     async def _update(self) -> LockState:
         """Update the lock state."""
+        _LOGGER.debug("%s: Starting update", self.name)
         lock = self._get_lock_instance()
         try:
             async with lock:
@@ -327,7 +328,7 @@ class PushLock:
                 self.name,
             )
             raise
-        _LOGGER.debug("%s: Updating lock state", self.name)
+        _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
         return state
 
