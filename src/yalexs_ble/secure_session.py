@@ -54,6 +54,7 @@ class SecureSession(Session):
         _LOGGER.debug(
             "%s: Response security checksum: %s, expected: %s",
             self.name,
+            response_checksum,
             expected,
         )
         if expected != response_checksum:
