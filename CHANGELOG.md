@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.0 (2022-08-07)
+### Feature
+* Improve debug logging ([#46](https://github.com/bdraco/yalexs-ble/issues/46)) ([`526407c`](https://github.com/bdraco/yalexs-ble/commit/526407c215689ef4b8af14931842ef3df3157773))
+
 ## v1.0.1 (2022-08-06)
 ### Fix
 * Format strings for debug logging ([#44](https://github.com/bdraco/yalexs-ble/issues/44)) ([`2295773`](https://github.com/bdraco/yalexs-ble/commit/22957735073d7ba60bbbe3c837eab1ec6b667a7b))
