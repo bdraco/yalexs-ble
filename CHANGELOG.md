@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.1 (2022-08-07)
+### Fix
+* Number of arguments to secure session debug log ([#47](https://github.com/bdraco/yalexs-ble/issues/47)) ([`3a6f211`](https://github.com/bdraco/yalexs-ble/commit/3a6f2117315722df1bbe76d2a91387d3d14b46c4))
+
 ## v1.1.0 (2022-08-07)
 ### Feature
 * Improve debug logging ([#46](https://github.com/bdraco/yalexs-ble/issues/46)) ([`526407c`](https://github.com/bdraco/yalexs-ble/commit/526407c215689ef4b8af14931842ef3df3157773))
