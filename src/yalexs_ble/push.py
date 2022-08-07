@@ -26,13 +26,15 @@ from .util import is_disconnected_error, local_name_is_unique
 
 _LOGGER = logging.getLogger(__name__)
 
+# Advertisement debugger (this one is quite noisy so it has its only logger)
+_ADV_LOGGER = logging.getLogger("yalexs_ble_adv")
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 3
 
 # How long to wait before processing an advertisement change
-ADV_UPDATE_COALESCE_SECONDS = 2.75
+ADV_UPDATE_COALESCE_SECONDS = 2.99
 
 # How long to wait before processing the first update
 FIRST_UPDATE_COALESCE_SECONDS = 0.50
@@ -267,7 +269,7 @@ class PushLock:
     @retry_bluetooth_connection_error
     async def lock(self) -> None:
         """Lock the lock."""
-        _LOGGER.debug("Starting lock")
+        _LOGGER.debug("%s: Starting lock", self.name)
         await self._cancel_any_update()
         self._callback_state(LockState(LockStatus.LOCKING, self.door_status))
         lock = self._get_lock_instance()
@@ -279,14 +281,14 @@ class PushLock:
             raise
         self._callback_state(LockState(LockStatus.LOCKED, self.door_status))
         await self._cancel_any_update()
-        _LOGGER.debug("Finished lock")
+        _LOGGER.debug("%s: Finished lock", self.name)
 
     @cancelable_operation
     @operation_lock
     @retry_bluetooth_connection_error
     async def unlock(self) -> None:
         """Unlock the lock."""
-        _LOGGER.debug("Starting unlock")
+        _LOGGER.debug("%s: Starting unlock", self.name)
         await self._cancel_any_update()
         self._callback_state(LockState(LockStatus.UNLOCKING, self.door_status))
         lock = self._get_lock_instance()
@@ -298,7 +300,7 @@ class PushLock:
             raise
         self._callback_state(LockState(LockStatus.UNLOCKED, self.door_status))
         await self._cancel_any_update()
-        _LOGGER.debug("Finished unlock")
+        _LOGGER.debug("%s: Finished unlock", self.name)
 
     async def update(self) -> None:
         """Request that status be updated."""
@@ -306,14 +308,15 @@ class PushLock:
 
     async def validate(self) -> None:
         """Validate lock credentials."""
-        _LOGGER.debug("Starting validate")
+        _LOGGER.debug("%s: Starting validate", self.name)
         await self._update()
-        _LOGGER.debug("Finished validate")
+        _LOGGER.debug("%s: Finished validate", self.name)
 
     @operation_lock
     @retry_bluetooth_connection_error
     async def _update(self) -> LockState:
         """Update the lock state."""
+        _LOGGER.debug("%s: Starting update", self.name)
         lock = self._get_lock_instance()
         try:
             async with lock:
@@ -327,7 +330,7 @@ class PushLock:
                 self.name,
             )
             raise
-        _LOGGER.debug("%s: Updating lock state", self.name)
+        _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
         return state
 
@@ -356,25 +359,28 @@ class PushLock:
         self, ble_device: BLEDevice, ad: AdvertisementData
     ) -> None:
         """Update the advertisement."""
+        adv_debug_enabled = _ADV_LOGGER.isEnabledFor(logging.DEBUG)
         if self._local_name_is_unique and self._local_name == ad.local_name:
-            _LOGGER.debug(
-                "%s: Accepting new advertisement since local_name %s matches: %s",
-                self.name,
-                ad.local_name,
-                ad,
-            )
+            if adv_debug_enabled:
+                _ADV_LOGGER.debug(
+                    "%s: Accepting new advertisement since local_name %s matches: %s",
+                    self.name,
+                    ad.local_name,
+                    ad,
+                )
         elif self.address and self.address == ble_device.address:
-            _LOGGER.debug(
-                "%s: Accepting new advertisement since address %s matches: %s",
-                self.name,
-                self.address,
-                ad,
-            )
+            if adv_debug_enabled:
+                _ADV_LOGGER.debug(
+                    "%s: Accepting new advertisement since address %s matches: %s",
+                    self.name,
+                    self.address,
+                    ad,
+                )
         else:
             return
         self.set_ble_device(ble_device)
         next_update = 0.0
-        mfr_data = dict(ad.manufacturer_data)
+        mfr_data = ad.manufacturer_data
         if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
             hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
             # Sometimes the yale data is glued on to the end of the HomeKit data
@@ -397,13 +403,13 @@ class PushLock:
                     else:
                         next_update = ADV_UPDATE_COALESCE_SECONDS
                 self._last_adv_value = current_value
-        if _LOGGER.isEnabledFor(logging.DEBUG):
+        if adv_debug_enabled:
             scheduled_update = None
             if self._cancel_deferred_update:
                 scheduled_update = (
                     self._cancel_deferred_update.when() - self.loop.time()
                 )
-            _LOGGER.debug(
+            _ADV_LOGGER.debug(
                 "%s: State: (current_state: %s) (hk_state: %s) "
                 "(adv_value: %s) (next_update: %s) (scheduled_update: %s)",
                 self.name,
