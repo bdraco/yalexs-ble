@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.2 (2022-08-10)
+### Fix
+* Battery drain for locks that broadcast adv of 255 ([#48](https://github.com/bdraco/yalexs-ble/issues/48)) ([`188052b`](https://github.com/bdraco/yalexs-ble/commit/188052bcb4a182420f501ff81a38a45af7de019b))
+
 ## v1.1.1 (2022-08-07)
 ### Fix
 * Number of arguments to secure session debug log ([#47](https://github.com/bdraco/yalexs-ble/issues/47)) ([`3a6f211`](https://github.com/bdraco/yalexs-ble/commit/3a6f2117315722df1bbe76d2a91387d3d14b46c4))
