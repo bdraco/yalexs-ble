@@ -56,6 +56,10 @@ RETRY_EXCEPTIONS = (
     EOFError,
 )
 
+# 255 seems to be broadcast randomly when
+# there is no update from the lock.
+VALID_ADV_VALUES = {0, 1}
+
 
 def cancelable_operation(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to make mutually exclusive operations cancelable."""
@@ -396,7 +400,10 @@ class PushLock:
                 self._last_hk_state = hk_state
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
-            if current_value != self._last_adv_value:
+            if (
+                current_value in VALID_ADV_VALUES
+                and current_value != self._last_adv_value
+            ):
                 if not next_update:
                     if self._last_adv_value == -1:
                         next_update = FIRST_UPDATE_COALESCE_SECONDS
