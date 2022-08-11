@@ -5,8 +5,12 @@ import logging
 import os
 from typing import Any
 
-from bleak import BleakClient, BleakError
-from bleak_retry_connector import BLEDevice, establish_connection
+from bleak import BleakError
+from bleak_retry_connector import (
+    BleakClientWithServiceCache,
+    BLEDevice,
+    establish_connection,
+)
 
 from . import util
 from .const import (
@@ -30,7 +34,12 @@ _LOGGER = logging.getLogger(__name__)
 
 class Lock:
     def __init__(
-        self, device: BLEDevice, keyString: str, keyIndex: int, name: str | None = None
+        self,
+        device: BLEDevice,
+        keyString: str,
+        keyIndex: int,
+        name: str | None = None,
+        cached_services: BleakClientWithServiceCache | None = None,
     ) -> None:
         self.device = device
         self.key = bytes.fromhex(keyString)
@@ -40,8 +49,9 @@ class Lock:
         self.secure_session: SecureSession | None = None
         self.is_secure = False
         self._lock = asyncio.Lock()
-        self.client: BleakClient | None = None
+        self.client: BleakClientWithServiceCache | None = None
         self._disconnected_event: asyncio.Event | None = None
+        self._cached_services = cached_services
 
     def set_name(self, name: str) -> None:
         self.name = name
@@ -60,11 +70,19 @@ class Lock:
 
     async def connect(self) -> None:
         """Connect to the lock."""
-        _LOGGER.debug("%s: Connecting to the lock", self.name)
+        _LOGGER.debug(
+            "%s: Connecting to the lock (cached_services=%s)",
+            self.name,
+            self._cached_services,
+        )
         self._disconnected_event = asyncio.Event()
         try:
             self.client = await establish_connection(
-                BleakClient, self.device, self.name, self.disconnected
+                BleakClientWithServiceCache,
+                self.device,
+                self.name,
+                self.disconnected,
+                cached_services=self._cached_services,
             )
         except (asyncio.TimeoutError, BleakError) as err:
             _LOGGER.error("%s: Failed to connect to the lock: %s", self.name, err)
