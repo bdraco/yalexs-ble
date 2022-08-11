@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.3 (2022-08-11)
+### Fix
+* Battery drain when using dbus-broker ([#49](https://github.com/bdraco/yalexs-ble/issues/49)) ([`7060e0f`](https://github.com/bdraco/yalexs-ble/commit/7060e0f615d6e232383cef6e35ad52799d78e319))
+
 ## v1.1.2 (2022-08-10)
 ### Fix
 * Battery drain for locks that broadcast adv of 255 ([#48](https://github.com/bdraco/yalexs-ble/issues/48)) ([`188052b`](https://github.com/bdraco/yalexs-ble/commit/188052bcb4a182420f501ff81a38a45af7de019b))
