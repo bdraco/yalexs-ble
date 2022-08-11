@@ -8,7 +8,8 @@ from typing import Any, TypeVar, cast
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
-from bleak_retry_connector import BleakError, BleakNotFoundError
+from bleak.backends.service import BleakGATTServiceCollection
+from bleak_retry_connector import BleakError, BleakNotFoundError, ble_device_has_changed
 
 from .const import (
     APPLE_MFR_ID,
@@ -167,6 +168,7 @@ class PushLock:
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
         self.last_error: str | None = None
         self.auth_error = False
+        self._cached_services: BleakGATTServiceCollection | None = None
 
     @property
     def local_name(self) -> str | None:
@@ -239,15 +241,32 @@ class PushLock:
 
     def set_ble_device(self, ble_device: BLEDevice) -> None:
         """Set the ble device."""
+        if self._ble_device and ble_device_has_changed(self._ble_device, ble_device):
+            _LOGGER.debug(
+                "%s: New ble device details, clearing cached services", self.name
+            )
+            self._cached_services = None
         self._ble_device = ble_device
         self._address = ble_device.address
+
+    def _memorize_services(self, lock: Lock) -> None:
+        """Memorize the services."""
+        if not self._cached_services:
+            assert lock.client is not None  # nosec
+            self._cached_services = lock.client.services
 
     def _get_lock_instance(self) -> Lock:
         """Get the lock instance."""
         assert self._ble_device is not None  # nosec
         assert self._lock_key is not None  # nosec
         assert self._lock_key_index is not None  # nosec
-        return Lock(self._ble_device, self._lock_key, self._lock_key_index, self.name)
+        return Lock(
+            self._ble_device,
+            self._lock_key,
+            self._lock_key_index,
+            self.name,
+            cached_services=self._cached_services,
+        )
 
     async def _cancel_any_update(self) -> None:
         """Cancel any update task."""
@@ -280,6 +299,7 @@ class PushLock:
         try:
             async with lock:
                 await lock.force_lock()
+                self._memorize_services(lock)
         except Exception:
             self._callback_state(LockState(LockStatus.UNKNOWN, self.door_status))
             raise
@@ -299,6 +319,7 @@ class PushLock:
         try:
             async with lock:
                 await lock.force_unlock()
+                self._memorize_services(lock)
         except Exception:
             self._callback_state(LockState(LockStatus.UNKNOWN, self.door_status))
             raise
@@ -327,6 +348,7 @@ class PushLock:
                 if not self._lock_info:
                     self._lock_info = await lock.lock_info()
                 state = await lock.status()
+                self._memorize_services(lock)
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: In-progress update canceled due "

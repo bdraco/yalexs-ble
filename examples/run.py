@@ -52,4 +52,5 @@ async def run():
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("yalexs_ble").setLevel(logging.DEBUG)
+logging.getLogger("bleak_retry_connector").setLevel(logging.DEBUG)
 asyncio.run(run())
