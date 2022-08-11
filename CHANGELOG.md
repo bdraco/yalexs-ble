@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.2.0 (2022-08-11)
+### Feature
+* Implement service caching ([#45](https://github.com/bdraco/yalexs-ble/issues/45)) ([`b5ce3ca`](https://github.com/bdraco/yalexs-ble/commit/b5ce3ca4a4e3e088ac1ba19990351facdd8b5186))
+
 ## v1.1.3 (2022-08-11)
 ### Fix
 * Battery drain when using dbus-broker ([#49](https://github.com/bdraco/yalexs-ble/issues/49)) ([`7060e0f`](https://github.com/bdraco/yalexs-ble/commit/7060e0f615d6e232383cef6e35ad52799d78e319))
