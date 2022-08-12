@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.1 (2022-08-12)
+### Fix
+* Bleak retry disconnect race fix ([#52](https://github.com/bdraco/yalexs-ble/issues/52)) ([`3e2163c`](https://github.com/bdraco/yalexs-ble/commit/3e2163c66a6193ecad7d80ee557547ec5edcd306))
+
 ## v1.2.0 (2022-08-11)
 ### Feature
 * Implement service caching ([#45](https://github.com/bdraco/yalexs-ble/issues/45)) ([`b5ce3ca`](https://github.com/bdraco/yalexs-ble/commit/b5ce3ca4a4e3e088ac1ba19990351facdd8b5186))
