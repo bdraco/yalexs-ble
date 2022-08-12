@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.2 (2022-08-12)
+### Fix
+* Bump bleak-retry-connector ([#53](https://github.com/bdraco/yalexs-ble/issues/53)) ([`194ff6b`](https://github.com/bdraco/yalexs-ble/commit/194ff6be8812e5ac8146b43a3d7d07667c437af8))
+
 ## v1.3.1 (2022-08-12)
 ### Fix
 * Bleak retry disconnect race fix ([#52](https://github.com/bdraco/yalexs-ble/issues/52)) ([`3e2163c`](https://github.com/bdraco/yalexs-ble/commit/3e2163c66a6193ecad7d80ee557547ec5edcd306))
