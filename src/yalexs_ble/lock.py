@@ -38,6 +38,7 @@ class Lock:
         device: BLEDevice,
         keyString: str,
         keyIndex: int,
+        info: LockInfo | None = None,
         name: str | None = None,
         cached_services: BleakClientWithServiceCache | None = None,
     ) -> None:
@@ -49,6 +50,7 @@ class Lock:
         self.secure_session: SecureSession | None = None
         self.is_secure = False
         self._lock = asyncio.Lock()
+        self._lock_info = info
         self.client: BleakClientWithServiceCache | None = None
         self._disconnected_event: asyncio.Event | None = None
         self._cached_services = cached_services
@@ -136,7 +138,8 @@ class Lock:
             FIRMWARE_REVISION_CHARACTERISTIC,
         ):
             lock_info.append((await self.client.read_gatt_char(char)).decode())
-        return LockInfo(*lock_info)
+        self._lock_info = LockInfo(*lock_info)
+        return self._lock_info
 
     async def force_lock(self) -> None:
         if not self.is_connected or not self.session:
@@ -169,7 +172,7 @@ class Lock:
         cmd = bytearray(0x12)
         cmd[0x00] = 0xEE
         cmd[0x01] = 0x02
-        cmd[0x04] = 0x2F  # We want door status as well
+        cmd[0x04] = 0x2F if self._lock_info and self._lock_info.door_sense else 0x02
         cmd[0x10] = 0x02
         response = await self.session.execute(self._disconnected_event, cmd)
         _LOGGER.debug("%s: Status response: [%s]", self.name, response.hex())

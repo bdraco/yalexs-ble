@@ -17,6 +17,8 @@ MODEL_NUMBER_CHARACTERISTIC = "00002a24-0000-1000-8000-00805f9b34fb"
 SERIAL_NUMBER_CHARACTERISTIC = "00002a25-0000-1000-8000-00805f9b34fb"
 FIRMWARE_REVISION_CHARACTERISTIC = "00002a26-0000-1000-8000-00805f9b34fb"
 
+NO_DOOR_SENSE_MODELS = ("ASL-02", "ASL-01")
+
 
 class Commands(Enum):
 
@@ -64,6 +66,16 @@ class LockInfo:
     model: str
     serial: str
     firmware: str
+
+    @property
+    def door_sense(self) -> bool:
+        """Check if the lock has door sense support."""
+        return bool(
+            self.model
+            and not any(
+                self.model.startswith(old_model) for old_model in NO_DOOR_SENSE_MODELS
+            )
+        )
 
 
 @dataclass
