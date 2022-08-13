@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.4.0 (2022-08-13)
+### Feature
+* Add support for the gen2 august locks ([#54](https://github.com/bdraco/yalexs-ble/issues/54)) ([`47fbc46`](https://github.com/bdraco/yalexs-ble/commit/47fbc4613d7e111cc78f51794e818eb018e3c6c0))
+
 ## v1.3.2 (2022-08-12)
 ### Fix
 * Bump bleak-retry-connector ([#53](https://github.com/bdraco/yalexs-ble/issues/53)) ([`194ff6b`](https://github.com/bdraco/yalexs-ble/commit/194ff6be8812e5ac8146b43a3d7d07667c437af8))
