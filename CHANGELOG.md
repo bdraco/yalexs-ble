@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.6.0 (2022-08-19)
+### Feature
+* Add support for roaming between adapters while establishing the ble connection ([#56](https://github.com/bdraco/yalexs-ble/issues/56)) ([`a8885a1`](https://github.com/bdraco/yalexs-ble/commit/a8885a1b6038b9cfb272d3cc09d17c0b4f34b33f))
+
 ## v1.5.0 (2022-08-19)
 ### Feature
 * Add support for roaming between adapters while establishing the ble connection ([#55](https://github.com/bdraco/yalexs-ble/issues/55)) ([`1a01c74`](https://github.com/bdraco/yalexs-ble/commit/1a01c74c8ceaf5162724ef3f3edf09bce5a3e95f))
