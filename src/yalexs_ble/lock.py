@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from collections.abc import Callable
 from typing import Any
 
 from bleak import BleakError
@@ -35,17 +36,17 @@ _LOGGER = logging.getLogger(__name__)
 class Lock:
     def __init__(
         self,
-        device: BLEDevice,
+        ble_device_callback: Callable[[], BLEDevice],
         keyString: str,
         keyIndex: int,
+        name: str,
         info: LockInfo | None = None,
-        name: str | None = None,
         cached_services: BleakClientWithServiceCache | None = None,
     ) -> None:
-        self.device = device
+        self.ble_device_callback = ble_device_callback
         self.key = bytes.fromhex(keyString)
         self.key_index = keyIndex
-        self.name = name or device.name
+        self.name = name
         self.session: Session | None = None
         self.secure_session: SecureSession | None = None
         self.is_secure = False
@@ -81,10 +82,11 @@ class Lock:
         try:
             self.client = await establish_connection(
                 BleakClientWithServiceCache,
-                self.device,
+                self.ble_device_callback(),
                 self.name,
                 self.disconnected,
                 cached_services=self._cached_services,
+                ble_device_callback=self.ble_device_callback,
             )
         except (asyncio.TimeoutError, BleakError) as err:
             _LOGGER.error("%s: Failed to connect to the lock: %s", self.name, err)
