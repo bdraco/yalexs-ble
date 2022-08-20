@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.6.3 (2022-08-20)
+### Fix
+* Make sure the ble connection is disconnected if the operation is canceled ([#60](https://github.com/bdraco/yalexs-ble/issues/60)) ([`62510ef`](https://github.com/bdraco/yalexs-ble/commit/62510efa6c2d4de9988f4e071984665c8ce3ebfd))
+
 ## v1.6.2 (2022-08-20)
 ### Fix
 * Bump bleak-retry-connector ([#59](https://github.com/bdraco/yalexs-ble/issues/59)) ([`309c1d7`](https://github.com/bdraco/yalexs-ble/commit/309c1d7d9d7a27123c3643b4ca2a7fadff95f668))
