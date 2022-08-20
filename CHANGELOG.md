@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.6.2 (2022-08-20)
+### Fix
+* Bump bleak-retry-connector ([#59](https://github.com/bdraco/yalexs-ble/issues/59)) ([`309c1d7`](https://github.com/bdraco/yalexs-ble/commit/309c1d7d9d7a27123c3643b4ca2a7fadff95f668))
+
 ## v1.6.1 (2022-08-20)
 ### Fix
 * Implement 250ms backoff on dbus error ([#58](https://github.com/bdraco/yalexs-ble/issues/58)) ([`33d9954`](https://github.com/bdraco/yalexs-ble/commit/33d995496f6bf90fba55521fb0769bae2aa317c0))
