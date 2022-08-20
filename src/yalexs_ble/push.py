@@ -33,7 +33,7 @@ _ADV_LOGGER = logging.getLogger("yalexs_ble_adv")
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
-DEFAULT_ATTEMPTS = 3
+DEFAULT_ATTEMPTS = 4
 
 # How long to wait before processing an advertisement change
 ADV_UPDATE_COALESCE_SECONDS = 6.99
@@ -118,29 +118,51 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 # point in retrying.
                 raise
             except RETRY_BACKOFF_EXCEPTIONS as err:
-                if attempt == max_attempts:
+                if attempt >= max_attempts:
+                    _LOGGER.debug(
+                        "%s: %s error calling %s, reach max attempts (%s/%s)",
+                        self.name,
+                        type(err),
+                        func,
+                        attempt,
+                        max_attempts,
+                        exc_info=True,
+                    )
                     if is_disconnected_error(err):
                         raise DisconnectedError(str(err))
                     raise
-                await asyncio.sleep(0.25)
                 _LOGGER.debug(
-                    "%s: %s error calling %s, backing off %ss, retrying...",
+                    "%s: %s error calling %s, backing off %ss, retrying (%s/%s)...",
                     self.name,
                     type(err),
                     func,
                     0.25,
+                    attempt,
+                    max_attempts,
                     exc_info=True,
                 )
+                await asyncio.sleep(0.25)
             except RETRY_EXCEPTIONS as err:
-                if attempt == max_attempts:
+                if attempt >= max_attempts:
+                    _LOGGER.debug(
+                        "%s: %s error calling %s, reach max attempts (%s/%s)",
+                        self.name,
+                        type(err),
+                        func,
+                        attempt,
+                        max_attempts,
+                        exc_info=True,
+                    )
                     if is_disconnected_error(err):
                         raise DisconnectedError(str(err))
                     raise
                 _LOGGER.debug(
-                    "%s: %s error calling %s, retrying...",
+                    "%s: %s error calling %s, retrying  (%s/%s)...",
                     self.name,
                     type(err),
                     func,
+                    attempt,
+                    max_attempts,
                     exc_info=True,
                 )
 
