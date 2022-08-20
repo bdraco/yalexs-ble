@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.6.1 (2022-08-20)
+### Fix
+* Implement 250ms backoff on dbus error ([#58](https://github.com/bdraco/yalexs-ble/issues/58)) ([`33d9954`](https://github.com/bdraco/yalexs-ble/commit/33d995496f6bf90fba55521fb0769bae2aa317c0))
+
 ## v1.6.0 (2022-08-19)
 ### Feature
 * Add support for roaming between adapters while establishing the ble connection ([#56](https://github.com/bdraco/yalexs-ble/issues/56)) ([`a8885a1`](https://github.com/bdraco/yalexs-ble/commit/a8885a1b6038b9cfb272d3cc09d17c0b4f34b33f))
