@@ -195,10 +195,19 @@ class Lock:
         return LockState(lock_status_enum, door_status_enum)
 
     async def disconnect(self) -> None:
+        """Disconnect from the lock."""
         _LOGGER.debug("%s: Disconnecting from the lock", self.name)
         if not self.client or not self.client.is_connected:
             return
 
+        try:
+            await self._shutdown_connection()
+        finally:
+            await self.client.disconnect()
+
+    async def _shutdown_connection(self) -> None:
+        """Shutdown the connection."""
+        _LOGGER.debug("%s: Shutting down the connection", self.name)
         if self.session:
             await self.session.stop_notify()
 
@@ -227,8 +236,6 @@ class Lock:
 
         if self.secure_session:
             await self.secure_session.stop_notify()
-
-        await self.client.disconnect()
 
     @property
     def is_connected(self) -> bool:
