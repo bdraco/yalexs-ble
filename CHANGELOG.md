@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.6.4 (2022-08-20)
+### Fix
+* Raise max attempts to 4 ([#61](https://github.com/bdraco/yalexs-ble/issues/61)) ([`362b664`](https://github.com/bdraco/yalexs-ble/commit/362b6640ea7e76dd18585ad94dd907e13b610da0))
+
 ## v1.6.3 (2022-08-20)
 ### Fix
 * Make sure the ble connection is disconnected if the operation is canceled ([#60](https://github.com/bdraco/yalexs-ble/issues/60)) ([`62510ef`](https://github.com/bdraco/yalexs-ble/commit/62510efa6c2d4de9988f4e071984665c8ce3ebfd))
