@@ -9,6 +9,7 @@ from typing import Any, TypeVar, cast
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.backends.service import BleakGATTServiceCollection
+from bleak.exc import BleakDBusError
 from bleak_retry_connector import BleakError, BleakNotFoundError, ble_device_has_changed
 
 from .const import (
@@ -115,6 +116,20 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 # The lock cannot be found so there is no
                 # point in retrying.
                 raise
+            except BleakDBusError as err:
+                if attempt == max_attempts:
+                    if is_disconnected_error(err):
+                        raise DisconnectedError(str(err))
+                    raise
+                await asyncio.sleep(0.25)
+                _LOGGER.debug(
+                    "%s: %s error calling %s, backing off %ss, retrying...",
+                    self.name,
+                    type(err),
+                    func,
+                    0.25,
+                    exc_info=True,
+                )
             except RETRY_EXCEPTIONS as err:
                 if attempt == max_attempts:
                     if is_disconnected_error(err):
