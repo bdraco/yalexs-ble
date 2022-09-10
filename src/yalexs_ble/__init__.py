@@ -1,5 +1,3 @@
-from bleak_retry_connector import get_device
-
 from .const import ConnectionInfo, DoorStatus, LockInfo, LockState, LockStatus
 from .lock import Lock
 from .push import PushLock
@@ -26,7 +24,6 @@ __all__ = [
     "LockStatus",
     "PushLock",
     "ValidatedLockConfig",
-    "get_device",
     "serial_to_local_name",
     "local_name_to_serial",
     "unique_id_from_device_adv",
