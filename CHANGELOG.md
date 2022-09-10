@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.7.1 (2022-09-10)
+### Fix
+* Handle dbus already having the lock connected at startup ([#63](https://github.com/bdraco/yalexs-ble/issues/63)) ([`b47b132`](https://github.com/bdraco/yalexs-ble/commit/b47b1320773a15b48ceb3fe2665e4e7b8c19c570))
+
 ## v1.7.0 (2022-09-10)
 ### Feature
 * Expose get_device api ([#62](https://github.com/bdraco/yalexs-ble/issues/62)) ([`f49ca9f`](https://github.com/bdraco/yalexs-ble/commit/f49ca9fc58944cc0a971f3cc4912bca126e79637))
