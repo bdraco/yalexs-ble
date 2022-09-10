@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.7.0 (2022-09-10)
+### Feature
+* Expose get_device api ([#62](https://github.com/bdraco/yalexs-ble/issues/62)) ([`f49ca9f`](https://github.com/bdraco/yalexs-ble/commit/f49ca9fc58944cc0a971f3cc4912bca126e79637))
+
 ## v1.6.4 (2022-08-20)
 ### Fix
 * Raise max attempts to 4 ([#61](https://github.com/bdraco/yalexs-ble/issues/61)) ([`362b664`](https://github.com/bdraco/yalexs-ble/commit/362b6640ea7e76dd18585ad94dd907e13b610da0))
