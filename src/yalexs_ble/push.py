@@ -10,7 +10,12 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.backends.service import BleakGATTServiceCollection
 from bleak.exc import BleakDBusError
-from bleak_retry_connector import BleakError, BleakNotFoundError, ble_device_has_changed
+from bleak_retry_connector import (
+    BleakError,
+    BleakNotFoundError,
+    ble_device_has_changed,
+    get_device,
+)
 
 from .const import (
     APPLE_MFR_ID,
@@ -502,6 +507,9 @@ class PushLock:
             raise RuntimeError("Already running")
         self.last_error = "No Bluetooth advertisement received"
         self._running = True
+        if device := await get_device(self.address):
+            self.set_ble_device(device)
+            self._schedule_update(ADV_UPDATE_COALESCE_SECONDS)
 
         def _cancel() -> None:
             self._running = False
