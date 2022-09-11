@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.8.0 (2022-09-11)
+### Feature
+* Implement smart back off ([#65](https://github.com/bdraco/yalexs-ble/issues/65)) ([`a3e9c0a`](https://github.com/bdraco/yalexs-ble/commit/a3e9c0a171a4d9b3da464590f887bd4bc7756f68))
+
 ## v1.7.1 (2022-09-10)
 ### Fix
 * Handle dbus already having the lock connected at startup ([#63](https://github.com/bdraco/yalexs-ble/issues/63)) ([`b47b132`](https://github.com/bdraco/yalexs-ble/commit/b47b1320773a15b48ceb3fe2665e4e7b8c19c570))
