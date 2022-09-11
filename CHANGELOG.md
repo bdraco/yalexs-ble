@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.8.1 (2022-09-11)
+### Fix
+* Correct bleak-retry-connector version ([#66](https://github.com/bdraco/yalexs-ble/issues/66)) ([`704b7b1`](https://github.com/bdraco/yalexs-ble/commit/704b7b17c790cc2bf890eff9d9431f45369d4fb2))
+
 ## v1.8.0 (2022-09-11)
 ### Feature
 * Implement smart back off ([#65](https://github.com/bdraco/yalexs-ble/issues/65)) ([`a3e9c0a`](https://github.com/bdraco/yalexs-ble/commit/a3e9c0a171a4d9b3da464590f887bd4bc7756f68))
