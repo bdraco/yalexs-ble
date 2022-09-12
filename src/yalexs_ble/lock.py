@@ -41,7 +41,6 @@ class Lock:
         keyIndex: int,
         name: str,
         info: LockInfo | None = None,
-        cached_services: BleakClientWithServiceCache | None = None,
     ) -> None:
         self.ble_device_callback = ble_device_callback
         self.key = bytes.fromhex(keyString)
@@ -54,7 +53,6 @@ class Lock:
         self._lock_info = info
         self.client: BleakClientWithServiceCache | None = None
         self._disconnected_event: asyncio.Event | None = None
-        self._cached_services = cached_services
 
     def set_name(self, name: str) -> None:
         self.name = name
@@ -74,9 +72,8 @@ class Lock:
     async def connect(self) -> None:
         """Connect to the lock."""
         _LOGGER.debug(
-            "%s: Connecting to the lock (cached_services=%s)",
+            "%s: Connecting to the lock",
             self.name,
-            self._cached_services,
         )
         self._disconnected_event = asyncio.Event()
         try:
@@ -85,7 +82,7 @@ class Lock:
                 self.ble_device_callback(),
                 self.name,
                 self.disconnected,
-                cached_services=self._cached_services,
+                use_services_cache=True,
                 ble_device_callback=self.ble_device_callback,
             )
         except (asyncio.TimeoutError, BleakError) as err:
