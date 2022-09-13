@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.0 (2022-09-13)
+### Feature
+* Update for bleak 0.17 ([#67](https://github.com/bdraco/yalexs-ble/issues/67)) ([`78e00a0`](https://github.com/bdraco/yalexs-ble/commit/78e00a0615cefb5c22535f1d16eec4681c1229ad))
+
 ## v1.8.1 (2022-09-11)
 ### Fix
 * Correct bleak-retry-connector version ([#66](https://github.com/bdraco/yalexs-ble/issues/66)) ([`704b7b1`](https://github.com/bdraco/yalexs-ble/commit/704b7b17c790cc2bf890eff9d9431f45369d4fb2))
