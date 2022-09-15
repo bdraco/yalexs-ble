@@ -9,7 +9,7 @@ from typing import Any, TypeVar, cast
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError
-from bleak_retry_connector import BleakError, BleakNotFoundError, get_device
+from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS, BleakNotFoundError, get_device
 
 from .const import (
     APPLE_MFR_ID,
@@ -54,12 +54,7 @@ UPDATE_IN_PROGRESS_DEFER_SECONDS = 29.50
 
 RETRY_BACKOFF_EXCEPTIONS = (BleakDBusError, DisconnectedError)
 
-RETRY_EXCEPTIONS = (
-    asyncio.TimeoutError,
-    ResponseError,
-    BleakError,
-    EOFError,
-)
+RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 
 # 255 seems to be broadcast randomly when
 # there is no update from the lock.
