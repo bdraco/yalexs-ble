@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.2 (2022-09-15)
+### Fix
+* Incorrect bleak-retry-connector version ([#70](https://github.com/bdraco/yalexs-ble/issues/70)) ([`d9c2708`](https://github.com/bdraco/yalexs-ble/commit/d9c2708aae8fbd1a3dc1c13bc34de6010affc11f))
+
 ## v1.9.1 (2022-09-15)
 ### Fix
 * Handle additional bleak exceptions ([#69](https://github.com/bdraco/yalexs-ble/issues/69)) ([`bff64fc`](https://github.com/bdraco/yalexs-ble/commit/bff64fc296e0146f862e39e4c918ea51e516b244))
