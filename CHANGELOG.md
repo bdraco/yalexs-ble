@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.1 (2022-09-15)
+### Fix
+* Handle additional bleak exceptions ([#69](https://github.com/bdraco/yalexs-ble/issues/69)) ([`bff64fc`](https://github.com/bdraco/yalexs-ble/commit/bff64fc296e0146f862e39e4c918ea51e516b244))
+
 ## v1.9.0 (2022-09-13)
 ### Feature
 * Update for bleak 0.17 ([#67](https://github.com/bdraco/yalexs-ble/issues/67)) ([`78e00a0`](https://github.com/bdraco/yalexs-ble/commit/78e00a0615cefb5c22535f1d16eec4681c1229ad))
