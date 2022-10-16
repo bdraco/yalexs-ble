@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.4 (2022-10-16)
+### Fix
+* Avoid logging failure when lock is already disconnected ([#72](https://github.com/bdraco/yalexs-ble/issues/72)) ([`08f562b`](https://github.com/bdraco/yalexs-ble/commit/08f562b57471247f3a0ff9f3622f4ae886ed2c77))
+
 ## v1.9.2 (2022-09-15)
 ### Fix
 * Incorrect bleak-retry-connector version ([#70](https://github.com/bdraco/yalexs-ble/issues/70)) ([`d9c2708`](https://github.com/bdraco/yalexs-ble/commit/d9c2708aae8fbd1a3dc1c13bc34de6010affc11f))
