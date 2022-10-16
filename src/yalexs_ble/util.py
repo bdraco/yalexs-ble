@@ -46,6 +46,7 @@ def is_disconnected_error(error: Exception) -> bool:
         and (
             "disconnect" in str(error)
             or "Connection Rejected Due To Security Reasons" in str(error)
+            or "Unlikely Error" in str(error)
         )
     )
 
