@@ -173,6 +173,7 @@ class PushLock:
         ble_device: BLEDevice | None = None,
         key: str | None = None,
         key_index: int | None = None,
+        advertisement_data: AdvertisementData | None = None,
     ) -> None:
         """Init the lock watcher."""
         if local_name is None and address is None:
@@ -190,6 +191,7 @@ class PushLock:
         self._last_hk_state = -1
         self._lock_key = key
         self._lock_key_index = key_index
+        self._advertisement_data = advertisement_data
         self._ble_device = ble_device
         self._operation_lock = asyncio.Lock()
         self._running = False
@@ -246,7 +248,9 @@ class PushLock:
     @property
     def connection_info(self) -> ConnectionInfo | None:
         """Return the current connection info."""
-        return ConnectionInfo(self._ble_device.rssi) if self._ble_device else None
+        if self._advertisement_data:
+            return ConnectionInfo(self._advertisement_data.rssi)
+        return None
 
     @property
     def ble_device(self) -> BLEDevice | None:
@@ -277,6 +281,10 @@ class PushLock:
         """Set the ble device."""
         self._ble_device = ble_device
         self._address = ble_device.address
+
+    def set_advertisement_data(self, advertisement_data: AdvertisementData) -> None:
+        """Set the advertisement data."""
+        self._advertisement_data = advertisement_data
 
     def _get_lock_instance(self) -> Lock:
         """Get the lock instance."""
@@ -427,6 +435,7 @@ class PushLock:
         else:
             return
         self.set_ble_device(ble_device)
+        self.set_advertisement_data(ad)
         next_update = 0.0
         mfr_data = ad.manufacturer_data
         if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
