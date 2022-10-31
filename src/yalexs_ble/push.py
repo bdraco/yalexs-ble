@@ -13,6 +13,7 @@ from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS, BleakNotFoundError, ge
 
 from .const import (
     APPLE_MFR_ID,
+    HAP_ENCRYPTED_FIRST_BYTE,
     HAP_FIRST_BYTE,
     YALE_MFR_ID,
     ConnectionInfo,
@@ -261,6 +262,11 @@ class PushLock:
         """Set the name of the lock."""
         self._name = name
 
+    def reset_advertisement_state(self) -> None:
+        """Reset the advertisement state."""
+        self._last_adv_value = -1
+        self._last_hk_state = -1
+
     def register_callback(
         self, callback: Callable[[LockState, LockInfo, ConnectionInfo], None]
     ) -> Callable[[], None]:
@@ -438,19 +444,25 @@ class PushLock:
         self.set_advertisement_data(ad)
         next_update = 0.0
         mfr_data = ad.manufacturer_data
-        if APPLE_MFR_ID in mfr_data and mfr_data[APPLE_MFR_ID][0] == HAP_FIRST_BYTE:
-            hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
-            # Sometimes the yale data is glued on to the end of the HomeKit data
-            # but in that case it seems wrong so we don't process it
-            #
-            # if len(mfr_data[APPLE_MFR_ID]) > 20 and YALE_MFR_ID not in mfr_data:
-            # mfr_data[YALE_MFR_ID] = mfr_data[APPLE_MFR_ID][20:]
-            if hk_state != self._last_hk_state:
-                if self._last_hk_state == -1:
-                    next_update = FIRST_UPDATE_COALESCE_SECONDS
-                else:
-                    next_update = HK_UPDATE_COALESCE_SECONDS
-                self._last_hk_state = hk_state
+        if APPLE_MFR_ID in mfr_data:
+            first_byte = mfr_data[APPLE_MFR_ID][0]
+            if first_byte == HAP_FIRST_BYTE:
+                hk_state = get_homekit_state_num(mfr_data[APPLE_MFR_ID])
+                # Sometimes the yale data is glued on to the end of the HomeKit data
+                # but in that case it seems wrong so we don't process it
+                #
+                # if len(mfr_data[APPLE_MFR_ID]) > 20 and YALE_MFR_ID not in mfr_data:
+                # mfr_data[YALE_MFR_ID] = mfr_data[APPLE_MFR_ID][20:]
+                if hk_state != self._last_hk_state:
+                    if self._last_hk_state == -1:
+                        next_update = FIRST_UPDATE_COALESCE_SECONDS
+                    else:
+                        next_update = HK_UPDATE_COALESCE_SECONDS
+                    self._last_hk_state = hk_state
+            elif first_byte == HAP_ENCRYPTED_FIRST_BYTE:
+                # Encrypted data, we don't know how to decrypt it
+                # but we know its a state change so we schedule an update
+                next_update = HK_UPDATE_COALESCE_SECONDS
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
             if (
