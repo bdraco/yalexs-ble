@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.5 (2022-10-31)
+### Fix
+* Lock advertisement state needs to be reset after going unavailable to ensure it becomes available again ([#73](https://github.com/bdraco/yalexs-ble/issues/73)) ([`cc1a252`](https://github.com/bdraco/yalexs-ble/commit/cc1a2529b4dd6406b71290bb83ec71fc9816cc51))
+
 ## v1.9.4 (2022-10-16)
 ### Fix
 * Avoid logging failure when lock is already disconnected ([#72](https://github.com/bdraco/yalexs-ble/issues/72)) ([`08f562b`](https://github.com/bdraco/yalexs-ble/commit/08f562b57471247f3a0ff9f3622f4ae886ed2c77))
