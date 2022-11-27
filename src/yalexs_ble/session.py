@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from typing import Callable
 
@@ -189,4 +190,6 @@ class Session:
         if write_task.done():
             return write_task.result()
         write_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await write_task
         raise DisconnectedError(f"{self.name}: Disconnected")

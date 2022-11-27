@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import struct
 from collections.abc import Callable
@@ -68,10 +69,11 @@ def cancelable_operation(func: WrapFuncType) -> WrapFuncType:
     async def _async_wrap_cancelable_operation(
         self: "PushLock", *args: Any, **kwargs: Any
     ) -> None:
-        self._cancel_in_progress_operation()
-        self._cancel_in_progress_update()
+        await self._cancel_in_progress_operation()
+        await self._cancel_in_progress_update()
         self._operation_task = asyncio.create_task(func(self, *args, **kwargs))
         await self._operation_task
+        self._operation_task = None
 
     return cast(WrapFuncType, _async_wrap_cancelable_operation)
 
@@ -308,20 +310,24 @@ class PushLock:
     async def _cancel_any_update(self) -> None:
         """Cancel any update task."""
         await asyncio.sleep(0)
-        self._cancel_in_progress_update()
+        await self._cancel_in_progress_update()
 
-    def _cancel_in_progress_update(self) -> None:
+    async def _cancel_in_progress_update(self) -> None:
         """Cancel any in progress update task."""
         if self._update_task:
             _LOGGER.debug("Canceling in progress update: %s", self._update_task)
             self._update_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await self._update_task
             self._update_task = None
 
-    def _cancel_in_progress_operation(self) -> None:
+    async def _cancel_in_progress_operation(self) -> None:
         """Cancel any in progress operation task."""
         if self._operation_task:
             _LOGGER.debug("Canceling in progress task: %s", self._operation_task)
             self._operation_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await self._operation_task
             self._operation_task = None
 
     @cancelable_operation
@@ -507,7 +513,7 @@ class PushLock:
 
         def _cancel() -> None:
             self._running = False
-            self._cancel_in_progress_update()
+            asyncio.create_task(self._cancel_in_progress_update())
 
         return _cancel
 
@@ -571,6 +577,7 @@ class PushLock:
                 self.last_error = "Could not connect"
                 self._update_task = asyncio.create_task(self._update())
                 await self._update_task
+                self._update_task = None
             except AuthError as ex:
                 self.auth_error = True
                 self.last_error = (
