@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.6 (2022-11-27)
+### Fix
+* Un-retrieved future exceptions when canceled ([#74](https://github.com/bdraco/yalexs-ble/issues/74)) ([`9c704dc`](https://github.com/bdraco/yalexs-ble/commit/9c704dc77b7791493d42621f77bbf3c51e87e75f))
+
 ## v1.9.5 (2022-10-31)
 ### Fix
 * Lock advertisement state needs to be reset after going unavailable to ensure it becomes available again ([#73](https://github.com/bdraco/yalexs-ble/issues/73)) ([`cc1a252`](https://github.com/bdraco/yalexs-ble/commit/cc1a2529b4dd6406b71290bb83ec71fc9816cc51))
