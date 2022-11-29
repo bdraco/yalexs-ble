@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.7 (2022-11-29)
+### Fix
+* Drop connection instead of executing shutdown ([#75](https://github.com/bdraco/yalexs-ble/issues/75)) ([`6d85edf`](https://github.com/bdraco/yalexs-ble/commit/6d85edfa2ac4286a5b05582907f19119939c6a71))
+
 ## v1.9.6 (2022-11-27)
 ### Fix
 * Un-retrieved future exceptions when canceled ([#74](https://github.com/bdraco/yalexs-ble/issues/74)) ([`9c704dc`](https://github.com/bdraco/yalexs-ble/commit/9c704dc77b7791493d42621f77bbf3c51e87e75f))
