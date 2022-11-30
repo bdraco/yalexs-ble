@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.9.8 (2022-11-30)
+### Fix
+* Improve operation reliability ([#76](https://github.com/bdraco/yalexs-ble/issues/76)) ([`91f403f`](https://github.com/bdraco/yalexs-ble/commit/91f403f0fa6ace9bdfec6f5bd0694bbc124b84f0))
+
 ## v1.9.7 (2022-11-29)
 ### Fix
 * Drop connection instead of executing shutdown ([#75](https://github.com/bdraco/yalexs-ble/issues/75)) ([`6d85edf`](https://github.com/bdraco/yalexs-ble/commit/6d85edfa2ac4286a5b05582907f19119939c6a71))
