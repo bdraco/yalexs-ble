@@ -98,6 +98,11 @@ class Lock:
             self.client, self.name, self._lock, self.key_index
         )
 
+        # Order matters here, we must start notify for the secure session before
+        # the non-secure session
+        await self.secure_session.start_notify()
+        await self.session.start_notify()
+
         self.secure_session.set_key(self.key)
         handshake_keys = os.urandom(16)
 

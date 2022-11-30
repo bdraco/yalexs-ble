@@ -118,20 +118,7 @@ class Session:
             util._copy(command, cipherText)
 
         _LOGGER.debug("%s: Encrypted command: %s", self.name, command.hex())
-
         future: asyncio.Future[bytes] = asyncio.Future()
-
-        if not self._notifications_started:
-            _LOGGER.debug("%s: Starting notify for %s", self.name, type(self))
-            try:
-                await self._start_notify(self._notify)
-            except BleakError as err:
-                _LOGGER.debug("%s: Failed to start notify: %s", self.name, err)
-                if "not found" in str(err):
-                    raise AuthError(f"{self.name}: {err}") from err
-                raise
-            self._notifications_started = True
-
         self._notify_future = future
         _LOGGER.debug(
             "%s: Writing command to %s: %s",
@@ -145,6 +132,19 @@ class Session:
             result = await future
         _LOGGER.debug("%s: Got response: %s", self.name, result.hex())
         return result
+
+    async def start_notify(self) -> None:
+        """Start notify."""
+        if not self._notifications_started:
+            _LOGGER.debug("%s: Starting notify for %s", self.name, type(self))
+            try:
+                await self._start_notify(self._notify)
+            except BleakError as err:
+                _LOGGER.debug("%s: Failed to start notify: %s", self.name, err)
+                if "not found" in str(err):
+                    raise AuthError(f"{self.name}: {err}") from err
+                raise
+            self._notifications_started = True
 
     async def _start_notify(self, callback: Callable[[int, bytearray], None]) -> None:
         """Start notify."""
