@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.10.0 (2022-12-01)
+### Feature
+* Add YaleXSBLEDiscovery class to be able to get discovery data from august cloud ([#77](https://github.com/bdraco/yalexs-ble/issues/77)) ([`28da7da`](https://github.com/bdraco/yalexs-ble/commit/28da7dad7e52c80182f3b938de0eb9fda07f51b7))
+
 ## v1.9.8 (2022-11-30)
 ### Fix
 * Improve operation reliability ([#76](https://github.com/bdraco/yalexs-ble/issues/76)) ([`91f403f`](https://github.com/bdraco/yalexs-ble/commit/91f403f0fa6ace9bdfec6f5bd0694bbc124b84f0))
