@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import TypedDict
 
 COMMAND_SERVICE_UUID = "0000fe24-0000-1000-8000-00805f9b34fb"
 WRITE_CHARACTERISTIC = "bd4ac611-0b45-11e3-8ffd-0800200c9a66"
@@ -83,3 +84,13 @@ class LockInfo:
 class ConnectionInfo:
 
     rssi: int
+
+
+class YaleXSBLEDiscovery(TypedDict):
+    """A validated discovery of a Yale XS BLE device."""
+
+    name: str
+    address: str
+    serial: str
+    key: str
+    slot: int

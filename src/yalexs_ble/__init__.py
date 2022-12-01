@@ -1,4 +1,11 @@
-from .const import ConnectionInfo, DoorStatus, LockInfo, LockState, LockStatus
+from .const import (
+    ConnectionInfo,
+    DoorStatus,
+    LockInfo,
+    LockState,
+    LockStatus,
+    YaleXSBLEDiscovery,
+)
 from .lock import Lock
 from .push import PushLock
 from .session import AuthError, DisconnectedError
@@ -29,4 +36,5 @@ __all__ = [
     "unique_id_from_device_adv",
     "unique_id_from_local_name_address",
     "local_name_is_unique",
+    "YaleXSBLEDiscovery",
 ]
