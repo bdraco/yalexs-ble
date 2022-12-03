@@ -4,7 +4,7 @@ import asyncio
 import logging
 import os
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from bleak import BleakError
 from bleak_retry_connector import (
@@ -97,6 +97,15 @@ class Lock:
         self.secure_session = SecureSession(
             self.client, self.name, self._lock, self.key_index
         )
+        if (
+            not self.session.read_characteristic
+            or not self.session.write_characteristic
+            or not self.secure_session.read_characteristic
+            or not self.secure_session.read_characteristic
+        ):
+            client = cast(BleakClientWithServiceCache, self.client)
+            await client.clear_cache()
+            raise BleakError("Missing characteristic")
 
         # Order matters here, we must start notify for the secure session before
         # the non-secure session
