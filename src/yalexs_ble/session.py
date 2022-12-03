@@ -178,18 +178,18 @@ class Session:
     ) -> bytes:
         self._write_checksum(command)
         write_task = asyncio.create_task(self._write(command))
-        try:
-            await asyncio.wait(
-                [write_task, disconnected_event.wait()],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-        except BleakError as err:
-            if util.is_disconnected_error(err):
-                raise DisconnectedError(f"{self.name}: {err}") from err
-            raise
+        await asyncio.wait(
+            [write_task, disconnected_event.wait()],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
         if write_task.done():
-            return write_task.result()
+            try:
+                return await write_task
+            except BleakError as err:
+                if util.is_disconnected_error(err):
+                    raise DisconnectedError(f"{self.name}: {err}") from err
+            raise
         write_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
+        with contextlib.suppress(asyncio.CancelledError, Exception):
             await write_task
         raise DisconnectedError(f"{self.name}: Disconnected")
