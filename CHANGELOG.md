@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.10.1 (2022-12-03)
+### Fix
+* Detect missing characteristics and clear the cache ([#78](https://github.com/bdraco/yalexs-ble/issues/78)) ([`e921bf0`](https://github.com/bdraco/yalexs-ble/commit/e921bf009120d980a2502288cb006e2421396ddb))
+
 ## v1.10.0 (2022-12-01)
 ### Feature
 * Add YaleXSBLEDiscovery class to be able to get discovery data from august cloud ([#77](https://github.com/bdraco/yalexs-ble/issues/77)) ([`28da7da`](https://github.com/bdraco/yalexs-ble/commit/28da7dad7e52c80182f3b938de0eb9fda07f51b7))
