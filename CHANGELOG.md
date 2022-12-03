@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.10.2 (2022-12-03)
+### Fix
+* Task leak on destruction ([#80](https://github.com/bdraco/yalexs-ble/issues/80)) ([`900673c`](https://github.com/bdraco/yalexs-ble/commit/900673c2e496baae9b0fe629c5d7c0b3ca40d8bb))
+
 ## v1.10.1 (2022-12-03)
 ### Fix
 * Detect missing characteristics and clear the cache ([#78](https://github.com/bdraco/yalexs-ble/issues/78)) ([`e921bf0`](https://github.com/bdraco/yalexs-ble/commit/e921bf009120d980a2502288cb006e2421396ddb))
