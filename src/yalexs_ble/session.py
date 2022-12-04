@@ -188,7 +188,7 @@ class Session:
             except BleakError as err:
                 if util.is_disconnected_error(err):
                     raise DisconnectedError(f"{self.name}: {err}") from err
-            raise
+                raise
         write_task.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await write_task
