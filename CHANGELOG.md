@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.10.3 (2022-12-04)
+### Fix
+* Command execution tried to raise due to bad indent ([#81](https://github.com/bdraco/yalexs-ble/issues/81)) ([`99b9c4b`](https://github.com/bdraco/yalexs-ble/commit/99b9c4b2cf66d813b335206067486e84f13ed9d9))
+
 ## v1.10.2 (2022-12-03)
 ### Fix
 * Task leak on destruction ([#80](https://github.com/bdraco/yalexs-ble/issues/80)) ([`900673c`](https://github.com/bdraco/yalexs-ble/commit/900673c2e496baae9b0fe629c5d7c0b3ca40d8bb))
