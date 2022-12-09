@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import bisect
 import logging
 import os
 from collections.abc import Callable
@@ -21,6 +22,7 @@ from .const import (
     SERIAL_NUMBER_CHARACTERISTIC,
     VALUE_TO_DOOR_STATUS,
     VALUE_TO_LOCK_STATUS,
+    BatteryState,
     Commands,
     DoorStatus,
     LockInfo,
@@ -31,6 +33,54 @@ from .secure_session import SecureSession
 from .session import AuthError, DisconnectedError, Session
 
 _LOGGER = logging.getLogger(__name__)
+
+AA_BATTERY_VOLTAGE_TO_PERCENTAGE = (
+    (1.52, 100),
+    (1.45, 95),
+    (1.35, 90),
+    (1.30, 85),
+    (1.27, 80),
+    (1.24, 75),
+    (1.20, 70),
+    (1.18, 65),
+    (1.16, 60),
+    (1.14, 55),
+    (1.12, 50),
+    (1.10, 45),
+    (1.08, 40),
+    (1.06, 35),
+    (1.04, 30),
+    (1.02, 25),
+    (1.00, 20),
+    (0.98, 15),
+    (0.96, 10),
+    (0.94, 5),
+    (0.92, 0),
+)
+AA_BATTERY_VOLTAGE_LIST = [
+    voltage for voltage, _ in sorted(AA_BATTERY_VOLTAGE_TO_PERCENTAGE)
+]
+AA_BATTERY_VOLTAGE_MAP = {
+    voltage: percentage for voltage, percentage in AA_BATTERY_VOLTAGE_TO_PERCENTAGE
+}
+
+
+def convert_voltage_to_percentage(voltage: float) -> int:
+    """Convert voltage to percentage."""
+    pos = bisect.bisect_left(AA_BATTERY_VOLTAGE_LIST, voltage)
+    if pos != 0:
+        pos -= 1
+    return AA_BATTERY_VOLTAGE_MAP[AA_BATTERY_VOLTAGE_LIST[pos]]
+
+
+def _build_command(cmd_byte: int) -> bytearray:
+    """Build a command to send to the lock."""
+    cmd = bytearray(0x12)
+    cmd[0x00] = 0xEE
+    cmd[0x01] = 0x02
+    cmd[0x04] = cmd_byte
+    cmd[0x10] = 0x02
+    return cmd
 
 
 class Lock:
@@ -181,17 +231,20 @@ class Lock:
         if (await self.status()).lock == LockStatus.LOCKED:
             await self.force_unlock()
 
-    async def status(self) -> LockState:
+    async def _execute_command(self, cmd_byte: int) -> bytes:
         if not self.is_connected or not self.session:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
-        cmd = bytearray(0x12)
-        cmd[0x00] = 0xEE
-        cmd[0x01] = 0x02
-        cmd[0x04] = 0x2F if self._lock_info and self._lock_info.door_sense else 0x02
-        cmd[0x10] = 0x02
-        response = await self.session.execute(self._disconnected_event, cmd)
-        _LOGGER.debug("%s: Status response: [%s]", self.name, response.hex())
+        response = await self.session.execute(
+            self._disconnected_event, _build_command(cmd_byte)
+        )
+        _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
+        return response
+
+    async def status(self) -> LockState:
+        response = await self._execute_command(
+            0x2F if self._lock_info and self._lock_info.door_sense else 0x02
+        )
         lock_status = response[0x08]
         door_status = response[0x09]
 
@@ -206,7 +259,18 @@ class Lock:
             _LOGGER.debug(
                 "%s: Unrecognized door_status_str code: %s", self.name, hex(door_status)
             )
-        return LockState(lock_status_enum, door_status_enum)
+        return LockState(lock_status_enum, door_status_enum, None)
+
+    async def battery(self) -> BatteryState:
+        response = await self._execute_command(0x0F)
+        voltage = (response[0x09] * 256 + response[0x08]) / 1000
+        # The voltage is divided by 4 in the lock
+        # since it uses 4 AA batteries. For the Li-ion
+        # battery, this is likely wrong, but since we don't
+        # currently have a way to detect the battery type,
+        # this is the best we can do for now.
+        percentage = convert_voltage_to_percentage(voltage / 4)
+        return BatteryState(voltage, percentage)
 
     async def disconnect(self) -> None:
         """Disconnect from the lock."""

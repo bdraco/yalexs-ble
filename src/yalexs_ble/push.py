@@ -5,6 +5,7 @@ import contextlib
 import logging
 import struct
 from collections.abc import Callable
+from dataclasses import replace
 from typing import Any, TypeVar, cast
 
 from bleak.backends.device import BLEDevice
@@ -17,6 +18,7 @@ from .const import (
     HAP_ENCRYPTED_FIRST_BYTE,
     HAP_FIRST_BYTE,
     YALE_MFR_ID,
+    BatteryState,
     ConnectionInfo,
     DoorStatus,
     LockInfo,
@@ -198,6 +200,7 @@ class PushLock:
         self._ble_device = ble_device
         self._operation_lock = asyncio.Lock()
         self._running = False
+        self._battery_state: BatteryState | None = None
         self._callbacks: list[
             Callable[[LockState, LockInfo, ConnectionInfo], None]
         ] = []
@@ -237,6 +240,11 @@ class PushLock:
     def lock_status(self) -> LockStatus:
         """Return the current lock status."""
         return self._lock_state.lock if self._lock_state else LockStatus.UNKNOWN
+
+    @property
+    def battery(self) -> BatteryState | None:
+        """Return the current battery state."""
+        return self._lock_state.battery if self._lock_state else None
 
     @property
     def lock_state(self) -> LockState | None:
@@ -337,15 +345,21 @@ class PushLock:
         """Lock the lock."""
         _LOGGER.debug("%s: Starting lock", self.name)
         await self._cancel_any_update()
-        self._callback_state(LockState(LockStatus.LOCKING, self.door_status))
+        self._callback_state(
+            LockState(LockStatus.LOCKING, self.door_status, self._battery_state)
+        )
         lock = self._get_lock_instance()
         try:
             async with lock:
                 await lock.force_lock()
         except Exception:
-            self._callback_state(LockState(LockStatus.UNKNOWN, self.door_status))
+            self._callback_state(
+                LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
+            )
             raise
-        self._callback_state(LockState(LockStatus.LOCKED, self.door_status))
+        self._callback_state(
+            LockState(LockStatus.LOCKED, self.door_status, self._battery_state)
+        )
         await self._cancel_any_update()
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished lock", self.name)
@@ -357,15 +371,21 @@ class PushLock:
         """Unlock the lock."""
         _LOGGER.debug("%s: Starting unlock", self.name)
         await self._cancel_any_update()
-        self._callback_state(LockState(LockStatus.UNLOCKING, self.door_status))
+        self._callback_state(
+            LockState(LockStatus.UNLOCKING, self.door_status, self._battery_state)
+        )
         lock = self._get_lock_instance()
         try:
             async with lock:
                 await lock.force_unlock()
         except Exception:
-            self._callback_state(LockState(LockStatus.UNKNOWN, self.door_status))
+            self._callback_state(
+                LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
+            )
             raise
-        self._callback_state(LockState(LockStatus.UNLOCKED, self.door_status))
+        self._callback_state(
+            LockState(LockStatus.UNLOCKED, self.door_status, self._battery_state)
+        )
         await self._cancel_any_update()
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
@@ -391,6 +411,8 @@ class PushLock:
                 if not self._lock_info:
                     self._lock_info = await lock.lock_info()
                 state = await lock.status()
+                self._battery_state = await lock.battery()
+                state = replace(state, battery=self._battery_state)
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: In-progress update canceled due "

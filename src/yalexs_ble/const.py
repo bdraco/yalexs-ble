@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import TypedDict
@@ -55,10 +57,18 @@ VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 
 
 @dataclass
+class BatteryState:
+
+    voltage: float
+    percentage: int
+
+
+@dataclass
 class LockState:
 
     lock: LockStatus
     door: DoorStatus
+    battery: BatteryState | None
 
 
 @dataclass
