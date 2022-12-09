@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.11.0 (2022-12-09)
+### Feature
+* Add battery support ([#82](https://github.com/bdraco/yalexs-ble/issues/82)) ([`aeebae4`](https://github.com/bdraco/yalexs-ble/commit/aeebae47d112354851bd534bf611745a4d9e9d9a))
+
 ## v1.10.3 (2022-12-04)
 ### Fix
 * Command execution tried to raise due to bad indent ([#81](https://github.com/bdraco/yalexs-ble/issues/81)) ([`99b9c4b`](https://github.com/bdraco/yalexs-ble/commit/99b9c4b2cf66d813b335206067486e84f13ed9d9))
