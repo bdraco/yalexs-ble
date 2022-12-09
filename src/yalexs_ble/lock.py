@@ -35,7 +35,7 @@ from .session import AuthError, DisconnectedError, Session
 _LOGGER = logging.getLogger(__name__)
 
 AA_BATTERY_VOLTAGE_TO_PERCENTAGE = (
-    (1.49, 100),
+    (1.52, 100),
     (1.45, 95),
     (1.35, 90),
     (1.30, 85),
