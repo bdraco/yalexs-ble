@@ -57,6 +57,7 @@ VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 @dataclass
 class BatteryState:
 
+    voltage: float
     percentage: int
 
 
