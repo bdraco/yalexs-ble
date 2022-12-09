@@ -412,7 +412,7 @@ class PushLock:
                     self._lock_info = await lock.lock_info()
                 state = await lock.status()
                 self._battery_state = await lock.battery()
-                state = replace(state, battery_state=self._battery_state)
+                state = replace(state, battery=self._battery_state)
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: In-progress update canceled due "
