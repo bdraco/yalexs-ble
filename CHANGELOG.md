@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.11.1 (2022-12-09)
+### Fix
+* Adjust battery curve to better fit august values ([#83](https://github.com/bdraco/yalexs-ble/issues/83)) ([`0c5b888`](https://github.com/bdraco/yalexs-ble/commit/0c5b88817ff0124b2306e07b3dee50437b29295e))
+
 ## v1.11.0 (2022-12-09)
 ### Feature
 * Add battery support ([#82](https://github.com/bdraco/yalexs-ble/issues/82)) ([`aeebae4`](https://github.com/bdraco/yalexs-ble/commit/aeebae47d112354851bd534bf611745a4d9e9d9a))
