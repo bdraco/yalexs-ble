@@ -21,6 +21,7 @@ from .const import (
     SERIAL_NUMBER_CHARACTERISTIC,
     VALUE_TO_DOOR_STATUS,
     VALUE_TO_LOCK_STATUS,
+    BatteryState,
     Commands,
     DoorStatus,
     LockInfo,
@@ -31,6 +32,16 @@ from .secure_session import SecureSession
 from .session import AuthError, DisconnectedError, Session
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _build_command(cmd_byte: int) -> bytearray:
+    """Build a command to send to the lock."""
+    cmd = bytearray(0x12)
+    cmd[0x00] = 0xEE
+    cmd[0x01] = 0x02
+    cmd[0x04] = cmd_byte
+    cmd[0x10] = 0x02
+    return cmd
 
 
 class Lock:
@@ -181,17 +192,20 @@ class Lock:
         if (await self.status()).lock == LockStatus.LOCKED:
             await self.force_unlock()
 
-    async def status(self) -> LockState:
+    async def _execute_command(self, cmd_byte: int) -> bytes:
         if not self.is_connected or not self.session:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
-        cmd = bytearray(0x12)
-        cmd[0x00] = 0xEE
-        cmd[0x01] = 0x02
-        cmd[0x04] = 0x2F if self._lock_info and self._lock_info.door_sense else 0x02
-        cmd[0x10] = 0x02
-        response = await self.session.execute(self._disconnected_event, cmd)
-        _LOGGER.debug("%s: Status response: [%s]", self.name, response.hex())
+        response = await self.session.execute(
+            self._disconnected_event, _build_command(cmd_byte)
+        )
+        _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
+        return response
+
+    async def status(self) -> LockState:
+        response = await self._execute_command(
+            0x2F if self._lock_info and self._lock_info.door_sense else 0x02
+        )
         lock_status = response[0x08]
         door_status = response[0x09]
 
@@ -206,7 +220,11 @@ class Lock:
             _LOGGER.debug(
                 "%s: Unrecognized door_status_str code: %s", self.name, hex(door_status)
             )
-        return LockState(lock_status_enum, door_status_enum)
+        return LockState(lock_status_enum, door_status_enum, None)
+
+    async def battery(self) -> BatteryState:
+        response = await self._execute_command(0x05)
+        return BatteryState(response[0x08])
 
     async def disconnect(self) -> None:
         """Disconnect from the lock."""
