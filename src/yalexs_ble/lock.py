@@ -264,6 +264,11 @@ class Lock:
     async def battery(self) -> BatteryState:
         response = await self._execute_command(0x0F)
         voltage = (response[0x09] * 256 + response[0x08]) / 1000
+        # The voltage is divided by 4 in the lock
+        # since it uses 4 AA batteries. For the Li-ion
+        # battery, this is likely wrong, but since we don't
+        # currently have a way to detect the battery type,
+        # this is the best we can do for now.
         percentage = convert_voltage_to_percentage(voltage / 4)
         return BatteryState(voltage, percentage)
 
