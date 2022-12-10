@@ -493,14 +493,15 @@ class PushLock:
                 next_update = HK_UPDATE_COALESCE_SECONDS
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
-            if self._last_adv_value == -1:
-                # We haven't seen a valid value yet so we schedule an update
-                next_update = FIRST_UPDATE_COALESCE_SECONDS
-            elif (
-                current_value in VALID_ADV_VALUES
-                and current_value != self._last_adv_value
-            ):
-                next_update = ADV_UPDATE_COALESCE_SECONDS
+            if not next_update:
+                if self._last_adv_value == -1:
+                    # We haven't seen a valid value yet so we schedule an update
+                    next_update = FIRST_UPDATE_COALESCE_SECONDS
+                elif (
+                    current_value in VALID_ADV_VALUES
+                    and current_value != self._last_adv_value
+                ):
+                    next_update = ADV_UPDATE_COALESCE_SECONDS
             self._last_adv_value = current_value
         if adv_debug_enabled:
             scheduled_update = None
