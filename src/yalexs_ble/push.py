@@ -481,28 +481,28 @@ class PushLock:
                 #
                 # if len(mfr_data[APPLE_MFR_ID]) > 20 and YALE_MFR_ID not in mfr_data:
                 # mfr_data[YALE_MFR_ID] = mfr_data[APPLE_MFR_ID][20:]
-                if hk_state != self._last_hk_state:
-                    if self._last_hk_state == -1:
-                        next_update = FIRST_UPDATE_COALESCE_SECONDS
-                    else:
-                        next_update = HK_UPDATE_COALESCE_SECONDS
-                    self._last_hk_state = hk_state
+                if self._last_hk_state == -1:
+                    # We haven't seen a HomeKit state yet so we schedule an update
+                    next_update = FIRST_UPDATE_COALESCE_SECONDS
+                elif hk_state != self._last_hk_state:
+                    next_update = HK_UPDATE_COALESCE_SECONDS
+                self._last_hk_state = hk_state
             elif first_byte == HAP_ENCRYPTED_FIRST_BYTE:
                 # Encrypted data, we don't know how to decrypt it
                 # but we know its a state change so we schedule an update
                 next_update = HK_UPDATE_COALESCE_SECONDS
         if YALE_MFR_ID in mfr_data:
             current_value = mfr_data[YALE_MFR_ID][0]
-            if (
-                current_value in VALID_ADV_VALUES
-                and current_value != self._last_adv_value
-            ):
-                if not next_update:
-                    if self._last_adv_value == -1:
-                        next_update = FIRST_UPDATE_COALESCE_SECONDS
-                    else:
-                        next_update = ADV_UPDATE_COALESCE_SECONDS
-                self._last_adv_value = current_value
+            if not next_update:
+                if self._last_adv_value == -1:
+                    # We haven't seen a valid value yet so we schedule an update
+                    next_update = FIRST_UPDATE_COALESCE_SECONDS
+                elif (
+                    current_value in VALID_ADV_VALUES
+                    and current_value != self._last_adv_value
+                ):
+                    next_update = ADV_UPDATE_COALESCE_SECONDS
+            self._last_adv_value = current_value
         if adv_debug_enabled:
             scheduled_update = None
             if self._cancel_deferred_update:
