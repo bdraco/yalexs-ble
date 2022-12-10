@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.11.4 (2022-12-10)
+### Fix
+* First update was scheduled being scheduled too late ([#86](https://github.com/bdraco/yalexs-ble/issues/86)) ([`eeb0ad4`](https://github.com/bdraco/yalexs-ble/commit/eeb0ad48ee4da3544520a01780de9f217c18fe40))
+
 ## v1.11.3 (2022-12-09)
 ### Fix
 * Adjust battery percentage based on cliff calc ([#85](https://github.com/bdraco/yalexs-ble/issues/85)) ([`3e23368`](https://github.com/bdraco/yalexs-ble/commit/3e23368e746c77f9451caa484800b90612e51137))
