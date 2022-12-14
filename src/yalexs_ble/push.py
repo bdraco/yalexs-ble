@@ -63,7 +63,7 @@ RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 # there is no update from the lock.
 VALID_ADV_VALUES = {0, 1}
 
-DISCONNECT_DELAY = 2.5
+DISCONNECT_DELAY = 5.0
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -307,8 +307,9 @@ class PushLock:
         """Reset disconnect timer."""
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
-        delay = 60 if "Master Bed" in self.name else DISCONNECT_DELAY
-        self._disconnect_timer = self.loop.call_later(delay, self._disconnect)
+        self._disconnect_timer = self.loop.call_later(
+            DISCONNECT_DELAY, self._disconnect
+        )
 
     async def _execute_forced_disconnect(self) -> None:
         """Execute forced disconnection."""
