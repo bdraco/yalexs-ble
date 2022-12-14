@@ -381,6 +381,7 @@ class PushLock:
     async def lock(self) -> None:
         """Lock the lock."""
         self._update_any_state([LockStatus.LOCKING])
+        self._cancel_update()
         await self._lock_with_op_lock()
 
     @operation_lock
@@ -389,8 +390,10 @@ class PushLock:
         """Lock the lock."""
         _LOGGER.debug("%s: Starting lock", self.name)
         self._update_any_state([LockStatus.LOCKING])
+        self._cancel_update()
         try:
             lock = await self._ensure_connected()
+            self._cancel_update()
             await lock.force_lock()
         except Exception:
             self._update_any_state([LockStatus.UNKNOWN])
@@ -402,6 +405,7 @@ class PushLock:
     async def unlock(self) -> None:
         """Unlock the lock."""
         self._update_any_state([LockStatus.UNLOCKING])
+        self._cancel_update()
         await self._unlock_with_op_lock()
 
     @operation_lock
@@ -410,8 +414,10 @@ class PushLock:
         """Unlock the lock."""
         _LOGGER.debug("%s: Starting unlock", self.name)
         self._update_any_state([LockStatus.UNLOCKING])
+        self._cancel_update()
         try:
             lock = await self._ensure_connected()
+            self._cancel_update()
             await lock.force_unlock()
         except Exception:
             self._update_any_state([LockStatus.UNKNOWN])
@@ -617,6 +623,12 @@ class PushLock:
 
         return _cancel
 
+    def _cancel_update(self) -> None:
+        """Cancel an update."""
+        if self._cancel_deferred_update:
+            self._cancel_deferred_update.cancel()
+            self._cancel_deferred_update = None
+
     def _schedule_update(self, seconds: float) -> None:
         """Schedule an update."""
         now = self.loop.time()
@@ -640,8 +652,7 @@ class PushLock:
                 )
                 return
             _LOGGER.debug("%s: Rescheduling update", self.name)
-            self._cancel_deferred_update.cancel()
-            self._cancel_deferred_update = None
+            self._cancel_update()
         _LOGGER.debug(
             "%s: Scheduling update to happen in %s seconds",
             self.name,
