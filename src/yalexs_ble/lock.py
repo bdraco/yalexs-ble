@@ -158,6 +158,16 @@ class Lock:
         await self.session.start_notify()
 
         self.secure_session.set_key(self.key)
+        await self._setup_session()
+
+    async def _setup_session(self) -> None:
+        """Setup the session."""
+        assert self.session is not None  # nosec
+        assert self.secure_session is not None  # nosec
+        assert self._disconnected_event is not None  # nosec
+        handshake_keys = os.urandom(16)
+        _LOGGER.debug("%s: Setting up the session", self.name)
+        self.secure_session.set_key(self.key)
         handshake_keys = os.urandom(16)
 
         # Send SEC_LOCK_TO_MOBILE_KEY_EXCHANGE
@@ -186,7 +196,6 @@ class Lock:
             raise AuthError(
                 "Unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
             )
-        await self.secure_session.stop_notify()
 
     async def lock_info(self) -> LockInfo:
         """Probe the lock for information."""
@@ -288,9 +297,6 @@ class Lock:
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
         _LOGGER.debug("%s: Shutting down the connection", self.name)
-        if self.session:
-            await self.session.stop_notify()
-
         assert self._disconnected_event is not None  # nosec
         if self.is_secure and self.secure_session:
             cmd = self.secure_session.build_command(0x05)
@@ -313,9 +319,6 @@ class Lock:
                 _LOGGER.debug(
                     "%s: Unexpected response to DISCONNECT: %s", response.hex()
                 )
-
-        if self.secure_session:
-            await self.secure_session.stop_notify()
 
     @property
     def is_connected(self) -> bool:
