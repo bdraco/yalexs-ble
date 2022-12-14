@@ -156,6 +156,7 @@ class Lock:
         ):
             client = cast(BleakClientWithServiceCache, self.client)
             await client.clear_cache()
+            await client.disconnect()
             raise BleakError("Missing characteristic")
 
         # Order matters here, we must start notify for the secure session before
