@@ -379,9 +379,6 @@ class PushLock:
                 LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
             )
             raise
-        self._callback_state(
-            LockState(LockStatus.LOCKED, self.door_status, self._battery_state)
-        )
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished lock", self.name)
 
@@ -401,9 +398,6 @@ class PushLock:
                 LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
             )
             raise
-        self._callback_state(
-            LockState(LockStatus.UNLOCKED, self.door_status, self._battery_state)
-        )
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
 

@@ -166,17 +166,24 @@ class Lock:
 
     def _internal_state_callback(self, state: bytes) -> None:
         """Handle state change."""
-        _LOGGER.warning("%s: State changed: %s", self.name, state.hex())
-        result = None
+        _LOGGER.debug("%s: State changed: %s", self.name, state.hex())
         if state[0] != 0xBB:
             _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
             return
-        if state[1] == 0x02:
+        if state[4] == 0x02:
             lock_status = state[0x08]
-            result = VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
-
-        if result:
-            self._state_callback(result)
+            self._state_callback(
+                VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
+            )
+        elif state[4] == 0x2F:
+            lock_status = state[0x08]
+            door_status = state[0x09]
+            self._state_callback(
+                VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
+            )
+            self._state_callback(
+                VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)
+            )
 
     async def _setup_session(self) -> None:
         """Setup the session."""
