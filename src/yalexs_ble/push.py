@@ -373,9 +373,6 @@ class PushLock:
         try:
             lock = await self._ensure_connected()
             await lock.force_lock()
-            # We have to disconnect here because the lock will not
-            # accept any more commands after a lock.
-            await self._execute_disconnect()
         except Exception:
             self._callback_state(
                 LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
@@ -398,9 +395,6 @@ class PushLock:
         try:
             lock = await self._ensure_connected()
             await lock.force_unlock()
-            # We have to disconnect here because the lock will not
-            # accept any more commands after an unlock.
-            await self._execute_disconnect()
         except Exception:
             self._callback_state(
                 LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
