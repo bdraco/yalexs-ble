@@ -307,9 +307,8 @@ class PushLock:
         """Reset disconnect timer."""
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
-        self._disconnect_timer = self.loop.call_later(
-            DISCONNECT_DELAY, self._disconnect
-        )
+        delay = 60 if "Master Bed" in self.name else DISCONNECT_DELAY
+        self._disconnect_timer = self.loop.call_later(delay, self._disconnect)
 
     async def _execute_forced_disconnect(self) -> None:
         """Execute forced disconnection."""
