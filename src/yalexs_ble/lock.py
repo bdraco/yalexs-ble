@@ -186,6 +186,7 @@ class Lock:
             raise AuthError(
                 "Unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
             )
+        await self.secure_session.stop_notify()
 
     async def lock_info(self) -> LockInfo:
         """Probe the lock for information."""
