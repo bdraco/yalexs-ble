@@ -63,7 +63,7 @@ RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 # there is no update from the lock.
 VALID_ADV_VALUES = {0, 1}
 
-DISCONNECT_DELAY = 8.5
+DISCONNECT_DELAY = 12.5
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -300,6 +300,7 @@ class PushLock:
             self._lock_key_index,
             self.name,
             self._lock_info,
+            self._state_callback,
         )
 
     def _reset_disconnect_timer(self) -> None:
@@ -405,6 +406,10 @@ class PushLock:
         )
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
+
+    def _state_callback(self, state: bytes) -> None:
+        """Handle state change."""
+        _LOGGER.warning("%s: State changed: %s", self.name, state)
 
     async def update(self) -> None:
         """Request that status be updated."""

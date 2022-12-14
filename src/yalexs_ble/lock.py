@@ -96,6 +96,7 @@ class Lock:
         keyIndex: int,
         name: str,
         info: LockInfo | None = None,
+        state_callback: Callable[[bytes], None] | None = None,
     ) -> None:
         self.ble_device_callback = ble_device_callback
         self.key = bytes.fromhex(keyString)
@@ -108,6 +109,7 @@ class Lock:
         self._lock_info = info
         self.client: BleakClientWithServiceCache | None = None
         self._disconnected_event: asyncio.Event | None = None
+        self._state_callback = state_callback
 
     def set_name(self, name: str) -> None:
         self.name = name
@@ -138,7 +140,7 @@ class Lock:
             raise err
         _LOGGER.debug("%s: Connected", self.name)
 
-        self.session = Session(self.client, self.name, self._lock)
+        self.session = Session(self.client, self.name, self._lock, self._state_callback)
         self.secure_session = SecureSession(
             self.client, self.name, self._lock, self.key_index
         )

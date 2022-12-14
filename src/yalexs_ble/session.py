@@ -33,7 +33,13 @@ class Session:
     _write_characteristic = WRITE_CHARACTERISTIC
     _read_characteristic = READ_CHARACTERISTIC
 
-    def __init__(self, client: BleakClient, name: str, lock: asyncio.Lock) -> None:
+    def __init__(
+        self,
+        client: BleakClient,
+        name: str,
+        lock: asyncio.Lock,
+        state_callback: Callable[[bytes], None] | None = None,
+    ) -> None:
         """Init the session."""
         self.name = name
         self._lock = lock
@@ -48,6 +54,7 @@ class Session:
         )
         self._notifications_started = False
         self._notify_future: asyncio.Future[bytes] | None = None
+        self._state_callback = state_callback
 
     def set_key(self, key: bytes) -> None:
         self.cipher_encrypt = AES.new(key, AES.MODE_CBC, iv=bytes(0x10))
@@ -99,6 +106,8 @@ class Session:
             bool(self._notify_future),
         )
         decrypted_data = self.decrypt(data)
+        if self._state_callback:
+            self._state_callback(decrypted_data)
         _LOGGER.debug(
             "%s: Decrypted response via notify: %s", self.name, decrypted_data.hex()
         )
