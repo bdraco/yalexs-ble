@@ -98,12 +98,12 @@ class Session:
             data.hex(),
             bool(self._notify_future),
         )
-        if self._notify_future is None:
-            return
         decrypted_data = self.decrypt(data)
         _LOGGER.debug(
             "%s: Decrypted response via notify: %s", self.name, decrypted_data.hex()
         )
+        if self._notify_future is None:
+            return
         try:
             self._validate_response(data)
         except ResponseError as ex:
