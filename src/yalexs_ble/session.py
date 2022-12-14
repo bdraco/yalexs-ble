@@ -101,8 +101,10 @@ class Session:
         )
         try:
             self._validate_response(data)
-        except ResponseError:
+        except ResponseError as ex:
             _LOGGER.debug("%s: Invalid response, waiting for next one", self.name)
+            self._notify_future.set_exception(ex)
+            self._notify_future = None
             return
         self._notify_future.set_result(decrypted_data)
         self._notify_future = None
@@ -117,19 +119,30 @@ class Session:
             cipherText = self.cipher_encrypt.encrypt(plainText)
             util._copy(command, cipherText)
 
-        _LOGGER.debug("%s: Encrypted command: %s", self.name, command.hex())
-        future: asyncio.Future[bytes] = asyncio.Future()
-        self._notify_future = future
-        _LOGGER.debug(
-            "%s: Writing command to %s: %s",
-            self.name,
-            self.write_characteristic,
-            command.hex(),
-        )
-        await self.client.write_gatt_char(self.write_characteristic, command, True)
-        _LOGGER.debug("%s: Waiting for response", self.name)
-        async with async_timeout.timeout(5):
-            result = await future
+        if self.cipher_encrypt:
+            _LOGGER.debug("%s: Encrypted command: %s", self.name, command.hex())
+        else:
+            _LOGGER.debug("%s: Plaintext command: %s", self.name, command.hex())
+
+        for _ in range(3):
+            future: asyncio.Future[bytes] = asyncio.Future()
+            self._notify_future = future
+            _LOGGER.debug(
+                "%s: Writing command to %s: %s",
+                self.name,
+                self.write_characteristic,
+                command.hex(),
+            )
+            await self.client.write_gatt_char(self.write_characteristic, command, True)
+            _LOGGER.debug("%s: Waiting for response", self.name)
+            async with async_timeout.timeout(5):
+                try:
+                    result = await future
+                except ResponseError:
+                    _LOGGER.debug("%s: Invalid response, retrying", self.name)
+                    continue
+                else:
+                    break
         _LOGGER.debug("%s: Got response: %s", self.name, result.hex())
         return result
 
