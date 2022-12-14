@@ -167,7 +167,6 @@ class Lock:
         assert self.session is not None  # nosec
         assert self.secure_session is not None  # nosec
         assert self._disconnected_event is not None  # nosec
-        handshake_keys = os.urandom(16)
         _LOGGER.debug("%s: Setting up the session", self.name)
         self.secure_session.set_key(self.key)
         handshake_keys = os.urandom(16)
