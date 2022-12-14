@@ -175,6 +175,11 @@ class Lock:
                 self._state_callback(
                     [VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)]
                 )
+            elif state[4] == 0x2E:  # door state
+                door_status = state[0x08]
+                self._state_callback(
+                    [VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)]
+                )
             elif state[4] == 0x2F:  # door and lock
                 self._state_callback(self._parse_lock_and_door_state(state))
             elif state[4] == 0x0F:
