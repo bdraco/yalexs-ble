@@ -404,7 +404,7 @@ class PushLock:
     def _state_callback(self, state: LockStatus | DoorStatus | BatteryState) -> None:
         """Handle state change."""
         self._reset_disconnect_timer()
-        _LOGGER.warning("%s: State changed: %s", self.name, state)
+        _LOGGER.debug("%s: State changed: %s", self.name, state)
         if not self._lock_state:
             return
         if isinstance(state, LockStatus):

@@ -170,20 +170,16 @@ class Lock:
         if state[0] != 0xBB:
             _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
             return
-        if state[4] == 0x02:
+        if state[4] == 0x02:  # lock only
             lock_status = state[0x08]
             self._state_callback(
                 VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
             )
-        elif state[4] == 0x2F:
-            lock_status = state[0x08]
-            door_status = state[0x09]
-            self._state_callback(
-                VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
-            )
-            self._state_callback(
-                VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)
-            )
+        elif state[4] == 0x2F:  # door and lock
+            for state_obj in self._parse_lock_and_door_state(state):
+                self._state_callback(state_obj)  # type: ignore[arg-type]
+        elif state[4] == 0x0F:
+            self._state_callback(self._parse_battery_state(state))
 
     async def _setup_session(self) -> None:
         """Setup the session."""
@@ -274,16 +270,12 @@ class Lock:
         _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
         return response
 
-    async def status(self) -> LockState:
-        _LOGGER.debug("%s: Executing status", self.name)
-        response = await self._execute_command(
-            0x2F if self._lock_info and self._lock_info.door_sense else 0x02
-        )
-        _LOGGER.debug("%s: Finished executing status", self.name)
-
+    def _parse_lock_and_door_state(
+        self, response: bytes
+    ) -> tuple[LockStatus, DoorStatus]:
+        """Parse the lock and door state from the response."""
         lock_status = response[0x08]
         door_status = response[0x09]
-
         lock_status_enum = VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
         door_status_enum = VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)
 
@@ -295,12 +287,19 @@ class Lock:
             _LOGGER.debug(
                 "%s: Unrecognized door_status_str code: %s", self.name, hex(door_status)
             )
+        return lock_status_enum, door_status_enum
+
+    async def status(self) -> LockState:
+        _LOGGER.debug("%s: Executing status", self.name)
+        response = await self._execute_command(
+            0x2F if self._lock_info and self._lock_info.door_sense else 0x02
+        )
+        _LOGGER.debug("%s: Finished executing status", self.name)
+        lock_status_enum, door_status_enum = self._parse_lock_and_door_state(response)
         return LockState(lock_status_enum, door_status_enum, None)
 
-    async def battery(self) -> BatteryState:
-        _LOGGER.debug("%s: Executing battery", self.name)
-        response = await self._execute_command(0x0F)
-        _LOGGER.debug("%s: Finished executing battery", self.name)
+    def _parse_battery_state(self, response: bytes) -> BatteryState:
+        """Parse the battery state from the response."""
         voltage = (response[0x09] * 256 + response[0x08]) / 1000
         # The voltage is divided by 4 in the lock
         # since it uses 4 AA batteries. For the Li-ion
@@ -309,6 +308,12 @@ class Lock:
         # this is the best we can do for now.
         percentage = convert_voltage_to_percentage(voltage / 4)
         return BatteryState(voltage, percentage)
+
+    async def battery(self) -> BatteryState:
+        _LOGGER.debug("%s: Executing battery", self.name)
+        response = await self._execute_command(0x0F)
+        _LOGGER.debug("%s: Finished executing battery", self.name)
+        return self._parse_battery_state(response)
 
     async def disconnect(self) -> None:
         """Disconnect from the lock."""
