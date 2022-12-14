@@ -167,19 +167,26 @@ class Lock:
     def _internal_state_callback(self, state: bytes) -> None:
         """Handle state change."""
         _LOGGER.debug("%s: State changed: %s", self.name, state.hex())
-        if state[0] != 0xBB:
-            _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
-            return
-        if state[4] == 0x02:  # lock only
-            lock_status = state[0x08]
-            self._state_callback(
-                VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
-            )
-        elif state[4] == 0x2F:  # door and lock
-            for state_obj in self._parse_lock_and_door_state(state):
-                self._state_callback(state_obj)  # type: ignore[arg-type]
-        elif state[4] == 0x0F:
-            self._state_callback(self._parse_battery_state(state))
+        if state[0] == 0xBB:
+            if state[4] == 0x02:  # lock only
+                lock_status = state[0x08]
+                self._state_callback(
+                    VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
+                )
+            elif state[4] == 0x2F:  # door and lock
+                for state_obj in self._parse_lock_and_door_state(state):
+                    self._state_callback(state_obj)  # type: ignore[arg-type]
+            elif state[4] == 0x0F:
+                self._state_callback(self._parse_battery_state(state))
+            else:
+                _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
+        elif state[0] == 0xAA:
+            if state[1] == Commands.UNLOCK:
+                self._state_callback(LockStatus.UNLOCKED)
+            if state[1] == Commands.LOCK:
+                self._state_callback(LockStatus.LOCKED)
+            else:
+                _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
 
     async def _setup_session(self) -> None:
         """Setup the session."""
