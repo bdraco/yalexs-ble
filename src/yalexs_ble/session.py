@@ -114,15 +114,11 @@ class Session:
         # General idea seems to be that if the last byte
         # of the command indicates an offline key offset (is non-zero),
         # the command is "secure" and encrypted with the offline key
-        if self.cipher_encrypt is not None:
-            plainText = command[0x00:0x10]
-            cipherText = self.cipher_encrypt.encrypt(plainText)
-            util._copy(command, cipherText)
-
-        if self.cipher_encrypt:
-            _LOGGER.debug("%s: Encrypted command: %s", self.name, command.hex())
-        else:
-            _LOGGER.debug("%s: Plaintext command: %s", self.name, command.hex())
+        assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
+        plainText = command[0x00:0x10]
+        cipherText = self.cipher_encrypt.encrypt(plainText)
+        util._copy(command, cipherText)
+        _LOGGER.debug("%s: Encrypted command: %s", self.name, command.hex())
 
         for _ in range(3):
             future: asyncio.Future[bytes] = asyncio.Future()
