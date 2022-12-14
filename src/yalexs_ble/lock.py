@@ -181,9 +181,9 @@ class Lock:
             else:
                 _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
         elif state[0] == 0xAA:
-            if state[1] == Commands.UNLOCK:
+            if state[1] == Commands.UNLOCK.value:
                 self._state_callback(LockStatus.UNLOCKED)
-            if state[1] == Commands.LOCK:
+            if state[1] == Commands.LOCK.value:
                 self._state_callback(LockStatus.LOCKED)
             else:
                 _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
