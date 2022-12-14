@@ -63,7 +63,7 @@ RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 # there is no update from the lock.
 VALID_ADV_VALUES = {0, 1}
 
-DISCONNECT_DELAY = 12.5
+DISCONNECT_DELAY = 8.5
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -373,6 +373,9 @@ class PushLock:
         try:
             lock = await self._ensure_connected()
             await lock.force_lock()
+            # We have to disconnect here because the lock will not
+            # accept any more commands after a lock.
+            await self._execute_disconnect()
         except Exception:
             self._callback_state(
                 LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
@@ -395,6 +398,9 @@ class PushLock:
         try:
             lock = await self._ensure_connected()
             await lock.force_unlock()
+            # We have to disconnect here because the lock will not
+            # accept any more commands after an unlock.
+            await self._execute_disconnect()
         except Exception:
             self._callback_state(
                 LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
@@ -408,7 +414,11 @@ class PushLock:
 
     async def update(self) -> None:
         """Request that status be updated."""
-        self._schedule_update(MANUAL_UPDATE_COALESCE_SECONDS)
+        self._schedule_update(
+            0
+            if self._client and self._client.is_connected
+            else MANUAL_UPDATE_COALESCE_SECONDS
+        )
 
     async def validate(self) -> None:
         """Validate lock credentials."""

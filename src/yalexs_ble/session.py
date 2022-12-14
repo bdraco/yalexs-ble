@@ -92,9 +92,14 @@ class Session:
             return await self._locked_write(command)
 
     def _notify(self, char: int, data: bytes) -> None:
+        _LOGGER.debug(
+            "%s: Receiving response via notify: %s (waiting=%s)",
+            self.name,
+            data.hex(),
+            bool(self._notify_future),
+        )
         if self._notify_future is None:
             return
-        _LOGGER.debug("%s: Receiving response via notify: %s", self.name, data.hex())
         decrypted_data = self.decrypt(data)
         _LOGGER.debug(
             "%s: Decrypted response via notify: %s", self.name, decrypted_data.hex()
