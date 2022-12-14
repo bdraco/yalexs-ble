@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import struct
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
@@ -380,7 +380,7 @@ class PushLock:
 
     async def lock(self) -> None:
         """Lock the lock."""
-        self._update_any_state(LockStatus.LOCKING)
+        self._update_any_state([LockStatus.LOCKING])
         await self._lock_with_op_lock()
 
     @operation_lock
@@ -388,20 +388,20 @@ class PushLock:
     async def _lock_with_op_lock(self) -> None:
         """Lock the lock."""
         _LOGGER.debug("%s: Starting lock", self.name)
-        self._update_any_state(LockStatus.LOCKING)
+        self._update_any_state([LockStatus.LOCKING])
         try:
             lock = await self._ensure_connected()
             await lock.force_lock()
         except Exception:
-            self._update_any_state(LockStatus.UNKNOWN)
+            self._update_any_state([LockStatus.UNKNOWN])
             raise
-        self._update_any_state(LockStatus.LOCKED)
+        self._update_any_state([LockStatus.LOCKED])
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished lock", self.name)
 
     async def unlock(self) -> None:
         """Unlock the lock."""
-        self._update_any_state(LockStatus.UNLOCKING)
+        self._update_any_state([LockStatus.UNLOCKING])
         await self._unlock_with_op_lock()
 
     @operation_lock
@@ -409,39 +409,47 @@ class PushLock:
     async def _unlock_with_op_lock(self) -> None:
         """Unlock the lock."""
         _LOGGER.debug("%s: Starting unlock", self.name)
-        self._update_any_state(LockStatus.UNLOCKING)
+        self._update_any_state([LockStatus.UNLOCKING])
         try:
             lock = await self._ensure_connected()
             await lock.force_unlock()
         except Exception:
-            self._update_any_state(LockStatus.UNKNOWN)
+            self._update_any_state([LockStatus.UNKNOWN])
             raise
-        self._update_any_state(LockStatus.UNLOCKED)
+        self._update_any_state([LockStatus.UNLOCKED])
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
 
-    def _state_callback(self, state: LockStatus | DoorStatus | BatteryState) -> None:
+    def _state_callback(
+        self, states: Iterable[LockStatus | DoorStatus | BatteryState]
+    ) -> None:
         """Handle state change."""
         self._reset_disconnect_timer()
-        self._update_any_state(state)
+        self._update_any_state(states)
 
-    def _update_any_state(self, state: LockStatus | DoorStatus | BatteryState) -> None:
-        _LOGGER.debug("%s: State changed: %s", self.name, state)
-        if isinstance(state, LockStatus):
-            lock_state = LockState(state, self.door_status, self._battery_state)
-        elif isinstance(state, DoorStatus):
-            lock_state = LockState(self.lock_status, state, self._battery_state)
-        elif isinstance(state, BatteryState):
-            if state.voltage <= 3.0:
-                _LOGGER.debug(
-                    "%s: Battery voltage is impossible: %s",
-                    self.name,
-                    state.voltage,
-                )
-                return
-            lock_state = LockState(self.lock_status, self.door_status, state)
-        else:
-            raise ValueError(f"Unexpected state type: {state}")
+    def _update_any_state(
+        self, states: Iterable[LockStatus | DoorStatus | BatteryState]
+    ) -> None:
+        _LOGGER.debug("%s: State changed: %s", self.name, states)
+        lock_state = self._lock_state or LockState(
+            self.lock_status, self.door_status, self.battery
+        )
+        for state in states:
+            if isinstance(state, LockStatus):
+                lock_state = replace(lock_state, lock=state)
+            elif isinstance(state, DoorStatus):
+                lock_state = replace(lock_state, door=state)
+            elif isinstance(state, BatteryState):
+                if state.voltage <= 3.0:
+                    _LOGGER.debug(
+                        "%s: Battery voltage is impossible: %s",
+                        self.name,
+                        state.voltage,
+                    )
+                    continue
+                lock_state = replace(lock_state, battery=state)
+            else:
+                raise ValueError(f"Unexpected state type: {state}")
 
         self._callback_state(lock_state)
 
