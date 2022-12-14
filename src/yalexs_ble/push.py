@@ -310,7 +310,7 @@ class PushLock:
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
         self._disconnect_timer = self.loop.call_later(
-            self._idle_disconnect_delay, self._disconnect
+            self._idle_disconnect_delay, self._disconnect_with_timer
         )
 
     async def _execute_forced_disconnect(self) -> None:
@@ -322,7 +322,7 @@ class PushLock:
         )
         await self._execute_disconnect()
 
-    def _disconnect(self) -> None:
+    def _disconnect_with_timer(self) -> None:
         """Disconnect from device."""
         if self._operation_lock.locked():
             self._reset_disconnect_timer()
