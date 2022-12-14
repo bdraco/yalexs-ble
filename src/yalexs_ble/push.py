@@ -165,6 +165,7 @@ class PushLock:
         key: str | None = None,
         key_index: int | None = None,
         advertisement_data: AdvertisementData | None = None,
+        idle_disconnect_delay: float = DISCONNECT_DELAY,
     ) -> None:
         """Init the lock watcher."""
         if local_name is None and address is None:
@@ -198,6 +199,7 @@ class PushLock:
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._disconnect_timer: asyncio.TimerHandle | None = None
+        self._idle_disconnect_delay = idle_disconnect_delay
 
     @property
     def local_name(self) -> str | None:
@@ -308,7 +310,7 @@ class PushLock:
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
         self._disconnect_timer = self.loop.call_later(
-            DISCONNECT_DELAY, self._disconnect
+            self._idle_disconnect_delay, self._disconnect
         )
 
     async def _execute_forced_disconnect(self) -> None:
