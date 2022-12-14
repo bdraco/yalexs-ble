@@ -206,17 +206,21 @@ class Lock:
         if not self.is_connected or not self.session:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
+        _LOGGER.debug("%s: Locking", self.name)
         await self.session.execute(
             self._disconnected_event, self.session.build_command(Commands.LOCK.value)
         )
+        _LOGGER.debug("%s: Finished locking", self.name)
 
     async def force_unlock(self) -> None:
         if not self.is_connected or not self.session:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
+        _LOGGER.debug("%s: Unlocking", self.name)
         await self.session.execute(
             self._disconnected_event, self.session.build_command(Commands.UNLOCK.value)
         )
+        _LOGGER.debug("%s: Finished unlocking", self.name)
 
     async def lock(self) -> None:
         if (await self.status()).lock == LockStatus.UNLOCKED:
@@ -237,9 +241,12 @@ class Lock:
         return response
 
     async def status(self) -> LockState:
+        _LOGGER.debug("%s: Executing status", self.name)
         response = await self._execute_command(
             0x2F if self._lock_info and self._lock_info.door_sense else 0x02
         )
+        _LOGGER.debug("%s: Finished executing status", self.name)
+
         lock_status = response[0x08]
         door_status = response[0x09]
 
@@ -257,7 +264,9 @@ class Lock:
         return LockState(lock_status_enum, door_status_enum, None)
 
     async def battery(self) -> BatteryState:
+        _LOGGER.debug("%s: Executing battery", self.name)
         response = await self._execute_command(0x0F)
+        _LOGGER.debug("%s: Finished executing battery", self.name)
         voltage = (response[0x09] * 256 + response[0x08]) / 1000
         # The voltage is divided by 4 in the lock
         # since it uses 4 AA batteries. For the Li-ion
