@@ -409,7 +409,8 @@ class PushLock:
 
     def _state_callback(self, state: bytes) -> None:
         """Handle state change."""
-        _LOGGER.warning("%s: State changed: %s", self.name, state)
+        self._reset_disconnect_timer()
+        _LOGGER.warning("%s: State changed: %s", self.name, state.hex())
 
     async def update(self) -> None:
         """Request that status be updated."""
