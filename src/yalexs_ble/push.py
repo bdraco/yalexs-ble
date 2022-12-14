@@ -299,8 +299,8 @@ class PushLock:
             self._lock_key,
             self._lock_key_index,
             self.name,
-            self._lock_info,
             self._state_callback,
+            self._lock_info,
         )
 
     def _reset_disconnect_timer(self) -> None:
@@ -407,10 +407,26 @@ class PushLock:
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
 
-    def _state_callback(self, state: bytes) -> None:
+    def _state_callback(self, state: LockStatus | DoorStatus | BatteryState) -> None:
         """Handle state change."""
         self._reset_disconnect_timer()
-        _LOGGER.warning("%s: State changed: %s", self.name, state.hex())
+        _LOGGER.warning("%s: State changed: %s", self.name, state)
+        if not self._lock_state:
+            return
+        if isinstance(state, LockStatus):
+            lock_state = LockState(
+                state, self._lock_state.door, self._lock_state.battery
+            )
+        elif isinstance(state, DoorStatus):
+            lock_state = LockState(
+                self._lock_state.lock, state, self._lock_state.battery
+            )
+        elif isinstance(state, BatteryState):
+            lock_state = LockState(self._lock_state.lock, self._lock_state.door, state)
+        else:
+            raise ValueError(f"Unexpected state type: {state}")
+
+        self._callback_state(lock_state)
 
     async def update(self) -> None:
         """Request that status be updated."""

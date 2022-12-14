@@ -95,8 +95,8 @@ class Lock:
         keyString: str,
         keyIndex: int,
         name: str,
+        state_callback: Callable[[LockStatus | DoorStatus | BatteryState], None],
         info: LockInfo | None = None,
-        state_callback: Callable[[bytes], None] | None = None,
     ) -> None:
         self.ble_device_callback = ble_device_callback
         self.key = bytes.fromhex(keyString)
@@ -140,7 +140,9 @@ class Lock:
             raise err
         _LOGGER.debug("%s: Connected", self.name)
 
-        self.session = Session(self.client, self.name, self._lock, self._state_callback)
+        self.session = Session(
+            self.client, self.name, self._lock, self._internal_state_callback
+        )
         self.secure_session = SecureSession(
             self.client, self.name, self._lock, self.key_index
         )
@@ -161,6 +163,20 @@ class Lock:
 
         self.secure_session.set_key(self.key)
         await self._setup_session()
+
+    def _internal_state_callback(self, state: bytes) -> None:
+        """Handle state change."""
+        _LOGGER.warning("%s: State changed: %s", self.name, state.hex())
+        result = None
+        if state[0] != 0xBB:
+            _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
+            return
+        if state[1] == 0x02:
+            lock_status = state[0x08]
+            result = VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
+
+        if result:
+            self._state_callback(result)
 
     async def _setup_session(self) -> None:
         """Setup the session."""
