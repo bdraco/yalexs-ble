@@ -4,7 +4,7 @@ import asyncio
 import bisect
 import logging
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any, cast
 
 from bleak import BleakError
@@ -95,6 +95,9 @@ class Lock:
         keyString: str,
         keyIndex: int,
         name: str,
+        state_callback: Callable[
+            [Iterable[LockStatus | DoorStatus | BatteryState]], None
+        ],
         info: LockInfo | None = None,
     ) -> None:
         self.ble_device_callback = ble_device_callback
@@ -108,19 +111,10 @@ class Lock:
         self._lock_info = info
         self.client: BleakClientWithServiceCache | None = None
         self._disconnected_event: asyncio.Event | None = None
+        self._state_callback = state_callback
 
     def set_name(self, name: str) -> None:
         self.name = name
-
-    async def __aenter__(self) -> Lock:
-        await self.connect()
-        return self
-
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        try:
-            await asyncio.sleep(0)
-        finally:
-            await self.disconnect()
 
     def disconnected(self, *args: Any, **kwargs: Any) -> None:
         _LOGGER.debug("%s: Disconnected from lock callback", self.name)
@@ -148,7 +142,9 @@ class Lock:
             raise err
         _LOGGER.debug("%s: Connected", self.name)
 
-        self.session = Session(self.client, self.name, self._lock)
+        self.session = Session(
+            self.client, self.name, self._lock, self._internal_state_callback
+        )
         self.secure_session = SecureSession(
             self.client, self.name, self._lock, self.key_index
         )
@@ -160,6 +156,7 @@ class Lock:
         ):
             client = cast(BleakClientWithServiceCache, self.client)
             await client.clear_cache()
+            await client.disconnect()
             raise BleakError("Missing characteristic")
 
         # Order matters here, we must start notify for the secure session before
@@ -167,6 +164,43 @@ class Lock:
         await self.secure_session.start_notify()
         await self.session.start_notify()
 
+        self.secure_session.set_key(self.key)
+        await self._setup_session()
+
+    def _internal_state_callback(self, state: bytes) -> None:
+        """Handle state change."""
+        _LOGGER.debug("%s: State changed: %s", self.name, state.hex())
+        if state[0] == 0xBB:
+            if state[4] == 0x02:  # lock only
+                lock_status = state[0x08]
+                self._state_callback(
+                    [VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)]
+                )
+            elif state[4] == 0x2E:  # door state
+                door_status = state[0x08]
+                self._state_callback(
+                    [VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)]
+                )
+            elif state[4] == 0x2F:  # door and lock
+                self._state_callback(self._parse_lock_and_door_state(state))
+            elif state[4] == 0x0F:
+                self._state_callback([self._parse_battery_state(state)])
+            else:
+                _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
+        elif state[0] == 0xAA:
+            if state[1] == Commands.UNLOCK.value:
+                self._state_callback([LockStatus.UNLOCKED])
+            if state[1] == Commands.LOCK.value:
+                self._state_callback([LockStatus.LOCKED])
+            else:
+                _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
+
+    async def _setup_session(self) -> None:
+        """Setup the session."""
+        assert self.session is not None  # nosec
+        assert self.secure_session is not None  # nosec
+        assert self._disconnected_event is not None  # nosec
+        _LOGGER.debug("%s: Setting up the session", self.name)
         self.secure_session.set_key(self.key)
         handshake_keys = os.urandom(16)
 
@@ -216,17 +250,21 @@ class Lock:
         if not self.is_connected or not self.session:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
+        _LOGGER.debug("%s: Locking", self.name)
         await self.session.execute(
             self._disconnected_event, self.session.build_command(Commands.LOCK.value)
         )
+        _LOGGER.debug("%s: Finished locking", self.name)
 
     async def force_unlock(self) -> None:
         if not self.is_connected or not self.session:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
+        _LOGGER.debug("%s: Unlocking", self.name)
         await self.session.execute(
             self._disconnected_event, self.session.build_command(Commands.UNLOCK.value)
         )
+        _LOGGER.debug("%s: Finished unlocking", self.name)
 
     async def lock(self) -> None:
         if (await self.status()).lock == LockStatus.UNLOCKED:
@@ -246,13 +284,12 @@ class Lock:
         _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
         return response
 
-    async def status(self) -> LockState:
-        response = await self._execute_command(
-            0x2F if self._lock_info and self._lock_info.door_sense else 0x02
-        )
+    def _parse_lock_and_door_state(
+        self, response: bytes
+    ) -> tuple[LockStatus, DoorStatus]:
+        """Parse the lock and door state from the response."""
         lock_status = response[0x08]
         door_status = response[0x09]
-
         lock_status_enum = VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
         door_status_enum = VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)
 
@@ -264,10 +301,19 @@ class Lock:
             _LOGGER.debug(
                 "%s: Unrecognized door_status_str code: %s", self.name, hex(door_status)
             )
+        return lock_status_enum, door_status_enum
+
+    async def status(self) -> LockState:
+        _LOGGER.debug("%s: Executing status", self.name)
+        response = await self._execute_command(
+            0x2F if self._lock_info and self._lock_info.door_sense else 0x02
+        )
+        _LOGGER.debug("%s: Finished executing status", self.name)
+        lock_status_enum, door_status_enum = self._parse_lock_and_door_state(response)
         return LockState(lock_status_enum, door_status_enum, None)
 
-    async def battery(self) -> BatteryState:
-        response = await self._execute_command(0x0F)
+    def _parse_battery_state(self, response: bytes) -> BatteryState:
+        """Parse the battery state from the response."""
         voltage = (response[0x09] * 256 + response[0x08]) / 1000
         # The voltage is divided by 4 in the lock
         # since it uses 4 AA batteries. For the Li-ion
@@ -276,6 +322,12 @@ class Lock:
         # this is the best we can do for now.
         percentage = convert_voltage_to_percentage(voltage / 4)
         return BatteryState(voltage, percentage)
+
+    async def battery(self) -> BatteryState:
+        _LOGGER.debug("%s: Executing battery", self.name)
+        response = await self._execute_command(0x0F)
+        _LOGGER.debug("%s: Finished executing battery", self.name)
+        return self._parse_battery_state(response)
 
     async def disconnect(self) -> None:
         """Disconnect from the lock."""
@@ -288,9 +340,6 @@ class Lock:
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
         _LOGGER.debug("%s: Shutting down the connection", self.name)
-        if self.session:
-            await self.session.stop_notify()
-
         assert self._disconnected_event is not None  # nosec
         if self.is_secure and self.secure_session:
             cmd = self.secure_session.build_command(0x05)
@@ -313,9 +362,6 @@ class Lock:
                 _LOGGER.debug(
                     "%s: Unexpected response to DISCONNECT: %s", response.hex()
                 )
-
-        if self.secure_session:
-            await self.secure_session.stop_notify()
 
     @property
     def is_connected(self) -> bool:

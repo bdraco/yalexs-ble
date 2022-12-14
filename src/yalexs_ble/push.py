@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 import struct
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
@@ -64,20 +63,7 @@ RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 # there is no update from the lock.
 VALID_ADV_VALUES = {0, 1}
 
-
-def cancelable_operation(func: WrapFuncType) -> WrapFuncType:
-    """Define a wrapper to make mutually exclusive operations cancelable."""
-
-    async def _async_wrap_cancelable_operation(
-        self: "PushLock", *args: Any, **kwargs: Any
-    ) -> None:
-        await self._cancel_in_progress_operation()
-        await self._cancel_in_progress_update()
-        self._operation_task = asyncio.create_task(func(self, *args, **kwargs))
-        await self._operation_task
-        self._operation_task = None
-
-    return cast(WrapFuncType, _async_wrap_cancelable_operation)
+DISCONNECT_DELAY = 5.0
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -179,6 +165,7 @@ class PushLock:
         key: str | None = None,
         key_index: int | None = None,
         advertisement_data: AdvertisementData | None = None,
+        idle_disconnect_delay: float = DISCONNECT_DELAY,
     ) -> None:
         """Init the lock watcher."""
         if local_name is None and address is None:
@@ -204,13 +191,15 @@ class PushLock:
         self._callbacks: list[
             Callable[[LockState, LockInfo, ConnectionInfo], None]
         ] = []
-        self._operation_task: asyncio.Task | None = None  # type: ignore[type-arg]
-        self._update_task: asyncio.Task | None = None  # type: ignore[type-arg]
         self._debounce_lock = asyncio.Lock()
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
         self.last_error: str | None = None
         self.auth_error = False
+        self._client: Lock | None = None
+        self._connect_lock = asyncio.Lock()
+        self._disconnect_timer: asyncio.TimerHandle | None = None
+        self._idle_disconnect_delay = idle_disconnect_delay
 
     @property
     def local_name(self) -> str | None:
@@ -312,87 +301,171 @@ class PushLock:
             self._lock_key,
             self._lock_key_index,
             self.name,
+            self._state_callback,
             self._lock_info,
         )
 
-    async def _cancel_any_update(self) -> None:
-        """Cancel any update task."""
-        await asyncio.sleep(0)
-        await self._cancel_in_progress_update()
+    def _reset_disconnect_timer(self) -> None:
+        """Reset disconnect timer."""
+        self._cancel_disconnect_timer()
+        self._expected_disconnect = False
+        self._disconnect_timer = self.loop.call_later(
+            self._idle_disconnect_delay, self._disconnect_with_timer
+        )
 
-    async def _cancel_in_progress_update(self) -> None:
-        """Cancel any in progress update task."""
-        if self._update_task:
-            _LOGGER.debug("Canceling in progress update: %s", self._update_task)
-            self._update_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await self._update_task
-            self._update_task = None
+    async def _execute_forced_disconnect(self) -> None:
+        """Execute forced disconnection."""
+        self._cancel_disconnect_timer()
+        _LOGGER.debug(
+            "%s: Executing forced disconnect",
+            self.name,
+        )
+        await self._execute_disconnect()
 
-    async def _cancel_in_progress_operation(self) -> None:
-        """Cancel any in progress operation task."""
-        if self._operation_task:
-            _LOGGER.debug("Canceling in progress task: %s", self._operation_task)
-            self._operation_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await self._operation_task
-            self._operation_task = None
+    def _disconnect_with_timer(self) -> None:
+        """Disconnect from device."""
+        if self._operation_lock.locked():
+            self._reset_disconnect_timer()
+            return
+        self._cancel_disconnect_timer()
+        asyncio.create_task(self._execute_timed_disconnect())
 
-    @cancelable_operation
-    @operation_lock
-    @retry_bluetooth_connection_error
+    def _cancel_disconnect_timer(self) -> None:
+        """Cancel disconnect timer."""
+        if self._disconnect_timer:
+            self._disconnect_timer.cancel()
+            self._disconnect_timer = None
+
+    async def _execute_timed_disconnect(self) -> None:
+        """Execute timed disconnection."""
+        _LOGGER.debug(
+            "%s: Executing timed disconnect after timeout of %s",
+            self.name,
+            DISCONNECT_DELAY,
+        )
+        await self._execute_disconnect()
+
+    async def _execute_disconnect(self) -> None:
+        """Execute disconnection."""
+        async with self._connect_lock:
+            if self._disconnect_timer:  # If the timer was reset, don't disconnect
+                return
+            client = self._client
+            self._client = None
+            if client and client.is_connected:
+                _LOGGER.debug("%s: Disconnecting", self.name)
+                await client.disconnect()
+                _LOGGER.debug("%s: Disconnect completed", self.name)
+
+    async def _ensure_connected(self) -> Lock:
+        """Ensure connection to device is established."""
+        if self._connect_lock.locked():
+            self._reset_disconnect_timer()
+            _LOGGER.debug(
+                "%s: Connection already in progress, waiting for it to complete",
+                self.name,
+            )
+        if self._client and self._client.is_connected:
+            self._reset_disconnect_timer()
+            return self._client
+        async with self._connect_lock:
+            # Check again while holding the lock
+            if self._client and self._client.is_connected:
+                self._reset_disconnect_timer()
+                return self._client
+            self._client = self._get_lock_instance()
+            await self._client.connect()
+            self._reset_disconnect_timer()
+            return self._client
+
     async def lock(self) -> None:
         """Lock the lock."""
+        self._update_any_state([LockStatus.LOCKING])
+        self._cancel_update()
+        await self._lock_with_op_lock()
+
+    @operation_lock
+    @retry_bluetooth_connection_error
+    async def _lock_with_op_lock(self) -> None:
+        """Lock the lock."""
         _LOGGER.debug("%s: Starting lock", self.name)
-        await self._cancel_any_update()
-        self._callback_state(
-            LockState(LockStatus.LOCKING, self.door_status, self._battery_state)
-        )
-        lock = self._get_lock_instance()
+        self._update_any_state([LockStatus.LOCKING])
+        self._cancel_update()
         try:
-            async with lock:
-                await lock.force_lock()
+            lock = await self._ensure_connected()
+            self._cancel_update()
+            await lock.force_lock()
         except Exception:
-            self._callback_state(
-                LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
-            )
+            self._update_any_state([LockStatus.UNKNOWN])
             raise
-        self._callback_state(
-            LockState(LockStatus.LOCKED, self.door_status, self._battery_state)
-        )
-        await self._cancel_any_update()
+        self._update_any_state([LockStatus.LOCKED])
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished lock", self.name)
 
-    @cancelable_operation
-    @operation_lock
-    @retry_bluetooth_connection_error
     async def unlock(self) -> None:
         """Unlock the lock."""
+        self._update_any_state([LockStatus.UNLOCKING])
+        self._cancel_update()
+        await self._unlock_with_op_lock()
+
+    @operation_lock
+    @retry_bluetooth_connection_error
+    async def _unlock_with_op_lock(self) -> None:
+        """Unlock the lock."""
         _LOGGER.debug("%s: Starting unlock", self.name)
-        await self._cancel_any_update()
-        self._callback_state(
-            LockState(LockStatus.UNLOCKING, self.door_status, self._battery_state)
-        )
-        lock = self._get_lock_instance()
+        self._update_any_state([LockStatus.UNLOCKING])
+        self._cancel_update()
         try:
-            async with lock:
-                await lock.force_unlock()
+            lock = await self._ensure_connected()
+            self._cancel_update()
+            await lock.force_unlock()
         except Exception:
-            self._callback_state(
-                LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
-            )
+            self._update_any_state([LockStatus.UNKNOWN])
             raise
-        self._callback_state(
-            LockState(LockStatus.UNLOCKED, self.door_status, self._battery_state)
-        )
-        await self._cancel_any_update()
+        self._update_any_state([LockStatus.UNLOCKED])
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
 
+    def _state_callback(
+        self, states: Iterable[LockStatus | DoorStatus | BatteryState]
+    ) -> None:
+        """Handle state change."""
+        self._reset_disconnect_timer()
+        self._update_any_state(states)
+
+    def _update_any_state(
+        self, states: Iterable[LockStatus | DoorStatus | BatteryState]
+    ) -> None:
+        _LOGGER.debug("%s: State changed: %s", self.name, states)
+        lock_state = self._lock_state or LockState(
+            self.lock_status, self.door_status, self.battery
+        )
+        for state in states:
+            if isinstance(state, LockStatus):
+                lock_state = replace(lock_state, lock=state)
+            elif isinstance(state, DoorStatus):
+                lock_state = replace(lock_state, door=state)
+            elif isinstance(state, BatteryState):
+                if state.voltage <= 3.0:
+                    _LOGGER.debug(
+                        "%s: Battery voltage is impossible: %s",
+                        self.name,
+                        state.voltage,
+                    )
+                    continue
+                lock_state = replace(lock_state, battery=state)
+            else:
+                raise ValueError(f"Unexpected state type: {state}")
+
+        self._callback_state(lock_state)
+
     async def update(self) -> None:
         """Request that status be updated."""
-        self._schedule_update(MANUAL_UPDATE_COALESCE_SECONDS)
+        self._schedule_update(
+            0
+            if self._client and self._client.is_connected
+            else MANUAL_UPDATE_COALESCE_SECONDS
+        )
 
     async def validate(self) -> None:
         """Validate lock credentials."""
@@ -405,14 +478,13 @@ class PushLock:
     async def _update(self) -> LockState:
         """Update the lock state."""
         _LOGGER.debug("%s: Starting update", self.name)
-        lock = self._get_lock_instance()
         try:
-            async with lock:
-                if not self._lock_info:
-                    self._lock_info = await lock.lock_info()
-                state = await lock.status()
-                self._battery_state = await lock.battery()
-                state = replace(state, battery=self._battery_state)
+            lock = await self._ensure_connected()
+            if not self._lock_info:
+                self._lock_info = await lock.lock_info()
+            state = await lock.status()
+            self._battery_state = await lock.battery()
+            state = replace(state, battery=self._battery_state)
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: In-progress update canceled due "
@@ -535,9 +607,15 @@ class PushLock:
 
         def _cancel() -> None:
             self._running = False
-            asyncio.create_task(self._cancel_in_progress_update())
+            asyncio.create_task(self._execute_forced_disconnect())
 
         return _cancel
+
+    def _cancel_update(self) -> None:
+        """Cancel an update."""
+        if self._cancel_deferred_update:
+            self._cancel_deferred_update.cancel()
+            self._cancel_deferred_update = None
 
     def _schedule_update(self, seconds: float) -> None:
         """Schedule an update."""
@@ -562,8 +640,7 @@ class PushLock:
                 )
                 return
             _LOGGER.debug("%s: Rescheduling update", self.name)
-            self._cancel_deferred_update.cancel()
-            self._cancel_deferred_update = None
+            self._cancel_update()
         _LOGGER.debug(
             "%s: Scheduling update to happen in %s seconds",
             self.name,
@@ -597,9 +674,7 @@ class PushLock:
             _LOGGER.debug("%s: Starting update", self.name)
             try:
                 self.last_error = "Could not connect"
-                self._update_task = asyncio.create_task(self._update())
-                await self._update_task
-                self._update_task = None
+                await self._update()
             except AuthError as ex:
                 self.auth_error = True
                 self.last_error = (
