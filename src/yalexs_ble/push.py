@@ -198,8 +198,6 @@ class PushLock:
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._disconnect_timer: asyncio.TimerHandle | None = None
-        self._previous_connection_info: ConnectionInfo | None = None
-        self._previous_state: LockState | None = None
 
     @property
     def local_name(self) -> str | None:
@@ -511,18 +509,6 @@ class PushLock:
         assert self._lock_info is not None  # nosec
         connection_info = self.connection_info
         assert connection_info is not None  # nosec
-        if (
-            self._previous_connection_info == connection_info
-            and self._previous_state == lock_state
-        ):
-            _LOGGER.debug(
-                "%s: Not calling callbacks since state and connection info "
-                "have not changed",
-                self.name,
-            )
-            return
-        self._previous_state = self._lock_state
-        self._previous_connection_info = self.connection_info
         for callback in self._callbacks:
             try:
                 callback(lock_state, self._lock_info, connection_info)
