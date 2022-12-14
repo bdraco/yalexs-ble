@@ -346,6 +346,7 @@ class PushLock:
     async def _ensure_connected(self) -> Lock:
         """Ensure connection to device is established."""
         if self._connect_lock.locked():
+            self._reset_disconnect_timer()
             _LOGGER.debug(
                 "%s: Connection already in progress, waiting for it to complete",
                 self.name,
