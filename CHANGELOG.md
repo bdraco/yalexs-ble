@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.0 (2022-12-14)
+### Feature
+* Refactor to use a timed disconnect to improve reliablity ([#87](https://github.com/bdraco/yalexs-ble/issues/87)) ([`99323d8`](https://github.com/bdraco/yalexs-ble/commit/99323d8c82842c67dee7a9f60062f7c6b480069c))
+
 ## v1.11.4 (2022-12-10)
 ### Fix
 * First update was scheduled being scheduled too late ([#86](https://github.com/bdraco/yalexs-ble/issues/86)) ([`eeb0ad4`](https://github.com/bdraco/yalexs-ble/commit/eeb0ad48ee4da3544520a01780de9f217c18fe40))
