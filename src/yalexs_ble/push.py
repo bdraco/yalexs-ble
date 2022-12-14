@@ -420,6 +420,13 @@ class PushLock:
         elif isinstance(state, DoorStatus):
             lock_state = LockState(self.lock_status, state, self._battery_state)
         elif isinstance(state, BatteryState):
+            if state.voltage <= 3.0:
+                _LOGGER.debug(
+                    "%s: Battery voltage is impossible: %s",
+                    self.name,
+                    state.voltage,
+                )
+                return
             lock_state = LockState(self.lock_status, self.door_status, state)
         else:
             raise ValueError(f"Unexpected state type: {state}")
