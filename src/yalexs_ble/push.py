@@ -63,7 +63,7 @@ RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 # there is no update from the lock.
 VALID_ADV_VALUES = {0, 1}
 
-DISCONNECT_DELAY = 12.5
+DISCONNECT_DELAY = 2.5
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
