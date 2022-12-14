@@ -311,8 +311,20 @@ class PushLock:
             DISCONNECT_DELAY, self._disconnect
         )
 
+    async def _execute_forced_disconnect(self) -> None:
+        """Execute forced disconnection."""
+        self._cancel_disconnect_timer()
+        _LOGGER.debug(
+            "%s: Executing forced disconnect",
+            self.name,
+        )
+        await self._execute_disconnect()
+
     def _disconnect(self) -> None:
         """Disconnect from device."""
+        if self._operation_lock.locked():
+            self._reset_disconnect_timer()
+            return
         self._cancel_disconnect_timer()
         asyncio.create_task(self._execute_timed_disconnect())
 
@@ -369,17 +381,14 @@ class PushLock:
     async def lock(self) -> None:
         """Lock the lock."""
         _LOGGER.debug("%s: Starting lock", self.name)
-        self._callback_state(
-            LockState(LockStatus.LOCKING, self.door_status, self._battery_state)
-        )
+        self._update_any_state(LockStatus.LOCKING)
         try:
             lock = await self._ensure_connected()
             await lock.force_lock()
         except Exception:
-            self._callback_state(
-                LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
-            )
+            self._update_any_state(LockStatus.UNKNOWN)
             raise
+        self._update_any_state(LockStatus.LOCKED)
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished lock", self.name)
 
@@ -388,36 +397,30 @@ class PushLock:
     async def unlock(self) -> None:
         """Unlock the lock."""
         _LOGGER.debug("%s: Starting unlock", self.name)
-        self._callback_state(
-            LockState(LockStatus.UNLOCKING, self.door_status, self._battery_state)
-        )
+        self._update_any_state(LockStatus.UNLOCKING)
         try:
             lock = await self._ensure_connected()
             await lock.force_unlock()
         except Exception:
-            self._callback_state(
-                LockState(LockStatus.UNKNOWN, self.door_status, self._battery_state)
-            )
+            self._update_any_state(LockStatus.UNKNOWN)
             raise
+        self._update_any_state(LockStatus.UNLOCKED)
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
 
     def _state_callback(self, state: LockStatus | DoorStatus | BatteryState) -> None:
         """Handle state change."""
         self._reset_disconnect_timer()
+        self._update_any_state(state)
+
+    def _update_any_state(self, state: LockStatus | DoorStatus | BatteryState) -> None:
         _LOGGER.debug("%s: State changed: %s", self.name, state)
-        if not self._lock_state:
-            return
         if isinstance(state, LockStatus):
-            lock_state = LockState(
-                state, self._lock_state.door, self._lock_state.battery
-            )
+            lock_state = LockState(state, self.door_status, self._battery_state)
         elif isinstance(state, DoorStatus):
-            lock_state = LockState(
-                self._lock_state.lock, state, self._lock_state.battery
-            )
+            lock_state = LockState(self.lock_status, state, self._battery_state)
         elif isinstance(state, BatteryState):
-            lock_state = LockState(self._lock_state.lock, self._lock_state.door, state)
+            lock_state = LockState(self.lock_status, self.door_status, state)
         else:
             raise ValueError(f"Unexpected state type: {state}")
 
@@ -571,7 +574,7 @@ class PushLock:
 
         def _cancel() -> None:
             self._running = False
-            self._disconnect()
+            asyncio.create_task(self._execute_forced_disconnect())
 
         return _cancel
 
