@@ -9,7 +9,13 @@ from yalexs_ble.lock import Lock
 
 
 def test_create_lock():
-    Lock(lambda: BLEDevice("aa:bb:cc:dd:ee:ff", "lock"), "0800200c9a66", 1, "mylock")
+    Lock(
+        lambda: BLEDevice("aa:bb:cc:dd:ee:ff", "lock"),
+        "0800200c9a66",
+        1,
+        "mylock",
+        lambda _: None,
+    )
 
 
 @pytest.mark.asyncio
@@ -21,13 +27,14 @@ async def test_connection_canceled_on_disconnect():
         "0800200c9a66",
         1,
         "mylock",
+        lambda _: None,
     )
     lock.client = mock_client
     lock._disconnected_event = asyncio.Event()
 
     async def connect_and_wait():
-        async with lock:
-            await asyncio.sleep(2)
+        await lock.connect()
+        await asyncio.sleep(2)
 
     with patch("yalexs_ble.lock.Lock.connect"):
         task = asyncio.create_task(connect_and_wait())
@@ -38,5 +45,3 @@ async def test_connection_canceled_on_disconnect():
         await task
 
     assert task.cancelled() is True
-
-    assert len(disconnect_mock.mock_calls) == 1
