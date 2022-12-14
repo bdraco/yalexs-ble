@@ -376,9 +376,14 @@ class PushLock:
             self._reset_disconnect_timer()
             return self._client
 
+    async def lock(self) -> None:
+        """Lock the lock."""
+        self._update_any_state(LockStatus.LOCKING)
+        await self._lock_with_op_lock()
+
     @operation_lock
     @retry_bluetooth_connection_error
-    async def lock(self) -> None:
+    async def _lock_with_op_lock(self) -> None:
         """Lock the lock."""
         _LOGGER.debug("%s: Starting lock", self.name)
         self._update_any_state(LockStatus.LOCKING)
@@ -392,9 +397,14 @@ class PushLock:
         self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished lock", self.name)
 
+    async def unlock(self) -> None:
+        """Unlock the lock."""
+        self._update_any_state(LockStatus.UNLOCKING)
+        await self._unlock_with_op_lock()
+
     @operation_lock
     @retry_bluetooth_connection_error
-    async def unlock(self) -> None:
+    async def _unlock_with_op_lock(self) -> None:
         """Unlock the lock."""
         _LOGGER.debug("%s: Starting unlock", self.name)
         self._update_any_state(LockStatus.UNLOCKING)
