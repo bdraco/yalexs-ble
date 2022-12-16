@@ -37,23 +37,25 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 4
 
+DISCONNECT_DELAY = 5.1
+
 # How long to wait before processing an advertisement change
-ADV_UPDATE_COALESCE_SECONDS = 6.99
+ADV_UPDATE_COALESCE_SECONDS = 0.05
 
 # How long to wait before processing the first update
-FIRST_UPDATE_COALESCE_SECONDS = 0.50
+FIRST_UPDATE_COALESCE_SECONDS = 0.01
 
 # How long to wait before processing a HomeKit advertisement change
-HK_UPDATE_COALESCE_SECONDS = 2.00
+HK_UPDATE_COALESCE_SECONDS = 0.05
 
 # How long to wait before processing a manual update request
-MANUAL_UPDATE_COALESCE_SECONDS = 0.75
+MANUAL_UPDATE_COALESCE_SECONDS = 0.05
 
 # How long to wait to query the lock after an operation to make sure its not jammed
 POST_OPERATION_SYNC_TIME = 10.00
 
 # How long to wait if we get an update storm from the lock
-UPDATE_IN_PROGRESS_DEFER_SECONDS = 29.50
+UPDATE_IN_PROGRESS_DEFER_SECONDS = 1.0
 
 RETRY_BACKOFF_EXCEPTIONS = (BleakDBusError, DisconnectedError)
 
@@ -62,8 +64,6 @@ RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 # 255 seems to be broadcast randomly when
 # there is no update from the lock.
 VALID_ADV_VALUES = {0, 1}
-
-DISCONNECT_DELAY = 5.0
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -477,6 +477,7 @@ class PushLock:
     @retry_bluetooth_connection_error
     async def _update(self) -> LockState:
         """Update the lock state."""
+        has_lock_info = self._lock_info is not None
         _LOGGER.debug("%s: Starting update", self.name)
         try:
             lock = await self._ensure_connected()
@@ -494,6 +495,14 @@ class PushLock:
             raise
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
+
+        if not has_lock_info:
+            # On first update free up the connection
+            # so we can bring other locks online if
+            # the bluetooth adapter is out of connections
+            # slots
+            await self._execute_forced_disconnect()
+
         return state
 
     def _callback_state(self, lock_state: LockState) -> None:
