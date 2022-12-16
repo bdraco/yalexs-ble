@@ -478,7 +478,10 @@ class PushLock:
     async def _update(self) -> LockState:
         """Update the lock state."""
         has_lock_info = self._lock_info is not None
-        _LOGGER.debug("%s: Starting update", self.name)
+
+        _LOGGER.debug(
+            "%s: Starting update (has_lock_info: %s)", self.name, has_lock_info
+        )
         try:
             lock = await self._ensure_connected()
             if not self._lock_info:
