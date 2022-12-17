@@ -37,23 +37,25 @@ WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 DEFAULT_ATTEMPTS = 4
 
+DISCONNECT_DELAY = 5.1
+
 # How long to wait before processing an advertisement change
-ADV_UPDATE_COALESCE_SECONDS = 6.99
+ADV_UPDATE_COALESCE_SECONDS = 0.05
 
 # How long to wait before processing the first update
-FIRST_UPDATE_COALESCE_SECONDS = 0.50
+FIRST_UPDATE_COALESCE_SECONDS = 0.01
 
 # How long to wait before processing a HomeKit advertisement change
-HK_UPDATE_COALESCE_SECONDS = 2.00
+HK_UPDATE_COALESCE_SECONDS = 0.025
 
 # How long to wait before processing a manual update request
-MANUAL_UPDATE_COALESCE_SECONDS = 0.75
+MANUAL_UPDATE_COALESCE_SECONDS = 0.05
 
 # How long to wait to query the lock after an operation to make sure its not jammed
 POST_OPERATION_SYNC_TIME = 10.00
 
 # How long to wait if we get an update storm from the lock
-UPDATE_IN_PROGRESS_DEFER_SECONDS = 29.50
+UPDATE_IN_PROGRESS_DEFER_SECONDS = 1.0
 
 RETRY_BACKOFF_EXCEPTIONS = (BleakDBusError, DisconnectedError)
 
@@ -62,8 +64,6 @@ RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 # 255 seems to be broadcast randomly when
 # there is no update from the lock.
 VALID_ADV_VALUES = {0, 1}
-
-DISCONNECT_DELAY = 5.0
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -194,6 +194,7 @@ class PushLock:
         self._debounce_lock = asyncio.Lock()
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
+        self._cancel_post_lock_op_sync: asyncio.TimerHandle | None = None
         self.last_error: str | None = None
         self.auth_error = False
         self._client: Lock | None = None
@@ -399,7 +400,6 @@ class PushLock:
             self._update_any_state([LockStatus.UNKNOWN])
             raise
         self._update_any_state([LockStatus.LOCKED])
-        self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished lock", self.name)
 
     async def unlock(self) -> None:
@@ -423,7 +423,6 @@ class PushLock:
             self._update_any_state([LockStatus.UNKNOWN])
             raise
         self._update_any_state([LockStatus.UNLOCKED])
-        self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
 
     def _state_callback(
@@ -440,6 +439,7 @@ class PushLock:
         lock_state = self._lock_state or LockState(
             self.lock_status, self.door_status, self.battery
         )
+        original_lock_status = lock_state.lock
         for state in states:
             if isinstance(state, LockStatus):
                 lock_state = replace(lock_state, lock=state)
@@ -456,6 +456,9 @@ class PushLock:
                 lock_state = replace(lock_state, battery=state)
             else:
                 raise ValueError(f"Unexpected state type: {state}")
+
+        if original_lock_status != lock_state.lock:
+            self._schedule_resync()
 
         self._callback_state(lock_state)
 
@@ -477,7 +480,11 @@ class PushLock:
     @retry_bluetooth_connection_error
     async def _update(self) -> LockState:
         """Update the lock state."""
-        _LOGGER.debug("%s: Starting update", self.name)
+        has_lock_info = self._lock_info is not None
+
+        _LOGGER.debug(
+            "%s: Starting update (has_lock_info: %s)", self.name, has_lock_info
+        )
         try:
             lock = await self._ensure_connected()
             if not self._lock_info:
@@ -494,6 +501,14 @@ class PushLock:
             raise
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
+
+        if not has_lock_info:
+            # On first update free up the connection
+            # so we can bring other locks online if
+            # the bluetooth adapter is out of connections
+            # slots
+            await self._execute_forced_disconnect()
+
         return state
 
     def _callback_state(self, lock_state: LockState) -> None:
@@ -607,15 +622,33 @@ class PushLock:
 
         def _cancel() -> None:
             self._running = False
+            self._cancel_resync()
             asyncio.create_task(self._execute_forced_disconnect())
 
         return _cancel
+
+    def _cancel_resync(self) -> None:
+        """Cancel a resync."""
+        if self._cancel_post_lock_op_sync:
+            self._cancel_post_lock_op_sync.cancel()
+            self._cancel_post_lock_op_sync = None
 
     def _cancel_update(self) -> None:
         """Cancel an update."""
         if self._cancel_deferred_update:
             self._cancel_deferred_update.cancel()
             self._cancel_deferred_update = None
+
+    def _resync(self) -> None:
+        """Resync the lock state."""
+        self._schedule_update(0.01)
+
+    def _schedule_resync(self) -> None:
+        """Schedule a resync."""
+        self._cancel_resync()
+        self._cancel_post_lock_op_sync = self.loop.call_later(
+            POST_OPERATION_SYNC_TIME, self._resync
+        )
 
     def _schedule_update(self, seconds: float) -> None:
         """Schedule an update."""
