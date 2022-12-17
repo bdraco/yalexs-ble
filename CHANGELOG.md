@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.2 (2022-12-17)
+### Fix
+* Check if disconnected before writing ([#90](https://github.com/bdraco/yalexs-ble/issues/90)) ([`4096eef`](https://github.com/bdraco/yalexs-ble/commit/4096eefbe85903e2602aabe3b189489fae744a55))
+* Do not force a resync if previous state was unknown ([#89](https://github.com/bdraco/yalexs-ble/issues/89)) ([`84d82a7`](https://github.com/bdraco/yalexs-ble/commit/84d82a7300c4e49fe08aafa414236de4a84e56dd))
+
 ## v1.12.1 (2022-12-17)
 ### Fix
 * Free up the connection faster after first update ([#88](https://github.com/bdraco/yalexs-ble/issues/88)) ([`5dfc984`](https://github.com/bdraco/yalexs-ble/commit/5dfc9844ccfb8a833574df3d94bbed06132641f3))
