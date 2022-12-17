@@ -128,6 +128,8 @@ class Session:
         # General idea seems to be that if the last byte
         # of the command indicates an offline key offset (is non-zero),
         # the command is "secure" and encrypted with the offline key
+        if not self.client.is_connected:
+            raise BleakError("disconnected")
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         plainText = command[0x00:0x10]
         cipherText = self.cipher_encrypt.encrypt(plainText)
