@@ -457,7 +457,10 @@ class PushLock:
             else:
                 raise ValueError(f"Unexpected state type: {state}")
 
-        if original_lock_status != lock_state.lock:
+        if (
+            original_lock_status != lock_state.lock
+            and original_lock_status != LockStatus.UNKNOWN
+        ):
             self._schedule_resync()
 
         self._callback_state(lock_state)
