@@ -46,7 +46,7 @@ ADV_UPDATE_COALESCE_SECONDS = 0.05
 FIRST_UPDATE_COALESCE_SECONDS = 0.01
 
 # How long to wait before processing a HomeKit advertisement change
-HK_UPDATE_COALESCE_SECONDS = 0.05
+HK_UPDATE_COALESCE_SECONDS = 0.025
 
 # How long to wait before processing a manual update request
 MANUAL_UPDATE_COALESCE_SECONDS = 0.05
@@ -194,6 +194,7 @@ class PushLock:
         self._debounce_lock = asyncio.Lock()
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
+        self._cancel_post_lock_op_sync: asyncio.TimerHandle | None = None
         self.last_error: str | None = None
         self.auth_error = False
         self._client: Lock | None = None
@@ -399,7 +400,6 @@ class PushLock:
             self._update_any_state([LockStatus.UNKNOWN])
             raise
         self._update_any_state([LockStatus.LOCKED])
-        self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished lock", self.name)
 
     async def unlock(self) -> None:
@@ -423,7 +423,6 @@ class PushLock:
             self._update_any_state([LockStatus.UNKNOWN])
             raise
         self._update_any_state([LockStatus.UNLOCKED])
-        self._schedule_update(POST_OPERATION_SYNC_TIME)
         _LOGGER.debug("%s: Finished unlock", self.name)
 
     def _state_callback(
@@ -440,6 +439,7 @@ class PushLock:
         lock_state = self._lock_state or LockState(
             self.lock_status, self.door_status, self.battery
         )
+        original_lock_status = lock_state.lock
         for state in states:
             if isinstance(state, LockStatus):
                 lock_state = replace(lock_state, lock=state)
@@ -456,6 +456,9 @@ class PushLock:
                 lock_state = replace(lock_state, battery=state)
             else:
                 raise ValueError(f"Unexpected state type: {state}")
+
+        if original_lock_status != lock_state.lock:
+            self._schedule_resync()
 
         self._callback_state(lock_state)
 
@@ -619,15 +622,33 @@ class PushLock:
 
         def _cancel() -> None:
             self._running = False
+            self._cancel_resync()
             asyncio.create_task(self._execute_forced_disconnect())
 
         return _cancel
+
+    def _cancel_resync(self) -> None:
+        """Cancel a resync."""
+        if self._cancel_post_lock_op_sync:
+            self._cancel_post_lock_op_sync.cancel()
+            self._cancel_post_lock_op_sync = None
 
     def _cancel_update(self) -> None:
         """Cancel an update."""
         if self._cancel_deferred_update:
             self._cancel_deferred_update.cancel()
             self._cancel_deferred_update = None
+
+    def _resync(self) -> None:
+        """Resync the lock state."""
+        self._schedule_update(0.01)
+
+    def _schedule_resync(self) -> None:
+        """Schedule a resync."""
+        self._cancel_resync()
+        self._cancel_post_lock_op_sync = self.loop.call_later(
+            POST_OPERATION_SYNC_TIME, self._resync
+        )
 
     def _schedule_update(self, seconds: float) -> None:
         """Schedule an update."""
