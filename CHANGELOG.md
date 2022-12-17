@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.1 (2022-12-17)
+### Fix
+* Free up the connection faster after first update ([#88](https://github.com/bdraco/yalexs-ble/issues/88)) ([`5dfc984`](https://github.com/bdraco/yalexs-ble/commit/5dfc9844ccfb8a833574df3d94bbed06132641f3))
+
 ## v1.12.0 (2022-12-14)
 ### Feature
 * Refactor to use a timed disconnect to improve reliablity ([#87](https://github.com/bdraco/yalexs-ble/issues/87)) ([`99323d8`](https://github.com/bdraco/yalexs-ble/commit/99323d8c82842c67dee7a9f60062f7c6b480069c))
