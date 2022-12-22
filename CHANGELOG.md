@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.3 (2022-12-22)
+### Fix
+* Tell the device we are disconnecting ([#91](https://github.com/bdraco/yalexs-ble/issues/91)) ([`be60b5d`](https://github.com/bdraco/yalexs-ble/commit/be60b5df42b4e23234d8aca473e081adf2244f09))
+
 ## v1.12.2 (2022-12-17)
 ### Fix
 * Check if disconnected before writing ([#90](https://github.com/bdraco/yalexs-ble/issues/90)) ([`4096eef`](https://github.com/bdraco/yalexs-ble/commit/4096eefbe85903e2602aabe3b189489fae744a55))
