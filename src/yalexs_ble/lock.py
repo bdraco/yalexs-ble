@@ -78,16 +78,6 @@ def convert_voltage_to_percentage(voltage: float) -> int:
     return AA_BATTERY_VOLTAGE_MAP[AA_BATTERY_VOLTAGE_LIST[pos]]
 
 
-def _build_command(cmd_byte: int) -> bytearray:
-    """Build a command to send to the lock."""
-    cmd = bytearray(0x12)
-    cmd[0x00] = 0xEE
-    cmd[0x01] = 0x02
-    cmd[0x04] = cmd_byte
-    cmd[0x10] = 0x02
-    return cmd
-
-
 class Lock:
     def __init__(
         self,
@@ -279,7 +269,7 @@ class Lock:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
         response = await self.session.execute(
-            self._disconnected_event, _build_command(cmd_byte)
+            self._disconnected_event, self.session.build_operation_command(cmd_byte)
         )
         _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
         return response
@@ -335,33 +325,34 @@ class Lock:
         if not self.client or not self.client.is_connected:
             return
 
+        await self._shutdown_connection()
         await self.client.disconnect()
 
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
         _LOGGER.debug("%s: Shutting down the connection", self.name)
-        assert self._disconnected_event is not None  # nosec
-        if self.is_secure and self.secure_session:
-            cmd = self.secure_session.build_command(0x05)
-            cmd[0x11] = 0x00
-            response = None
-            try:
-                response = await self.secure_session.execute(
-                    self._disconnected_event, cmd
-                )
-            except DisconnectedError:
-                # Lock already disconnected us
-                pass
-            except (BleakError, asyncio.TimeoutError, EOFError) as err:
-                if not util.is_disconnected_error(err):
-                    _LOGGER.debug(
-                        "%s: Failed to cleanly disconnect from lock: %s", self.name, err
-                    )
-                pass
-            if response and response[0] != 0x8B:
+        if (
+            not self.is_secure
+            or not self.secure_session
+            or self._disconnected_event is None
+        ):
+            return
+        cmd = self.secure_session.build_command(0x05)
+        cmd[0x11] = 0x00
+        response = None
+        try:
+            response = await self.secure_session.execute(self._disconnected_event, cmd)
+        except DisconnectedError:
+            # Lock already disconnected us
+            pass
+        except (BleakError, asyncio.TimeoutError, EOFError) as err:
+            if not util.is_disconnected_error(err):
                 _LOGGER.debug(
-                    "%s: Unexpected response to DISCONNECT: %s", response.hex()
+                    "%s: Failed to cleanly disconnect from lock: %s", self.name, err
                 )
+            pass
+        if response and response[0] != 0x8B:
+            _LOGGER.debug("%s: Unexpected response to DISCONNECT: %s", response.hex())
 
     @property
     def is_connected(self) -> bool:
