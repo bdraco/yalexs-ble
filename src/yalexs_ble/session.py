@@ -142,7 +142,7 @@ class Session:
         util._copy(command, cipherText)
         _LOGGER.debug("%s: Encrypted command: %s", self.name, command.hex())
 
-        for _ in range(3):
+        for attempt in range(3):
             future: asyncio.Future[bytes] = asyncio.Future()
             self._notify_future = future
             _LOGGER.debug(
@@ -160,6 +160,8 @@ class Session:
                     result = await future
                 except ResponseError:
                     _LOGGER.debug("%s: Invalid response, retrying", self.name)
+                    if attempt == 2:
+                        raise
                     continue
                 else:
                     break
