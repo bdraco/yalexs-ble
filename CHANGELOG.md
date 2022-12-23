@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.5 (2022-12-23)
+### Fix
+* Ensure locked_writes raise after 3 failures ([#93](https://github.com/bdraco/yalexs-ble/issues/93)) ([`aac8b72`](https://github.com/bdraco/yalexs-ble/commit/aac8b72628f8a719a6e890de396af74c05af0be8))
+
 ## v1.12.4 (2022-12-23)
 ### Fix
 * Ensure we still disconnect if the write times out ([#92](https://github.com/bdraco/yalexs-ble/issues/92)) ([`71655df`](https://github.com/bdraco/yalexs-ble/commit/71655df0be1b8a441e0924a87b6d00f9c10f21d7))
