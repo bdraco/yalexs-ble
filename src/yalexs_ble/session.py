@@ -159,9 +159,9 @@ class Session:
                     )
                     result = await future
                 except ResponseError:
-                    _LOGGER.debug("%s: Invalid response, retrying", self.name)
                     if attempt == 2:
                         raise
+                    _LOGGER.debug("%s: Invalid response, retrying", self.name)
                     continue
                 else:
                     break
