@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.4 (2022-12-23)
+### Fix
+* Ensure we still disconnect if the write times out ([#92](https://github.com/bdraco/yalexs-ble/issues/92)) ([`71655df`](https://github.com/bdraco/yalexs-ble/commit/71655df0be1b8a441e0924a87b6d00f9c10f21d7))
+
 ## v1.12.3 (2022-12-22)
 ### Fix
 * Tell the device we are disconnecting ([#91](https://github.com/bdraco/yalexs-ble/issues/91)) ([`be60b5d`](https://github.com/bdraco/yalexs-ble/commit/be60b5df42b4e23234d8aca473e081adf2244f09))
