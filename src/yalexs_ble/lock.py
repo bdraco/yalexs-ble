@@ -325,8 +325,10 @@ class Lock:
         if not self.client or not self.client.is_connected:
             return
 
-        await self._shutdown_connection()
-        await self.client.disconnect()
+        try:
+            await self._shutdown_connection()
+        finally:
+            await self.client.disconnect()
 
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
