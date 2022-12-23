@@ -151,10 +151,12 @@ class Session:
                 self.write_characteristic,
                 command.hex(),
             )
-            await self.client.write_gatt_char(self.write_characteristic, command, True)
             _LOGGER.debug("%s: Waiting for response", self.name)
-            async with async_timeout.timeout(5):
+            async with async_timeout.timeout(10):
                 try:
+                    await self.client.write_gatt_char(
+                        self.write_characteristic, command, True
+                    )
                     result = await future
                 except ResponseError:
                     _LOGGER.debug("%s: Invalid response, retrying", self.name)
