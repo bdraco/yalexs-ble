@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.7 (2023-01-22)
+### Fix
+* Improve unexpected disconnect handling ([#95](https://github.com/bdraco/yalexs-ble/issues/95)) ([`7a5ee06`](https://github.com/bdraco/yalexs-ble/commit/7a5ee06142fa2f79761403307aaf16310f92f170))
+
 ## v1.12.6 (2023-01-22)
 ### Fix
 * Handle null bytes in the model/manufacturer data ([#94](https://github.com/bdraco/yalexs-ble/issues/94)) ([`6f04e4b`](https://github.com/bdraco/yalexs-ble/commit/6f04e4bc149b98ed1f9712052faa40520be7aafe))
