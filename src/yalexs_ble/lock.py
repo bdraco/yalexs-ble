@@ -148,6 +148,8 @@ class Lock:
             or not self.secure_session.read_characteristic
             or not self.secure_session.read_characteristic
         ):
+            self.secure_session = None
+            self.session = None
             client = cast(BleakClientWithServiceCache, self.client)
             await client.clear_cache()
             await client.disconnect()
@@ -157,8 +159,6 @@ class Lock:
         # the non-secure session
         await self.secure_session.start_notify()
         await self.session.start_notify()
-
-        self.secure_session.set_key(self.key)
         await self._setup_session()
 
     def _internal_state_callback(self, state: bytes) -> None:
@@ -213,7 +213,6 @@ class Lock:
         session_key = bytearray(16)
         util._copy(session_key, handshake_keys[0x00:0x08])
         util._copy(session_key, response[0x04:0x0C], destLocation=0x08)
-        self.session.set_key(session_key)
         self.secure_session.set_key(session_key)
 
         # Send SEC_INITIALIZATION_COMMAND
@@ -224,6 +223,7 @@ class Lock:
             raise AuthError(
                 "Unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
             )
+        self.session.set_key(session_key)
 
     async def lock_info(self) -> LockInfo:
         """Probe the lock for information."""
@@ -358,4 +358,10 @@ class Lock:
 
     @property
     def is_connected(self) -> bool:
-        return bool(self.client and self.client.is_connected)
+        """Return True if the lock is connected."""
+        return bool(
+            self.client
+            and self.client.is_connected
+            and self._disconnected_event is not None
+            and not self._disconnected_event.is_set()
+        )
