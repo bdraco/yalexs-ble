@@ -19,9 +19,14 @@ class SecureSession(Session):
     _read_characteristic = SECURE_READ_CHARACTERISTIC
 
     def __init__(
-        self, client: BleakClient, name: str, lock: asyncio.Lock, key_index: int
+        self,
+        client: BleakClient,
+        name: str,
+        lock: asyncio.Lock,
+        disconnected_event: asyncio.Event,
+        key_index: int,
     ) -> None:
-        super().__init__(client, name, lock)
+        super().__init__(client, name, lock, disconnected_event)
         self.key_index = key_index
         self.write_characteristic = client.services.get_characteristic(
             self._write_characteristic

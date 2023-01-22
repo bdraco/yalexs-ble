@@ -133,10 +133,14 @@ class Lock:
         _LOGGER.debug("%s: Connected", self.name)
 
         self.session = Session(
-            self.client, self.name, self._lock, self._internal_state_callback
+            self.client,
+            self.name,
+            self._lock,
+            self._disconnected_event,
+            self._internal_state_callback,
         )
         self.secure_session = SecureSession(
-            self.client, self.name, self._lock, self.key_index
+            self.client, self.name, self._lock, self._disconnected_event, self.key_index
         )
         if (
             not self.session.read_characteristic
@@ -197,7 +201,7 @@ class Lock:
         # Send SEC_LOCK_TO_MOBILE_KEY_EXCHANGE
         cmd = self.secure_session.build_command(0x01)
         util._copy(cmd, handshake_keys[0x00:0x08], destLocation=0x04)
-        response = await self.secure_session.execute(self._disconnected_event, cmd)
+        response = await self.secure_session.execute(cmd)
         if response[0x00] != 0x02:
             raise AuthError(
                 "Unexpected response to SEC_LOCK_TO_MOBILE_KEY_EXCHANGE: "
@@ -215,7 +219,7 @@ class Lock:
         # Send SEC_INITIALIZATION_COMMAND
         cmd = self.secure_session.build_command(0x03)
         util._copy(cmd, handshake_keys[0x08:0x10], destLocation=0x04)
-        response = await self.secure_session.execute(self._disconnected_event, cmd)
+        response = await self.secure_session.execute(cmd)
         if response[0] != 0x04:
             raise AuthError(
                 "Unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
@@ -241,9 +245,7 @@ class Lock:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
         _LOGGER.debug("%s: Locking", self.name)
-        await self.session.execute(
-            self._disconnected_event, self.session.build_command(Commands.LOCK.value)
-        )
+        await self.session.execute(self.session.build_command(Commands.LOCK.value))
         _LOGGER.debug("%s: Finished locking", self.name)
 
     async def force_unlock(self) -> None:
@@ -251,9 +253,7 @@ class Lock:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
         _LOGGER.debug("%s: Unlocking", self.name)
-        await self.session.execute(
-            self._disconnected_event, self.session.build_command(Commands.UNLOCK.value)
-        )
+        await self.session.execute(self.session.build_command(Commands.UNLOCK.value))
         _LOGGER.debug("%s: Finished unlocking", self.name)
 
     async def lock(self) -> None:
@@ -269,7 +269,7 @@ class Lock:
             raise RuntimeError("Not connected")
         assert self._disconnected_event is not None  # nosec
         response = await self.session.execute(
-            self._disconnected_event, self.session.build_operation_command(cmd_byte)
+            self.session.build_operation_command(cmd_byte)
         )
         _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
         return response
@@ -343,7 +343,7 @@ class Lock:
         cmd[0x11] = 0x00
         response = None
         try:
-            response = await self.secure_session.execute(self._disconnected_event, cmd)
+            response = await self.secure_session.execute(cmd)
         except DisconnectedError:
             # Lock already disconnected us
             pass
