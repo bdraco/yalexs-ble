@@ -5,7 +5,7 @@ import bisect
 import logging
 import os
 from collections.abc import Callable, Iterable
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 
 from bleak import BleakError
 from bleak_retry_connector import (
@@ -68,6 +68,21 @@ AA_BATTERY_VOLTAGE_LIST = [
 AA_BATTERY_VOLTAGE_MAP = {
     voltage: percentage for voltage, percentage in AA_BATTERY_VOLTAGE_TO_PERCENTAGE
 }
+WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
+
+
+def raise_if_not_connected(func: WrapFuncType) -> WrapFuncType:
+    """Define a wrapper to raise if we are not connected to the lock."""
+
+    async def _async_wrap_connected_operation(
+        self: "Lock", *args: Any, **kwargs: Any
+    ) -> None:
+        """Wrap a function to make sure the lock is connected."""
+        if not self.is_connected:
+            raise DisconnectedError("Lock is not connected")
+        return await func(self, *args, **kwargs)
+
+    return cast(WrapFuncType, _async_wrap_connected_operation)
 
 
 def convert_voltage_to_percentage(voltage: float) -> int:
@@ -133,10 +148,14 @@ class Lock:
         _LOGGER.debug("%s: Connected", self.name)
 
         self.session = Session(
-            self.client, self.name, self._lock, self._internal_state_callback
+            self.client,
+            self.name,
+            self._lock,
+            self._disconnected_event,
+            self._internal_state_callback,
         )
         self.secure_session = SecureSession(
-            self.client, self.name, self._lock, self.key_index
+            self.client, self.name, self._lock, self._disconnected_event, self.key_index
         )
         if (
             not self.session.read_characteristic
@@ -144,6 +163,8 @@ class Lock:
             or not self.secure_session.read_characteristic
             or not self.secure_session.read_characteristic
         ):
+            self.secure_session = None
+            self.session = None
             client = cast(BleakClientWithServiceCache, self.client)
             await client.clear_cache()
             await client.disconnect()
@@ -153,8 +174,6 @@ class Lock:
         # the non-secure session
         await self.secure_session.start_notify()
         await self.session.start_notify()
-
-        self.secure_session.set_key(self.key)
         await self._setup_session()
 
     def _internal_state_callback(self, state: bytes) -> None:
@@ -197,7 +216,7 @@ class Lock:
         # Send SEC_LOCK_TO_MOBILE_KEY_EXCHANGE
         cmd = self.secure_session.build_command(0x01)
         util._copy(cmd, handshake_keys[0x00:0x08], destLocation=0x04)
-        response = await self.secure_session.execute(self._disconnected_event, cmd)
+        response = await self.secure_session.execute(cmd)
         if response[0x00] != 0x02:
             raise AuthError(
                 "Unexpected response to SEC_LOCK_TO_MOBILE_KEY_EXCHANGE: "
@@ -209,18 +228,19 @@ class Lock:
         session_key = bytearray(16)
         util._copy(session_key, handshake_keys[0x00:0x08])
         util._copy(session_key, response[0x04:0x0C], destLocation=0x08)
-        self.session.set_key(session_key)
         self.secure_session.set_key(session_key)
 
         # Send SEC_INITIALIZATION_COMMAND
         cmd = self.secure_session.build_command(0x03)
         util._copy(cmd, handshake_keys[0x08:0x10], destLocation=0x04)
-        response = await self.secure_session.execute(self._disconnected_event, cmd)
+        response = await self.secure_session.execute(cmd)
         if response[0] != 0x04:
             raise AuthError(
                 "Unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
             )
+        self.session.set_key(session_key)
 
+    @raise_if_not_connected
     async def lock_info(self) -> LockInfo:
         """Probe the lock for information."""
         _LOGGER.debug("%s: Probing the lock", self.name)
@@ -238,24 +258,20 @@ class Lock:
         self._lock_info = LockInfo(*lock_info)
         return self._lock_info
 
+    @raise_if_not_connected
     async def force_lock(self) -> None:
-        if not self.is_connected or not self.session:
-            raise RuntimeError("Not connected")
-        assert self._disconnected_event is not None  # nosec
+        """Force the lock to lock."""
         _LOGGER.debug("%s: Locking", self.name)
-        await self.session.execute(
-            self._disconnected_event, self.session.build_command(Commands.LOCK.value)
-        )
+        assert self.session is not None  # nosec
+        await self.session.execute(self.session.build_command(Commands.LOCK.value))
         _LOGGER.debug("%s: Finished locking", self.name)
 
+    @raise_if_not_connected
     async def force_unlock(self) -> None:
-        if not self.is_connected or not self.session:
-            raise RuntimeError("Not connected")
-        assert self._disconnected_event is not None  # nosec
+        """Force the lock to unlock."""
         _LOGGER.debug("%s: Unlocking", self.name)
-        await self.session.execute(
-            self._disconnected_event, self.session.build_command(Commands.UNLOCK.value)
-        )
+        assert self.session is not None  # nosec
+        await self.session.execute(self.session.build_command(Commands.UNLOCK.value))
         _LOGGER.debug("%s: Finished unlocking", self.name)
 
     async def lock(self) -> None:
@@ -267,11 +283,9 @@ class Lock:
             await self.force_unlock()
 
     async def _execute_command(self, cmd_byte: int) -> bytes:
-        if not self.is_connected or not self.session:
-            raise RuntimeError("Not connected")
-        assert self._disconnected_event is not None  # nosec
+        assert self.session is not None  # nosec
         response = await self.session.execute(
-            self._disconnected_event, self.session.build_operation_command(cmd_byte)
+            self.session.build_operation_command(cmd_byte)
         )
         _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
         return response
@@ -295,14 +309,14 @@ class Lock:
             )
         return lock_status_enum, door_status_enum
 
+    @raise_if_not_connected
     async def status(self) -> LockState:
         _LOGGER.debug("%s: Executing status", self.name)
         response = await self._execute_command(
             0x2F if self._lock_info and self._lock_info.door_sense else 0x02
         )
         _LOGGER.debug("%s: Finished executing status", self.name)
-        lock_status_enum, door_status_enum = self._parse_lock_and_door_state(response)
-        return LockState(lock_status_enum, door_status_enum, None)
+        return LockState(*self._parse_lock_and_door_state(response), None)
 
     def _parse_battery_state(self, response: bytes) -> BatteryState:
         """Parse the battery state from the response."""
@@ -315,6 +329,7 @@ class Lock:
         percentage = convert_voltage_to_percentage(voltage / 4)
         return BatteryState(voltage, percentage)
 
+    @raise_if_not_connected
     async def battery(self) -> BatteryState:
         _LOGGER.debug("%s: Executing battery", self.name)
         response = await self._execute_command(0x0F)
@@ -345,19 +360,27 @@ class Lock:
         cmd[0x11] = 0x00
         response = None
         try:
-            response = await self.secure_session.execute(self._disconnected_event, cmd)
+            response = await self.secure_session.execute(cmd)
         except DisconnectedError:
             # Lock already disconnected us
-            pass
+            return
         except (BleakError, asyncio.TimeoutError, EOFError) as err:
             if not util.is_disconnected_error(err):
                 _LOGGER.debug(
                     "%s: Failed to cleanly disconnect from lock: %s", self.name, err
                 )
-            pass
+            return
         if response and response[0] != 0x8B:
             _LOGGER.debug("%s: Unexpected response to DISCONNECT: %s", response.hex())
 
     @property
     def is_connected(self) -> bool:
-        return bool(self.client and self.client.is_connected)
+        """Return True if the lock is connected."""
+        return bool(
+            self.client
+            and self.client.is_connected
+            and self.session
+            and self.secure_session
+            and self._disconnected_event is not None
+            and not self._disconnected_event.is_set()
+        )

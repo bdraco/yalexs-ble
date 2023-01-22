@@ -46,6 +46,7 @@ def is_disconnected_error(error: Exception) -> bool:
         isinstance(error, BleakError)
         and (
             "disconnect" in err_str
+            or "error=133" in err_str
             or "Connection Rejected Due To Security Reasons" in err_str
             or "Unlikely Error" in err_str
         )

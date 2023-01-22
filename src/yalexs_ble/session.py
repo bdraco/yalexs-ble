@@ -38,6 +38,7 @@ class Session:
         client: BleakClient,
         name: str,
         lock: asyncio.Lock,
+        disconnected_event: asyncio.Event,
         state_callback: Callable[[bytes], None] | None = None,
     ) -> None:
         """Init the session."""
@@ -55,6 +56,7 @@ class Session:
         self._notifications_started = False
         self._notify_future: asyncio.Future[bytes] | None = None
         self._state_callback = state_callback
+        self._disconnected_event = disconnected_event
 
     def set_key(self, key: bytes) -> None:
         self.cipher_encrypt = AES.new(key, AES.MODE_CBC, iv=bytes(0x10))
@@ -134,7 +136,7 @@ class Session:
         # General idea seems to be that if the last byte
         # of the command indicates an offline key offset (is non-zero),
         # the command is "secure" and encrypted with the offline key
-        if not self.client.is_connected:
+        if not self.client.is_connected or self._disconnected_event.is_set():
             raise BleakError("disconnected")
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         plainText = command[0x00:0x10]
@@ -208,13 +210,13 @@ class Session:
             _LOGGER.debug("%s: Bleak error stopping notify: %s", self.name, err)
             pass
 
-    async def execute(
-        self, disconnected_event: asyncio.Event, command: bytearray
-    ) -> bytes:
+    async def execute(self, command: bytearray) -> bytes:
+        """Execute command."""
+        assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         self._write_checksum(command)
         write_task = asyncio.create_task(self._write(command))
         await asyncio.wait(
-            [write_task, disconnected_event.wait()],
+            [write_task, self._disconnected_event.wait()],
             return_when=asyncio.FIRST_COMPLETED,
         )
         if write_task.done():
