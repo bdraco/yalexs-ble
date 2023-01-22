@@ -362,13 +362,13 @@ class Lock:
             response = await self.secure_session.execute(cmd)
         except DisconnectedError:
             # Lock already disconnected us
-            pass
+            return
         except (BleakError, asyncio.TimeoutError, EOFError) as err:
             if not util.is_disconnected_error(err):
                 _LOGGER.debug(
                     "%s: Failed to cleanly disconnect from lock: %s", self.name, err
                 )
-            pass
+            return
         if response and response[0] != 0x8B:
             _LOGGER.debug("%s: Unexpected response to DISCONNECT: %s", response.hex())
 
