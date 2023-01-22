@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.6 (2023-01-22)
+### Fix
+* Handle null bytes in the model/manufacturer data ([#94](https://github.com/bdraco/yalexs-ble/issues/94)) ([`6f04e4b`](https://github.com/bdraco/yalexs-ble/commit/6f04e4bc149b98ed1f9712052faa40520be7aafe))
+
 ## v1.12.5 (2022-12-23)
 ### Fix
 * Ensure locked_writes raise after 3 failures ([#93](https://github.com/bdraco/yalexs-ble/issues/93)) ([`aac8b72`](https://github.com/bdraco/yalexs-ble/commit/aac8b72628f8a719a6e890de396af74c05af0be8))
