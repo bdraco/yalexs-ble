@@ -232,7 +232,9 @@ class Lock:
             SERIAL_NUMBER_CHARACTERISTIC,
             FIRMWARE_REVISION_CHARACTERISTIC,
         ):
-            lock_info.append((await self.client.read_gatt_char(char)).decode())
+            lock_info.append(
+                (await self.client.read_gatt_char(char)).decode().split("\0")[0]
+            )
         self._lock_info = LockInfo(*lock_info)
         return self._lock_info
 
