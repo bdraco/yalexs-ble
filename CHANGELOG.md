@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.8 (2023-01-23)
+### Fix
+* Wrap the disconnect waiter for py311 asyncio.wait requirements ([#97](https://github.com/bdraco/yalexs-ble/issues/97)) ([`ccb7f50`](https://github.com/bdraco/yalexs-ble/commit/ccb7f500ccae35a0735c83a30788f0a274d8685d))
+
 ## v1.12.7 (2023-01-22)
 ### Fix
 * Improve unexpected disconnect handling ([#95](https://github.com/bdraco/yalexs-ble/issues/95)) ([`7a5ee06`](https://github.com/bdraco/yalexs-ble/commit/7a5ee06142fa2f79761403307aaf16310f92f170))
