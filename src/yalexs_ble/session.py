@@ -215,10 +215,13 @@ class Session:
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         self._write_checksum(command)
         write_task = asyncio.create_task(self._write(command))
+        disconnect_task = asyncio.create_task(self._disconnected_event.wait())
         await asyncio.wait(
-            [write_task, self._disconnected_event.wait()],
+            (write_task, disconnect_task),
             return_when=asyncio.FIRST_COMPLETED,
         )
+        if disconnect_task.done():
+            write_task.cancel()
         if write_task.done():
             try:
                 return await write_task
