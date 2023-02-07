@@ -39,16 +39,21 @@ def local_name_to_serial(serial: str) -> str:
     return f"{serial[0:2]}XXX{serial[2:]}"
 
 
+def is_key_error(error: Exception) -> bool:
+    """Check if the error likely due to the wrong key."""
+    err_str = str(error)
+    return bool(isinstance(error, BleakError) and "Unlikely Error" in err_str)
+
+
 def is_disconnected_error(error: Exception) -> bool:
     """Check if the error is a disconnected error."""
     err_str = str(error)
-    return bool(
+    return is_key_error(error) or bool(
         isinstance(error, BleakError)
         and (
             "disconnect" in err_str
             or "error=133" in err_str
             or "Connection Rejected Due To Security Reasons" in err_str
-            or "Unlikely Error" in err_str
         )
     )
 
