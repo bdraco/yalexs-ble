@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.11 (2023-02-07)
+### Fix
+* Raise AuthError when lock drops connection due to invalid key ([#101](https://github.com/bdraco/yalexs-ble/issues/101)) ([`7afffc5`](https://github.com/bdraco/yalexs-ble/commit/7afffc594250e50579c344b71e02be8db2b1e6e6))
+
 ## v1.12.10 (2023-02-07)
 ### Fix
 * Ensure ble connection is cleaned up if connection setup fails ([#98](https://github.com/bdraco/yalexs-ble/issues/98)) ([`d5b34a6`](https://github.com/bdraco/yalexs-ble/commit/d5b34a637c84223ab0c9d169780610dffacd846e))
