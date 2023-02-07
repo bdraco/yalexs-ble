@@ -375,7 +375,11 @@ class PushLock:
                 self._reset_disconnect_timer()
                 return self._client
             self._client = self._get_lock_instance()
-            await self._client.connect()
+            try:
+                await self._client.connect()
+            except Exception:
+                await self._client.disconnect()
+                raise
             self._reset_disconnect_timer()
             return self._client
 
