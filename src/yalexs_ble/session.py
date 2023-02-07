@@ -227,7 +227,9 @@ class Session:
                 return await write_task
             except BleakError as err:
                 if util.is_key_error(err):
-                    raise AuthError(f"{self.name}: {err}") from err
+                    raise AuthError(
+                        f"{self.name}: Authentication error: {err}"
+                    ) from err
                 if util.is_disconnected_error(err):
                     raise DisconnectedError(f"{self.name}: {err}") from err
                 raise
