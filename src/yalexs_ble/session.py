@@ -3,11 +3,11 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from typing import Callable, cast
+from typing import Callable
 
 import async_timeout
 from bleak import BleakClient
-from bleak_retry_connector import BleakClientWithServiceCache, BleakError
+from bleak_retry_connector import BleakError
 from Crypto.Cipher import AES  # nosec
 
 from . import util
@@ -226,11 +226,8 @@ class Session:
             try:
                 return await write_task
             except BleakError as err:
-                if util.is_unlikely_error(err):
-                    client = cast(BleakClientWithServiceCache, self.client)
-                    await client.clear_cache()
-                    await client.disconnect()
-                    raise DisconnectedError(f"{self.name}: {err}") from err
+                if util.is_key_error(err):
+                    raise AuthError(f"{self.name}: {err}") from err
                 if util.is_disconnected_error(err):
                     raise DisconnectedError(f"{self.name}: {err}") from err
                 raise
