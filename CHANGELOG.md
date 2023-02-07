@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.9 (2023-02-07)
+### Fix
+* Update isort to fix ci ([#99](https://github.com/bdraco/yalexs-ble/issues/99)) ([`10f174b`](https://github.com/bdraco/yalexs-ble/commit/10f174ba959c21baa692116671424dcd331a86f9))
+
 ## v1.12.8 (2023-01-23)
 ### Fix
 * Wrap the disconnect waiter for py311 asyncio.wait requirements ([#97](https://github.com/bdraco/yalexs-ble/issues/97)) ([`ccb7f50`](https://github.com/bdraco/yalexs-ble/commit/ccb7f500ccae35a0735c83a30788f0a274d8685d))
