@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.10 (2023-02-07)
+### Fix
+* Ensure ble connection is cleaned up if connection setup fails ([#98](https://github.com/bdraco/yalexs-ble/issues/98)) ([`d5b34a6`](https://github.com/bdraco/yalexs-ble/commit/d5b34a637c84223ab0c9d169780610dffacd846e))
+
 ## v1.12.9 (2023-02-07)
 ### Fix
 * Update isort to fix ci ([#99](https://github.com/bdraco/yalexs-ble/issues/99)) ([`10f174b`](https://github.com/bdraco/yalexs-ble/commit/10f174ba959c21baa692116671424dcd331a86f9))
