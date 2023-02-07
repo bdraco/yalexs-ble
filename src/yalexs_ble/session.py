@@ -157,7 +157,10 @@ class Session:
             async with async_timeout.timeout(10):
                 try:
                     await self.client.write_gatt_char(
-                        self.write_characteristic, command, True
+                        self.write_characteristic,
+                        command,
+                        "write-without-response"
+                        not in self.write_characteristic.properties,
                     )
                     result = await future
                 except ResponseError:
