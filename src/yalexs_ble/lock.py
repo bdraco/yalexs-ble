@@ -360,7 +360,7 @@ class Lock:
         response = None
         try:
             response = await self.secure_session.execute(cmd)
-        except DisconnectedError:
+        except (AuthError, DisconnectedError):
             # Lock already disconnected us
             return
         except (BleakError, asyncio.TimeoutError, EOFError) as err:

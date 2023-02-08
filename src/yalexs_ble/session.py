@@ -57,6 +57,7 @@ class Session:
         self._notify_future: asyncio.Future[bytes] | None = None
         self._state_callback = state_callback
         self._disconnected_event = disconnected_event
+        self._first_request = True
 
     def set_key(self, key: bytes) -> None:
         self.cipher_encrypt = AES.new(key, AES.MODE_CBC, iv=bytes(0x10))
@@ -226,13 +227,15 @@ class Session:
             try:
                 return await write_task
             except BleakError as err:
-                if util.is_key_error(err):
+                if self._first_request and util.is_key_error(err):
                     raise AuthError(
                         f"{self.name}: Authentication error: {err}"
                     ) from err
                 if util.is_disconnected_error(err):
                     raise DisconnectedError(f"{self.name}: {err}") from err
                 raise
+            finally:
+                self._first_request = False
         write_task.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await write_task
