@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.12.12 (2023-02-08)
+### Fix
+* Raise AuthFailed when lock drops connection due to bad key with esphome proxies ([#102](https://github.com/bdraco/yalexs-ble/issues/102)) ([`c41cda5`](https://github.com/bdraco/yalexs-ble/commit/c41cda5a79578e6e1f26d28a483dbcb1f602954e))
+
 ## v1.12.11 (2023-02-07)
 ### Fix
 * Raise AuthError when lock drops connection due to invalid key ([#101](https://github.com/bdraco/yalexs-ble/issues/101)) ([`7afffc5`](https://github.com/bdraco/yalexs-ble/commit/7afffc594250e50579c344b71e02be8db2b1e6e6))
