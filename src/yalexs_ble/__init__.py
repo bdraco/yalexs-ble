@@ -8,7 +8,7 @@ from .const import (
 )
 from .lock import Lock
 from .push import PushLock
-from .session import AuthError, DisconnectedError
+from .session import AuthError, DisconnectedError, YaleXSBLEError
 from .util import (
     ValidatedLockConfig,
     local_name_is_unique,
@@ -37,4 +37,5 @@ __all__ = [
     "unique_id_from_local_name_address",
     "local_name_is_unique",
     "YaleXSBLEDiscovery",
+    "YaleXSBLEError",
 ]
