@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import struct
 from collections.abc import Callable, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
+import async_timeout
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError
@@ -25,7 +27,7 @@ from .const import (
     LockStatus,
 )
 from .lock import Lock
-from .session import AuthError, DisconnectedError, ResponseError
+from .session import AuthError, DisconnectedError, NoAdvertisementError, ResponseError
 from .util import is_disconnected_error, local_name_is_unique
 
 _LOGGER = logging.getLogger(__name__)
@@ -195,12 +197,11 @@ class PushLock:
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
         self._cancel_post_lock_op_sync: asyncio.TimerHandle | None = None
-        self.last_error: str | None = None
-        self.auth_error = False
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._idle_disconnect_delay = idle_disconnect_delay
+        self._first_update_future: asyncio.Future[None] | None = None
 
     @property
     def local_name(self) -> str | None:
@@ -621,8 +622,8 @@ class PushLock:
         _LOGGER.debug("Waiting for advertisement callbacks for %s", self.name)
         if self._running:
             raise RuntimeError("Already running")
-        self.last_error = "No Bluetooth advertisement received"
         self._running = True
+        self._first_update_future = asyncio.get_running_loop().create_future()
         if device := await get_device(self.address):
             self.set_ble_device(device)
             self._schedule_update(ADV_UPDATE_COALESCE_SECONDS)
@@ -633,6 +634,23 @@ class PushLock:
             asyncio.create_task(self._execute_forced_disconnect())
 
         return _cancel
+
+    async def wait_for_first_update(self, timeout: float) -> None:
+        """Wait for the first update."""
+        if not self._running:
+            raise RuntimeError("Not running")
+        if not self._first_update_future:
+            raise RuntimeError("Already waited for first update")
+        try:
+            async with async_timeout.timeout(timeout):
+                await self._first_update_future
+        except asyncio.TimeoutError:
+            self._first_update_future.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._first_update_future
+            raise NoAdvertisementError("No advertisement received")
+        finally:
+            self._first_update_future = None
 
     def _cancel_resync(self) -> None:
         """Cancel a resync."""
@@ -701,6 +719,15 @@ class PushLock:
             return
         self.loop.create_task(self._queue_update())
 
+    def _set_update_state(self, exception: Exception | None) -> None:
+        """Set the update state."""
+        if not self._first_update_future:
+            return
+        if exception:
+            self._first_update_future.set_exception(exception)
+        else:
+            self._first_update_future.set_result(None)
+
     async def _queue_update(self) -> None:
         """Watch for updates."""
         _LOGGER.debug("%s: Update queued", self.name)
@@ -713,38 +740,24 @@ class PushLock:
                 return
             _LOGGER.debug("%s: Starting update", self.name)
             try:
-                self.last_error = "Could not connect"
                 await self._update()
+                self._set_update_state(None)
             except AuthError as ex:
-                self.auth_error = True
-                self.last_error = (
-                    f"Authentication error: key or slot (key index) is incorrect: {ex}"
-                )
+                self._set_update_state(ex)
                 _LOGGER.error(
                     "%s: Auth error: key or slot (key index) is incorrect: %s",
                     self.name,
                     ex,
                     exc_info=True,
                 )
-            except ValueError as ex:
-                self.auth_error = True
-                self.last_error = (
-                    "Authentication value error: key or slot "
-                    f"(key index) is incorrect: {ex}"
-                )
-                _LOGGER.error(
-                    "%s: Auth value error: key or slot (key index) is incorrect: %s",
-                    self.name,
-                    ex,
-                    exc_info=True,
-                )
             except asyncio.CancelledError:
+                self._set_update_state(RuntimeError("Update was canceled"))
                 _LOGGER.debug("%s: In-progress update canceled", self.name)
-            except asyncio.TimeoutError:
-                self.last_error = "Timed out updating"
+            except asyncio.TimeoutError as ex:
+                self._set_update_state(ex)
                 _LOGGER.exception("%s: Timed out updating", self.name)
             except Exception as ex:  # pylint: disable=broad-except
-                self.last_error = str(ex)
+                self._set_update_state(ex)
                 _LOGGER.exception("%s: Error updating", self.name)
 
 

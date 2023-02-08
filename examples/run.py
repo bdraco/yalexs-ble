@@ -44,6 +44,7 @@ async def run():
         "Started, waiting for lock to be discovered with local_name: %s",
         push_lock.local_name,
     )
+    await push_lock.wait_for_first_update(10000)
     await asyncio.sleep(1000000)
     cancel_callback()
     cancel()

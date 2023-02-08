@@ -218,7 +218,7 @@ class Lock:
         response = await self.secure_session.execute(cmd)
         if response[0x00] != 0x02:
             raise AuthError(
-                "Unexpected response to SEC_LOCK_TO_MOBILE_KEY_EXCHANGE: "
+                "Authentication error: key or slot (key index) is incorrect: unexpected response to SEC_LOCK_TO_MOBILE_KEY_EXCHANGE: "
                 + response.hex()
             )
 
@@ -235,7 +235,8 @@ class Lock:
         response = await self.secure_session.execute(cmd)
         if response[0] != 0x04:
             raise AuthError(
-                "Unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
+                "Authentication error: key or slot (key index) is incorrect: unexpected response to SEC_INITIALIZATION_COMMAND: "
+                + response.hex()
             )
         self.session.set_key(session_key)
 

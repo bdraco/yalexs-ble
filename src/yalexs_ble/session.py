@@ -16,16 +16,24 @@ from .const import READ_CHARACTERISTIC, WRITE_CHARACTERISTIC
 _LOGGER = logging.getLogger(__name__)
 
 
-class AuthError(Exception):
-    pass
+class YaleXSBLEError(Exception):
+    """Base class for YaleXSBLE errors."""
 
 
-class ResponseError(Exception):
-    pass
+class AuthError(YaleXSBLEError):
+    """Error during authentication."""
 
 
-class DisconnectedError(Exception):
-    pass
+class ResponseError(YaleXSBLEError):
+    """Error during response."""
+
+
+class DisconnectedError(YaleXSBLEError):
+    """Disconnected during response."""
+
+
+class NoAdvertisementError(YaleXSBLEError):
+    """No advertisement data."""
 
 
 class Session:
@@ -229,7 +237,7 @@ class Session:
             except BleakError as err:
                 if self._first_request and util.is_key_error(err):
                     raise AuthError(
-                        f"{self.name}: Authentication error: {err}"
+                        f"Authentication error: key or slot (key index) is incorrect: {err}"
                     ) from err
                 if util.is_disconnected_error(err):
                     raise DisconnectedError(f"{self.name}: {err}") from err

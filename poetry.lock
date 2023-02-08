@@ -753,7 +753,7 @@ docs = ["myst-parser", "Sphinx", "sphinx-rtd-theme"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "d6383da808debc7e4ea04ada7ba1155114d8537a5ef326df0f9cb808e276f18c"
+content-hash = "4bb7e5a5250e427bf43e96b6ab13ec34e05bd81d26749a41cee746877465766f"
 
 [metadata.files]
 aiofiles = [
