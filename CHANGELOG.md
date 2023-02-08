@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v2.0.0 (2023-02-08)
+### Feature
+* Add wait_for_first_update to improve authentication error handling ([#103](https://github.com/bdraco/yalexs-ble/issues/103)) ([`6af1ec8`](https://github.com/bdraco/yalexs-ble/commit/6af1ec8394a13f77225c736bcf19a6b35539ea01))
+
+### Breaking
+* wait_for_first_update needs to be called after calling start before using the lock ([`6af1ec8`](https://github.com/bdraco/yalexs-ble/commit/6af1ec8394a13f77225c736bcf19a6b35539ea01))
+
 ## v1.12.12 (2023-02-08)
 ### Fix
 * Raise AuthFailed when lock drops connection due to bad key with esphome proxies ([#102](https://github.com/bdraco/yalexs-ble/issues/102)) ([`c41cda5`](https://github.com/bdraco/yalexs-ble/commit/c41cda5a79578e6e1f26d28a483dbcb1f602954e))
