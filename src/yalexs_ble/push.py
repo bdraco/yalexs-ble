@@ -304,13 +304,10 @@ class PushLock:
         assert self._ble_device is not None  # nosec
         assert self._lock_key is not None  # nosec
         assert self._lock_key_index is not None  # nosec
-        slot = 55
-        if not self._lock_info:
-            slot = self._lock_key_index
         return Lock(
             lambda: self._ble_device,
             self._lock_key,
-            slot,
+            self._lock_key_index,
             self.name,
             self._state_callback,
             self._lock_info,
