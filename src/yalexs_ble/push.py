@@ -304,10 +304,13 @@ class PushLock:
         assert self._ble_device is not None  # nosec
         assert self._lock_key is not None  # nosec
         assert self._lock_key_index is not None  # nosec
+        slot = 55
+        if not self._lock_info:
+            slot = self._lock_key_index
         return Lock(
             lambda: self._ble_device,
             self._lock_key,
-            self._lock_key_index,
+            slot,
             self.name,
             self._state_callback,
             self._lock_info,
@@ -454,7 +457,7 @@ class PushLock:
         for state in states:
             if isinstance(state, AuthState):
                 lock_state = replace(lock_state, auth=state)
-            if isinstance(state, LockStatus):
+            elif isinstance(state, LockStatus):
                 lock_state = replace(lock_state, lock=state)
             elif isinstance(state, DoorStatus):
                 lock_state = replace(lock_state, door=state)
