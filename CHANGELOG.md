@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.0.1 (2023-02-17)
+### Fix
+* Handle the key changing after first connection ([#104](https://github.com/bdraco/yalexs-ble/issues/104)) ([`f8c2b91`](https://github.com/bdraco/yalexs-ble/commit/f8c2b91a1fc5617301f9625ab43ede1e5c1d61f4))
+
 ## v2.0.0 (2023-02-08)
 ### Feature
 * Add wait_for_first_update to improve authentication error handling ([#103](https://github.com/bdraco/yalexs-ble/issues/103)) ([`6af1ec8`](https://github.com/bdraco/yalexs-ble/commit/6af1ec8394a13f77225c736bcf19a6b35539ea01))
