@@ -69,6 +69,13 @@ class LockState:
     lock: LockStatus
     door: DoorStatus
     battery: BatteryState | None
+    auth: AuthState | None
+
+
+@dataclass
+class AuthState:
+
+    successful: bool
 
 
 @dataclass
