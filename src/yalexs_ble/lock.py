@@ -316,7 +316,7 @@ class Lock:
             0x2F if self._lock_info and self._lock_info.door_sense else 0x02
         )
         _LOGGER.debug("%s: Finished executing status", self.name)
-        return LockState(*self._parse_lock_and_door_state(response), None)
+        return LockState(*self._parse_lock_and_door_state(response), None, None)
 
     def _parse_battery_state(self, response: bytes) -> BatteryState:
         """Parse the battery state from the response."""

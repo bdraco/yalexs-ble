@@ -19,6 +19,7 @@ from .const import (
     HAP_ENCRYPTED_FIRST_BYTE,
     HAP_FIRST_BYTE,
     YALE_MFR_ID,
+    AuthState,
     BatteryState,
     ConnectionInfo,
     DoorStatus,
@@ -28,7 +29,7 @@ from .const import (
 )
 from .lock import Lock
 from .session import AuthError, DisconnectedError, NoAdvertisementError, ResponseError
-from .util import is_disconnected_error, local_name_is_unique
+from .util import execute_task, is_disconnected_error, local_name_is_unique
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
             try:
                 return await func(self, *args, **kwargs)
             except AuthError:
+                self._update_any_state([AuthState(successful=False)])
                 raise
             except BleakNotFoundError:
                 # The lock cannot be found so there is no
@@ -189,7 +191,6 @@ class PushLock:
         self._ble_device = ble_device
         self._operation_lock = asyncio.Lock()
         self._running = False
-        self._battery_state: BatteryState | None = None
         self._callbacks: list[
             Callable[[LockState, LockInfo, ConnectionInfo], None]
         ] = []
@@ -236,6 +237,11 @@ class PushLock:
     def battery(self) -> BatteryState | None:
         """Return the current battery state."""
         return self._lock_state.battery if self._lock_state else None
+
+    @property
+    def auth(self) -> AuthState | None:
+        """Return the current auth state."""
+        return self._lock_state.auth if self._lock_state else None
 
     @property
     def lock_state(self) -> LockState | None:
@@ -330,7 +336,7 @@ class PushLock:
             self._reset_disconnect_timer()
             return
         self._cancel_disconnect_timer()
-        asyncio.create_task(self._execute_timed_disconnect())
+        execute_task(self._execute_timed_disconnect())
 
     def _cancel_disconnect_timer(self) -> None:
         """Cancel disconnect timer."""
@@ -438,14 +444,16 @@ class PushLock:
         self._update_any_state(states)
 
     def _update_any_state(
-        self, states: Iterable[LockStatus | DoorStatus | BatteryState]
+        self, states: Iterable[LockStatus | DoorStatus | BatteryState | AuthState]
     ) -> None:
         _LOGGER.debug("%s: State changed: %s", self.name, states)
         lock_state = self._lock_state or LockState(
-            self.lock_status, self.door_status, self.battery
+            self.lock_status, self.door_status, self.battery, self.auth
         )
         original_lock_status = lock_state.lock
         for state in states:
+            if isinstance(state, AuthState):
+                lock_state = replace(lock_state, auth=state)
             if isinstance(state, LockStatus):
                 lock_state = replace(lock_state, lock=state)
             elif isinstance(state, DoorStatus):
@@ -464,6 +472,7 @@ class PushLock:
 
         if (
             original_lock_status != lock_state.lock
+            and (not lock_state.auth or lock_state.auth.successful)
             and original_lock_status != LockStatus.UNKNOWN
         ):
             self._schedule_resync()
@@ -498,8 +507,10 @@ class PushLock:
             if not self._lock_info:
                 self._lock_info = await lock.lock_info()
             state = await lock.status()
-            self._battery_state = await lock.battery()
-            state = replace(state, battery=self._battery_state)
+            battery_state = await lock.battery()
+            state = replace(
+                state, battery=battery_state, auth=AuthState(successful=True)
+            )
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: In-progress update canceled due "
@@ -631,7 +642,7 @@ class PushLock:
         def _cancel() -> None:
             self._running = False
             self._cancel_resync()
-            asyncio.create_task(self._execute_forced_disconnect())
+            execute_task(self._execute_forced_disconnect())
 
         return _cancel
 
