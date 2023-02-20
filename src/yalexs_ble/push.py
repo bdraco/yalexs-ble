@@ -4,7 +4,7 @@ import asyncio
 import contextlib
 import logging
 import struct
-from collections.abc import Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
@@ -29,7 +29,7 @@ from .const import (
 )
 from .lock import Lock
 from .session import AuthError, DisconnectedError, NoAdvertisementError, ResponseError
-from .util import execute_task, is_disconnected_error, local_name_is_unique
+from .util import is_disconnected_error, local_name_is_unique
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -203,6 +203,7 @@ class PushLock:
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._idle_disconnect_delay = idle_disconnect_delay
         self._first_update_future: asyncio.Future[None] | None = None
+        self._background_tasks: set[asyncio.Task[None]] = set()
 
     @property
     def local_name(self) -> str | None:
@@ -336,7 +337,7 @@ class PushLock:
             self._reset_disconnect_timer()
             return
         self._cancel_disconnect_timer()
-        execute_task(self._execute_timed_disconnect())
+        self.background_task(self._execute_timed_disconnect())
 
     def _cancel_disconnect_timer(self) -> None:
         """Cancel disconnect timer."""
@@ -642,9 +643,15 @@ class PushLock:
         def _cancel() -> None:
             self._running = False
             self._cancel_resync()
-            execute_task(self._execute_forced_disconnect())
+            self.background_task(self._execute_forced_disconnect())
 
         return _cancel
+
+    def background_task(self, fut: Awaitable[Any]) -> None:
+        """Execute a background task."""
+        task = asyncio.create_task(fut)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.remove)
 
     async def wait_for_first_update(self, timeout: float) -> None:
         """Wait for the first update."""
