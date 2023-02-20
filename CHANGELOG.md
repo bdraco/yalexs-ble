@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.0.2 (2023-02-20)
+### Fix
+* Always request disconnect even if we think we are connected to fix race ([#105](https://github.com/bdraco/yalexs-ble/issues/105)) ([`265fe8c`](https://github.com/bdraco/yalexs-ble/commit/265fe8c76d6b0bf31174e0d76ee22a19b52734b2))
+
 ## v2.0.1 (2023-02-17)
 ### Fix
 * Handle the key changing after first connection ([#104](https://github.com/bdraco/yalexs-ble/issues/104)) ([`f8c2b91`](https://github.com/bdraco/yalexs-ble/commit/f8c2b91a1fc5617301f9625ab43ede1e5c1d61f4))
