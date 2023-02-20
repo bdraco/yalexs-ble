@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Awaitable
 from dataclasses import dataclass
-from typing import Any
 
 from bleak import BleakError
 from bleak.backends.device import BLEDevice
@@ -94,15 +91,3 @@ def unique_id_from_local_name_address(local_name: str, address: str) -> str:
 def local_name_is_unique(local_name: str | None) -> bool:
     """Check if the local name is unique."""
     return bool(local_name and len(local_name) == UNIQUE_LOCAL_NAME_LEN)
-
-
-def execute_task(fut: Awaitable[Any]) -> None:
-    """Execute task."""
-    task = asyncio.create_task(fut)
-    tasks = [task]
-
-    def _cleanup_task(task: asyncio.Task[Any]) -> None:
-        """Cleanup task."""
-        tasks.remove(task)
-
-    task.add_done_callback(_cleanup_task)
