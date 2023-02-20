@@ -360,7 +360,7 @@ class PushLock:
                 return
             client = self._client
             self._client = None
-            if client and client.is_connected:
+            if client:
                 _LOGGER.debug("%s: Disconnecting", self.name)
                 await client.disconnect()
                 _LOGGER.debug("%s: Disconnect completed", self.name)
