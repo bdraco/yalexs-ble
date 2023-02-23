@@ -11,7 +11,7 @@ from typing import Any, TypeVar, cast
 import async_timeout
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
-from bleak.exc import BleakDBusError
+from bleak.exc import BleakDBusError, BleakError
 from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS, BleakNotFoundError, get_device
 
 from .const import (
@@ -28,7 +28,14 @@ from .const import (
     LockStatus,
 )
 from .lock import Lock
-from .session import AuthError, DisconnectedError, NoAdvertisementError, ResponseError
+from .session import (
+    AuthError,
+    BluetoothError,
+    DisconnectedError,
+    NoAdvertisementError,
+    ResponseError,
+    YaleXSBLEError,
+)
 from .util import is_disconnected_error, local_name_is_unique
 
 _LOGGER = logging.getLogger(__name__)
@@ -774,9 +781,16 @@ class PushLock:
             except asyncio.TimeoutError as ex:
                 self._set_update_state(ex)
                 _LOGGER.exception("%s: Timed out updating", self.name)
+            except BleakError as ex:
+                wrapped_bleak_exc = BluetoothError(str(ex))
+                wrapped_bleak_exc.__cause__ = ex
+                self._set_update_state(wrapped_bleak_exc)
+                _LOGGER.exception("%s: Bluetooth error updating", self.name)
             except Exception as ex:  # pylint: disable=broad-except
-                self._set_update_state(ex)
-                _LOGGER.exception("%s: Error updating", self.name)
+                wrapped_exc = YaleXSBLEError(str(ex))
+                wrapped_exc.__cause__ = ex
+                self._set_update_state(wrapped_exc)
+                _LOGGER.exception("%s: Unknown error updating", self.name)
 
 
 def get_homekit_state_num(data: bytes) -> int:
