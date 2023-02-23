@@ -14,7 +14,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class SecureSession(Session):
-
     _write_characteristic = SECURE_WRITE_CHARACTERISTIC
     _read_characteristic = SECURE_READ_CHARACTERISTIC
 

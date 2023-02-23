@@ -36,8 +36,11 @@ class NoAdvertisementError(YaleXSBLEError):
     """No advertisement data."""
 
 
-class Session:
+class BluetoothError(YaleXSBLEError):
+    """Bluetooth error."""
 
+
+class Session:
     _write_characteristic = WRITE_CHARACTERISTIC
     _read_characteristic = READ_CHARACTERISTIC
 

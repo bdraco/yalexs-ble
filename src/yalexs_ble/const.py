@@ -25,13 +25,11 @@ NO_DOOR_SENSE_MODELS = {"ASL-02", "ASL-01"}
 
 
 class Commands(Enum):
-
     UNLOCK = 0x0A
     LOCK = 0x0B
 
 
 class LockStatus(Enum):
-
     UNKNOWN = 0x00
     UNKNOWN_01 = 0x01
     UNLOCKING = 0x02
@@ -45,7 +43,6 @@ VALUE_TO_LOCK_STATUS = {status.value: status for status in LockStatus}
 
 
 class DoorStatus(Enum):
-
     UNKNOWN = 0x00
     CLOSED = 0x01
     UNKNOWN_02 = 0x02
@@ -58,14 +55,12 @@ VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 
 @dataclass
 class BatteryState:
-
     voltage: float
     percentage: int
 
 
 @dataclass
 class LockState:
-
     lock: LockStatus
     door: DoorStatus
     battery: BatteryState | None
@@ -74,13 +69,11 @@ class LockState:
 
 @dataclass
 class AuthState:
-
     successful: bool
 
 
 @dataclass
 class LockInfo:
-
     manufacturer: str
     model: str
     serial: str
@@ -99,7 +92,6 @@ class LockInfo:
 
 @dataclass
 class ConnectionInfo:
-
     rssi: int
 
 
