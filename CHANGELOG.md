@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.0.3 (2023-02-23)
+### Fix
+* Ensure first update bluetooth errors are converted to YaleXSBLEError ([#106](https://github.com/bdraco/yalexs-ble/issues/106)) ([`ab96193`](https://github.com/bdraco/yalexs-ble/commit/ab96193e4b21688ca8c91e179ca5952c84e4f3c3))
+
 ## v2.0.2 (2023-02-20)
 ### Fix
 * Always request disconnect even if we think we are connected to fix race ([#105](https://github.com/bdraco/yalexs-ble/issues/105)) ([`265fe8c`](https://github.com/bdraco/yalexs-ble/commit/265fe8c76d6b0bf31174e0d76ee22a19b52734b2))
