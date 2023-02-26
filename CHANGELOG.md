@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.0.4 (2023-02-26)
+### Fix
+* Handle transient auth failures ([#107](https://github.com/bdraco/yalexs-ble/issues/107)) ([`d7f8e14`](https://github.com/bdraco/yalexs-ble/commit/d7f8e14de39d2571deffed68e4ef2fb64d83bdcf))
+
 ## v2.0.3 (2023-02-23)
 ### Fix
 * Ensure first update bluetooth errors are converted to YaleXSBLEError ([#106](https://github.com/bdraco/yalexs-ble/issues/106)) ([`ab96193`](https://github.com/bdraco/yalexs-ble/commit/ab96193e4b21688ca8c91e179ca5952c84e4f3c3))
