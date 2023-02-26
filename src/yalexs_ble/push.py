@@ -75,6 +75,8 @@ RETRY_EXCEPTIONS = (ResponseError, *BLEAK_RETRY_EXCEPTIONS)
 # there is no update from the lock.
 VALID_ADV_VALUES = {0, 1}
 
+AUTH_FAILURE_TO_START_REAUTH = 5
+
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
@@ -107,7 +109,13 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
             try:
                 return await func(self, *args, **kwargs)
             except AuthError:
-                self._update_any_state([AuthState(successful=False)])
+                self._auth_failures += 1
+                if self._auth_failures >= AUTH_FAILURE_TO_START_REAUTH:
+                    # If the bluetooth connection drops in the middle of authentication
+                    # we may see it as a failed authentication. If we see 5 failed
+                    # authentications in a row we can reasonably assume that the key has
+                    # changed and we should re-authenticate.
+                    self._update_any_state([AuthState(successful=False)])
                 raise
             except BleakNotFoundError:
                 # The lock cannot be found so there is no
@@ -211,6 +219,7 @@ class PushLock:
         self._idle_disconnect_delay = idle_disconnect_delay
         self._first_update_future: asyncio.Future[None] | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
+        self._auth_failures: int = 0
 
     @property
     def local_name(self) -> str | None:
@@ -418,6 +427,9 @@ class PushLock:
         except Exception:
             self._update_any_state([LockStatus.UNKNOWN])
             raise
+        else:
+            self._auth_failures = 0
+            self._update_any_state([AuthState(successful=True)])
         self._update_any_state([LockStatus.LOCKED])
         _LOGGER.debug("%s: Finished lock", self.name)
 
@@ -516,9 +528,6 @@ class PushLock:
                 self._lock_info = await lock.lock_info()
             state = await lock.status()
             battery_state = await lock.battery()
-            state = replace(
-                state, battery=battery_state, auth=AuthState(successful=True)
-            )
         except asyncio.CancelledError:
             _LOGGER.debug(
                 "%s: In-progress update canceled due "
@@ -526,6 +535,11 @@ class PushLock:
                 self.name,
             )
             raise
+        else:
+            self._auth_failures = 0
+            state = replace(
+                state, battery=battery_state, auth=AuthState(successful=True)
+            )
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
 
