@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from bleak import BleakClient
-from Crypto.Cipher import AES  # nosec
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from . import util
 from .const import SECURE_READ_CHARACTERISTIC, SECURE_WRITE_CHARACTERISTIC
@@ -35,8 +35,12 @@ class SecureSession(Session):
         )
 
     def set_key(self, key: bytes) -> None:
-        self.cipher_encrypt = AES.new(key, AES.MODE_ECB)
-        self.cipher_decrypt = AES.new(key, AES.MODE_ECB)
+        self.cipher_encrypt = Cipher(  # nosec
+            algorithms.AES(key), modes.ECB()
+        ).encryptor()
+        self.cipher_decrypt = Cipher(  # nosec
+            algorithms.AES(key), modes.ECB()
+        ).decryptor()
 
     def build_command(self, opcode: int) -> bytearray:
         cmd = bytearray(0x12)
