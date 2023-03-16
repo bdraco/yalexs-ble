@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.0 (2023-03-16)
+### Feature
+* Switch to using cryptography ([#108](https://github.com/bdraco/yalexs-ble/issues/108)) ([`8acc73c`](https://github.com/bdraco/yalexs-ble/commit/8acc73c6dba8db242f33f9896ff5f2cf92ce5a2d))
+
 ## v2.0.4 (2023-02-26)
 ### Fix
 * Handle transient auth failures ([#107](https://github.com/bdraco/yalexs-ble/issues/107)) ([`d7f8e14`](https://github.com/bdraco/yalexs-ble/commit/d7f8e14de39d2571deffed68e4ef2fb64d83bdcf))
