@@ -8,7 +8,12 @@ from typing import Callable
 import async_timeout
 from bleak import BleakClient
 from bleak_retry_connector import BleakError
-from Crypto.Cipher import AES  # nosec
+from cryptography.hazmat.primitives.ciphers import (
+    Cipher,
+    CipherContext,
+    algorithms,
+    modes,
+)
 
 from . import util
 from .const import READ_CHARACTERISTIC, WRITE_CHARACTERISTIC
@@ -55,8 +60,8 @@ class Session:
         """Init the session."""
         self.name = name
         self._lock = lock
-        self.cipher_decrypt: AES.MODE_CBC | None = None
-        self.cipher_encrypt: AES.MODE_CBC | None = None
+        self.cipher_decrypt: CipherContext | None = None
+        self.cipher_encrypt: CipherContext | None = None
         self.client = client
         self.write_characteristic = client.services.get_characteristic(
             self._write_characteristic
@@ -71,13 +76,17 @@ class Session:
         self._first_request = True
 
     def set_key(self, key: bytes) -> None:
-        self.cipher_encrypt = AES.new(key, AES.MODE_CBC, iv=bytes(0x10))
-        self.cipher_decrypt = AES.new(key, AES.MODE_CBC, iv=bytes(0x10))
+        self.cipher_encrypt = Cipher(
+            algorithms.AES(key), modes.CBC(bytes(0x10))  # nosec
+        ).encryptor()
+        self.cipher_decrypt = Cipher(
+            algorithms.AES(key), modes.CBC(bytes(0x10))  # nosec
+        ).decryptor()
 
     def decrypt(self, data: bytes | bytearray) -> bytes:
         if self.cipher_decrypt is not None:
             cipherText = data[0x00:0x10]
-            plainText = self.cipher_decrypt.decrypt(cipherText)
+            plainText = self.cipher_decrypt.update(cipherText)
             if type(data) is not bytearray:
                 data = bytearray(data)
             util._copy(data, plainText)
@@ -152,7 +161,7 @@ class Session:
             raise BleakError("disconnected")
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         plainText = command[0x00:0x10]
-        cipherText = self.cipher_encrypt.encrypt(plainText)
+        cipherText = self.cipher_encrypt.update(plainText)
         util._copy(command, cipherText)
         _LOGGER.debug("%s: Encrypted command: %s", self.name, command.hex())
 
