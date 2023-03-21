@@ -350,6 +350,7 @@ class PushLock:
     def _disconnect_with_timer(self) -> None:
         """Disconnect from device."""
         if self._operation_lock.locked():
+            _LOGGER.debug("%s: Disconnect timer reset due to operation lock", self.name)
             self._reset_disconnect_timer()
             return
         self._cancel_disconnect_timer()
@@ -401,7 +402,10 @@ class PushLock:
             self._client = self._get_lock_instance()
             try:
                 await self._client.connect()
-            except Exception:
+            except Exception as ex:
+                _LOGGER.debug(
+                    "%s: Failed to connect due to %s, forcing disconnect", self.name, ex
+                )
                 await self._client.disconnect()
                 raise
             self._reset_disconnect_timer()
