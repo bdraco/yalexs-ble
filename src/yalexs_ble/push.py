@@ -49,6 +49,8 @@ DEFAULT_ATTEMPTS = 4
 
 DISCONNECT_DELAY = 5.1
 
+RESYNC_DELAY = 0.01
+
 # How long to wait before processing an advertisement change
 ADV_UPDATE_COALESCE_SECONDS = 0.05
 
@@ -209,10 +211,9 @@ class PushLock:
         self._callbacks: list[
             Callable[[LockState, LockInfo, ConnectionInfo], None]
         ] = []
-        self._debounce_lock = asyncio.Lock()
+        self._update_task: asyncio.Task[None] | None = None
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
-        self._cancel_post_lock_op_sync: asyncio.TimerHandle | None = None
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._disconnect_timer: asyncio.TimerHandle | None = None
@@ -345,12 +346,26 @@ class PushLock:
             "%s: Executing forced disconnect",
             self.name,
         )
+        if (update_task := self._update_task) and not update_task.done():
+            self._update_task = None
+            update_task.cancel()
+            with contextlib.suppress(Exception, asyncio.CancelledError):
+                await update_task
         await self._execute_disconnect()
 
     def _disconnect_with_timer(self) -> None:
         """Disconnect from device."""
         if self._operation_lock.locked():
+            _LOGGER.debug("%s: Disconnect timer reset due to operation lock", self.name)
             self._reset_disconnect_timer()
+            return
+        if self._cancel_deferred_update:
+            _LOGGER.debug(
+                "%s: Disconnect timer fired while we were waiting to update", self.name
+            )
+            self._reset_disconnect_timer()
+            self._cancel_future_update()
+            self._deferred_update()
             return
         self._cancel_disconnect_timer()
         self.background_task(self._execute_timed_disconnect())
@@ -401,7 +416,10 @@ class PushLock:
             self._client = self._get_lock_instance()
             try:
                 await self._client.connect()
-            except Exception:
+            except Exception as ex:
+                _LOGGER.debug(
+                    "%s: Failed to connect due to %s, forcing disconnect", self.name, ex
+                )
                 await self._client.disconnect()
                 raise
             self._reset_disconnect_timer()
@@ -410,7 +428,7 @@ class PushLock:
     async def lock(self) -> None:
         """Lock the lock."""
         self._update_any_state([LockStatus.LOCKING])
-        self._cancel_update()
+        self._cancel_future_update()
         await self._lock_with_op_lock()
 
     @operation_lock
@@ -419,10 +437,10 @@ class PushLock:
         """Lock the lock."""
         _LOGGER.debug("%s: Starting lock", self.name)
         self._update_any_state([LockStatus.LOCKING])
-        self._cancel_update()
+        self._cancel_future_update()
         try:
             lock = await self._ensure_connected()
-            self._cancel_update()
+            self._cancel_future_update()
             await lock.force_lock()
         except Exception:
             self._update_any_state([LockStatus.UNKNOWN])
@@ -436,7 +454,7 @@ class PushLock:
     async def unlock(self) -> None:
         """Unlock the lock."""
         self._update_any_state([LockStatus.UNLOCKING])
-        self._cancel_update()
+        self._cancel_future_update()
         await self._unlock_with_op_lock()
 
     @operation_lock
@@ -445,10 +463,10 @@ class PushLock:
         """Unlock the lock."""
         _LOGGER.debug("%s: Starting unlock", self.name)
         self._update_any_state([LockStatus.UNLOCKING])
-        self._cancel_update()
+        self._cancel_future_update()
         try:
             lock = await self._ensure_connected()
-            self._cancel_update()
+            self._cancel_future_update()
             await lock.force_unlock()
         except Exception:
             self._update_any_state([LockStatus.UNKNOWN])
@@ -495,13 +513,13 @@ class PushLock:
             and (not lock_state.auth or lock_state.auth.successful)
             and original_lock_status != LockStatus.UNKNOWN
         ):
-            self._schedule_resync()
+            self._schedule_future_update(RESYNC_DELAY)
 
         self._callback_state(lock_state)
 
     async def update(self) -> None:
         """Request that status be updated."""
-        self._schedule_update(
+        self._schedule_future_update_with_debounce(
             0
             if self._client and self._client.is_connected
             else MANUAL_UPDATE_COALESCE_SECONDS
@@ -648,7 +666,7 @@ class PushLock:
                 scheduled_update,
             )
         if next_update:
-            self._schedule_update(next_update)
+            self._schedule_future_update_with_debounce(next_update)
 
     async def start(self) -> Callable[[], None]:
         """Start watching for updates."""
@@ -659,11 +677,11 @@ class PushLock:
         self._first_update_future = asyncio.get_running_loop().create_future()
         if device := await get_device(self.address):
             self.set_ble_device(device)
-            self._schedule_update(ADV_UPDATE_COALESCE_SECONDS)
+            self._schedule_future_update_with_debounce(ADV_UPDATE_COALESCE_SECONDS)
 
         def _cancel() -> None:
             self._running = False
-            self._cancel_resync()
+            self._cancel_future_update()
             self.background_task(self._execute_forced_disconnect())
 
         return _cancel
@@ -691,31 +709,14 @@ class PushLock:
         finally:
             self._first_update_future = None
 
-    def _cancel_resync(self) -> None:
-        """Cancel a resync."""
-        if self._cancel_post_lock_op_sync:
-            self._cancel_post_lock_op_sync.cancel()
-            self._cancel_post_lock_op_sync = None
-
-    def _cancel_update(self) -> None:
+    def _cancel_future_update(self) -> None:
         """Cancel an update."""
         if self._cancel_deferred_update:
             self._cancel_deferred_update.cancel()
             self._cancel_deferred_update = None
 
-    def _resync(self) -> None:
-        """Resync the lock state."""
-        self._schedule_update(0.01)
-
-    def _schedule_resync(self) -> None:
-        """Schedule a resync."""
-        self._cancel_resync()
-        self._cancel_post_lock_op_sync = self.loop.call_later(
-            POST_OPERATION_SYNC_TIME, self._resync
-        )
-
-    def _schedule_update(self, seconds: float) -> None:
-        """Schedule an update."""
+    def _schedule_future_update_with_debounce(self, seconds: float) -> None:
+        """Schedule an update with a potential debounce."""
         now = self.loop.time()
         future_update_time = seconds
         if self._cancel_deferred_update:
@@ -737,26 +738,30 @@ class PushLock:
                 )
                 return
             _LOGGER.debug("%s: Rescheduling update", self.name)
-            self._cancel_update()
+        self._schedule_future_update(future_update_time)
+
+    def _schedule_future_update(self, future_update_time: float) -> None:
+        """Schedule an update in future seconds."""
         _LOGGER.debug(
             "%s: Scheduling update to happen in %s seconds",
             self.name,
             future_update_time,
         )
-        self._cancel_deferred_update = self.loop.call_at(
-            now + future_update_time, self._deferred_update
+        self._cancel_future_update()
+        self._cancel_deferred_update = self.loop.call_later(
+            future_update_time, self._deferred_update
         )
 
     def _deferred_update(self) -> None:
         """Update the lock state."""
-        self._cancel_deferred_update = None
-        if self._debounce_lock.locked():
+        self._cancel_future_update()
+        if self._update_task and not self._update_task.done():
             _LOGGER.debug(
                 "%s: Rescheduling update since one already in progress", self.name
             )
-            self._schedule_update(UPDATE_IN_PROGRESS_DEFER_SECONDS)
+            self._schedule_future_update_with_debounce(UPDATE_IN_PROGRESS_DEFER_SECONDS)
             return
-        self.loop.create_task(self._queue_update())
+        self._update_task = asyncio.create_task(self._execute_deferred_update())
 
     def _set_update_state(self, exception: Exception | None) -> None:
         """Set the update state."""
@@ -767,44 +772,40 @@ class PushLock:
         else:
             self._first_update_future.set_result(None)
 
-    async def _queue_update(self) -> None:
-        """Watch for updates."""
-        _LOGGER.debug("%s: Update queued", self.name)
-        async with self._debounce_lock:
-            _LOGGER.debug("%s: Queued update starting", self.name)
-            if not self._running:
-                _LOGGER.debug(
-                    "%s: Queued updated ignored because not running", self.name
-                )
-                return
-            _LOGGER.debug("%s: Starting update", self.name)
-            try:
-                await self._update()
-                self._set_update_state(None)
-            except AuthError as ex:
-                self._set_update_state(ex)
-                _LOGGER.error(
-                    "%s: Auth error: key or slot (key index) is incorrect: %s",
-                    self.name,
-                    ex,
-                    exc_info=True,
-                )
-            except asyncio.CancelledError:
-                self._set_update_state(RuntimeError("Update was canceled"))
-                _LOGGER.debug("%s: In-progress update canceled", self.name)
-            except asyncio.TimeoutError as ex:
-                self._set_update_state(ex)
-                _LOGGER.exception("%s: Timed out updating", self.name)
-            except BleakError as ex:
-                wrapped_bleak_exc = BluetoothError(str(ex))
-                wrapped_bleak_exc.__cause__ = ex
-                self._set_update_state(wrapped_bleak_exc)
-                _LOGGER.exception("%s: Bluetooth error updating", self.name)
-            except Exception as ex:  # pylint: disable=broad-except
-                wrapped_exc = YaleXSBLEError(str(ex))
-                wrapped_exc.__cause__ = ex
-                self._set_update_state(wrapped_exc)
-                _LOGGER.exception("%s: Unknown error updating", self.name)
+    async def _execute_deferred_update(self) -> None:
+        """Execute deferred update."""
+        _LOGGER.debug("%s: Deferred update starting", self.name)
+        if not self._running:
+            _LOGGER.debug("%s: Deferred updated ignored because not running", self.name)
+            return
+        _LOGGER.debug("%s: Starting deferred update", self.name)
+        try:
+            await self._update()
+            self._set_update_state(None)
+        except AuthError as ex:
+            self._set_update_state(ex)
+            _LOGGER.error(
+                "%s: Auth error: key or slot (key index) is incorrect: %s",
+                self.name,
+                ex,
+                exc_info=True,
+            )
+        except asyncio.CancelledError:
+            self._set_update_state(RuntimeError("Update was canceled"))
+            _LOGGER.debug("%s: In-progress update canceled", self.name)
+        except asyncio.TimeoutError as ex:
+            self._set_update_state(ex)
+            _LOGGER.exception("%s: Timed out updating", self.name)
+        except BleakError as ex:
+            wrapped_bleak_exc = BluetoothError(str(ex))
+            wrapped_bleak_exc.__cause__ = ex
+            self._set_update_state(wrapped_bleak_exc)
+            _LOGGER.exception("%s: Bluetooth error updating", self.name)
+        except Exception as ex:  # pylint: disable=broad-except
+            wrapped_exc = YaleXSBLEError(str(ex))
+            wrapped_exc.__cause__ = ex
+            self._set_update_state(wrapped_exc)
+            _LOGGER.exception("%s: Unknown error updating", self.name)
 
 
 def get_homekit_state_num(data: bytes) -> int:
