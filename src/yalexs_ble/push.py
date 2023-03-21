@@ -353,6 +353,14 @@ class PushLock:
             _LOGGER.debug("%s: Disconnect timer reset due to operation lock", self.name)
             self._reset_disconnect_timer()
             return
+        if self._cancel_deferred_update:
+            _LOGGER.debug(
+                "%s: Disconnect timer fired while we were waiting to update", self.name
+            )
+            self._reset_disconnect_timer()
+            self._cancel_update()
+            self._deferred_update()
+            return
         self._cancel_disconnect_timer()
         self.background_task(self._execute_timed_disconnect())
 
@@ -753,7 +761,7 @@ class PushLock:
 
     def _deferred_update(self) -> None:
         """Update the lock state."""
-        self._cancel_deferred_update = None
+        self._cancel_update()
         if self._debounce_lock.locked():
             _LOGGER.debug(
                 "%s: Rescheduling update since one already in progress", self.name
