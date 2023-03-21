@@ -209,7 +209,7 @@ class PushLock:
         self._callbacks: list[
             Callable[[LockState, LockInfo, ConnectionInfo], None]
         ] = []
-        self._debounce_lock = asyncio.Lock()
+        self._update_task: asyncio.Task[None] | None = None
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
         self._cancel_post_lock_op_sync: asyncio.TimerHandle | None = None
@@ -762,13 +762,13 @@ class PushLock:
     def _deferred_update(self) -> None:
         """Update the lock state."""
         self._cancel_update()
-        if self._debounce_lock.locked():
+        if self._update_task and not self._update_task.done():
             _LOGGER.debug(
                 "%s: Rescheduling update since one already in progress", self.name
             )
             self._schedule_update(UPDATE_IN_PROGRESS_DEFER_SECONDS)
             return
-        self.loop.create_task(self._queue_update())
+        self._update_task = asyncio.create_task(self._execute_deferred_update())
 
     def _set_update_state(self, exception: Exception | None) -> None:
         """Set the update state."""
@@ -779,44 +779,40 @@ class PushLock:
         else:
             self._first_update_future.set_result(None)
 
-    async def _queue_update(self) -> None:
-        """Watch for updates."""
-        _LOGGER.debug("%s: Update queued", self.name)
-        async with self._debounce_lock:
-            _LOGGER.debug("%s: Queued update starting", self.name)
-            if not self._running:
-                _LOGGER.debug(
-                    "%s: Queued updated ignored because not running", self.name
-                )
-                return
-            _LOGGER.debug("%s: Starting update", self.name)
-            try:
-                await self._update()
-                self._set_update_state(None)
-            except AuthError as ex:
-                self._set_update_state(ex)
-                _LOGGER.error(
-                    "%s: Auth error: key or slot (key index) is incorrect: %s",
-                    self.name,
-                    ex,
-                    exc_info=True,
-                )
-            except asyncio.CancelledError:
-                self._set_update_state(RuntimeError("Update was canceled"))
-                _LOGGER.debug("%s: In-progress update canceled", self.name)
-            except asyncio.TimeoutError as ex:
-                self._set_update_state(ex)
-                _LOGGER.exception("%s: Timed out updating", self.name)
-            except BleakError as ex:
-                wrapped_bleak_exc = BluetoothError(str(ex))
-                wrapped_bleak_exc.__cause__ = ex
-                self._set_update_state(wrapped_bleak_exc)
-                _LOGGER.exception("%s: Bluetooth error updating", self.name)
-            except Exception as ex:  # pylint: disable=broad-except
-                wrapped_exc = YaleXSBLEError(str(ex))
-                wrapped_exc.__cause__ = ex
-                self._set_update_state(wrapped_exc)
-                _LOGGER.exception("%s: Unknown error updating", self.name)
+    async def _execute_deferred_update(self) -> None:
+        """Execute deferred update."""
+        _LOGGER.debug("%s: Deferred update starting", self.name)
+        if not self._running:
+            _LOGGER.debug("%s: Deferred updated ignored because not running", self.name)
+            return
+        _LOGGER.debug("%s: Starting deferred update", self.name)
+        try:
+            await self._update()
+            self._set_update_state(None)
+        except AuthError as ex:
+            self._set_update_state(ex)
+            _LOGGER.error(
+                "%s: Auth error: key or slot (key index) is incorrect: %s",
+                self.name,
+                ex,
+                exc_info=True,
+            )
+        except asyncio.CancelledError:
+            self._set_update_state(RuntimeError("Update was canceled"))
+            _LOGGER.debug("%s: In-progress update canceled", self.name)
+        except asyncio.TimeoutError as ex:
+            self._set_update_state(ex)
+            _LOGGER.exception("%s: Timed out updating", self.name)
+        except BleakError as ex:
+            wrapped_bleak_exc = BluetoothError(str(ex))
+            wrapped_bleak_exc.__cause__ = ex
+            self._set_update_state(wrapped_bleak_exc)
+            _LOGGER.exception("%s: Bluetooth error updating", self.name)
+        except Exception as ex:  # pylint: disable=broad-except
+            wrapped_exc = YaleXSBLEError(str(ex))
+            wrapped_exc.__cause__ = ex
+            self._set_update_state(wrapped_exc)
+            _LOGGER.exception("%s: Unknown error updating", self.name)
 
 
 def get_homekit_state_num(data: bytes) -> int:
