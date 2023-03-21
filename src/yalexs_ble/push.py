@@ -345,6 +345,11 @@ class PushLock:
             "%s: Executing forced disconnect",
             self.name,
         )
+        if (update_task := self._update_task) and not update_task.done():
+            self._update_task = None
+            update_task.cancel()
+            with contextlib.suppress(Exception, asyncio.CancelledError):
+                await update_task
         await self._execute_disconnect()
 
     def _disconnect_with_timer(self) -> None:
@@ -676,6 +681,7 @@ class PushLock:
         def _cancel() -> None:
             self._running = False
             self._cancel_resync()
+            self._cancel_update()
             self.background_task(self._execute_forced_disconnect())
 
         return _cancel
@@ -715,15 +721,11 @@ class PushLock:
             self._cancel_deferred_update.cancel()
             self._cancel_deferred_update = None
 
-    def _resync(self) -> None:
-        """Resync the lock state."""
-        self._schedule_update(0.01)
-
     def _schedule_resync(self) -> None:
         """Schedule a resync."""
         self._cancel_resync()
         self._cancel_post_lock_op_sync = self.loop.call_later(
-            POST_OPERATION_SYNC_TIME, self._resync
+            POST_OPERATION_SYNC_TIME, self._schedule_update, 0.01
         )
 
     def _schedule_update(self, seconds: float) -> None:
