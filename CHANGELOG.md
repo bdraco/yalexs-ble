@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.1 (2023-03-21)
+### Fix
+* Hold a reference to the deferred update task to avoid GC ([#109](https://github.com/bdraco/yalexs-ble/issues/109)) ([`ddb5539`](https://github.com/bdraco/yalexs-ble/commit/ddb5539327a7fb3f20fefee180f36d78ed7c4e39))
+
 ## v2.1.0 (2023-03-16)
 ### Feature
 * Switch to using cryptography ([#108](https://github.com/bdraco/yalexs-ble/issues/108)) ([`8acc73c`](https://github.com/bdraco/yalexs-ble/commit/8acc73c6dba8db242f33f9896ff5f2cf92ce5a2d))
