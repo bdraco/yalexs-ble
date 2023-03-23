@@ -157,23 +157,34 @@ class Lock:
         self.secure_session = SecureSession(
             self.client, self.name, self._lock, self._disconnected_event, self.key_index
         )
-        if (
-            not self.session.read_characteristic
-            or not self.session.write_characteristic
-            or not self.secure_session.read_characteristic
-            or not self.secure_session.read_characteristic
-        ):
-            self.secure_session = None
-            self.session = None
-            client = cast(BleakClientWithServiceCache, self.client)
-            await client.clear_cache()
-            raise BleakError("Missing characteristic")
+        session = self.session
+        secure_session = self.secure_session
+        _char_map = {
+            session._read_characteristic: session.read_characteristic,
+            session._write_characteristic: session.write_characteristic,
+            secure_session._read_characteristic: secure_session.read_characteristic,
+            secure_session._write_characteristic: secure_session.write_characteristic,
+        }
+        for char_uuid, char in _char_map.items():
+            if not char:
+                await self._handle_missing_characteristic(char_uuid)
 
         # Order matters here, we must start notify for the secure session before
         # the non-secure session
         await self.secure_session.start_notify()
         await self.session.start_notify()
         await self._setup_session()
+
+    async def _handle_missing_characteristic(self, char_uuid: str) -> None:
+        """Handle missing characteristic."""
+        self.secure_session = None
+        self.session = None
+        client = cast(BleakClientWithServiceCache, self.client)
+        _LOGGER.warning(
+            "%s: Missing characteristic %s; Clearing cache", self.name, char_uuid
+        )
+        await client.clear_cache()
+        raise BleakError(f"Missing characteristic {char_uuid}")
 
     def _internal_state_callback(self, state: bytes) -> None:
         """Handle state change."""
@@ -246,12 +257,15 @@ class Lock:
         _LOGGER.debug("%s: Probing the lock", self.name)
         assert self.client is not None  # nosec
         lock_info = []
-        for char in (
+        for char_uuid in (
             MANUFACTURER_NAME_CHARACTERISTIC,
             MODEL_NUMBER_CHARACTERISTIC,
             SERIAL_NUMBER_CHARACTERISTIC,
             FIRMWARE_REVISION_CHARACTERISTIC,
         ):
+            char = self.client.services.get_characteristic(char_uuid)
+            if not char:
+                await self._handle_missing_characteristic(char_uuid)
             lock_info.append(
                 (await self.client.read_gatt_char(char)).decode().split("\0")[0]
             )
