@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.2 (2023-03-23)
+### Fix
+* Handle missing characteristic when reading lock info ([#110](https://github.com/bdraco/yalexs-ble/issues/110)) ([`1bc667d`](https://github.com/bdraco/yalexs-ble/commit/1bc667d4d78f7f753fd2521951166c58bee412da))
+
 ## v2.1.1 (2023-03-21)
 ### Fix
 * Hold a reference to the deferred update task to avoid GC ([#109](https://github.com/bdraco/yalexs-ble/issues/109)) ([`ddb5539`](https://github.com/bdraco/yalexs-ble/commit/ddb5539327a7fb3f20fefee180f36d78ed7c4e39))
