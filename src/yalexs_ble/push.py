@@ -56,7 +56,7 @@ RESYNC_DELAY = 0.01
 
 # After a lock operation we need to wait for the lock to
 # update its state or it will return a stale state.
-LOCK_STALE_STATE_DEBOUNCE_DELAY = 4.0
+LOCK_STALE_STATE_DEBOUNCE_DELAY = 6.1
 
 # How long to wait before processing an advertisement change
 ADV_UPDATE_COALESCE_SECONDS = 0.05
