@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.4 (2023-03-25)
+### Fix
+* Increase stale state debounce delay to 4.0s ([#112](https://github.com/bdraco/yalexs-ble/issues/112)) ([`bb7081c`](https://github.com/bdraco/yalexs-ble/commit/bb7081cb024de689495bfc07bd8d5d3fb9934e08))
+
 ## v2.1.3 (2023-03-25)
 ### Fix
 * Avoid updating state until 3 seconds after a lock operation to avoid stale state ([#111](https://github.com/bdraco/yalexs-ble/issues/111)) ([`c4ce2a1`](https://github.com/bdraco/yalexs-ble/commit/c4ce2a1b9f0c47b2aeeacadf907eb897dc0acd68))
