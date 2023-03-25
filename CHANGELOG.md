@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.5 (2023-03-25)
+### Fix
+* Increase stale state debounce to 6.1s ([#113](https://github.com/bdraco/yalexs-ble/issues/113)) ([`25b6c09`](https://github.com/bdraco/yalexs-ble/commit/25b6c0992ae4d4902322de03a53f16c76eeb0f20))
+
 ## v2.1.4 (2023-03-25)
 ### Fix
 * Increase stale state debounce delay to 4.0s ([#112](https://github.com/bdraco/yalexs-ble/issues/112)) ([`bb7081c`](https://github.com/bdraco/yalexs-ble/commit/bb7081cb024de689495bfc07bd8d5d3fb9934e08))
