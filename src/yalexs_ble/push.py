@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import logging
 import struct
+import time
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
@@ -45,11 +46,17 @@ _ADV_LOGGER = logging.getLogger("yalexs_ble_adv")
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
+NEVER_TIME = -86400.0
+
 DEFAULT_ATTEMPTS = 4
 
 DISCONNECT_DELAY = 5.1
 
 RESYNC_DELAY = 0.01
+
+# After a lock operation we need to wait for the lock to
+# update its state or it will return a stale state.
+LOCK_STATE_STATE_DEBOUNCE_DELAY = 3.0
 
 # How long to wait before processing an advertisement change
 ADV_UPDATE_COALESCE_SECONDS = 0.05
@@ -221,6 +228,7 @@ class PushLock:
         self._first_update_future: asyncio.Future[None] | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._auth_failures: int = 0
+        self._last_lock_operation_complete_time = NEVER_TIME
 
     @property
     def local_name(self) -> str | None:
@@ -429,50 +437,38 @@ class PushLock:
         """Lock the lock."""
         self._update_any_state([LockStatus.LOCKING])
         self._cancel_future_update()
-        await self._lock_with_op_lock()
-
-    @operation_lock
-    @retry_bluetooth_connection_error
-    async def _lock_with_op_lock(self) -> None:
-        """Lock the lock."""
-        _LOGGER.debug("%s: Starting lock", self.name)
-        self._update_any_state([LockStatus.LOCKING])
-        self._cancel_future_update()
-        try:
-            lock = await self._ensure_connected()
-            self._cancel_future_update()
-            await lock.force_lock()
-        except Exception:
-            self._update_any_state([LockStatus.UNKNOWN])
-            raise
-        else:
-            self._auth_failures = 0
-            self._update_any_state([AuthState(successful=True)])
-        self._update_any_state([LockStatus.LOCKED])
-        _LOGGER.debug("%s: Finished lock", self.name)
+        await self._execute_lock_operation(
+            "force_lock", LockStatus.LOCKING, LockStatus.LOCKED
+        )
 
     async def unlock(self) -> None:
         """Unlock the lock."""
         self._update_any_state([LockStatus.UNLOCKING])
         self._cancel_future_update()
-        await self._unlock_with_op_lock()
+        await self._execute_lock_operation(
+            "force_unlock", LockStatus.UNLOCKING, LockStatus.UNLOCKED
+        )
 
     @operation_lock
     @retry_bluetooth_connection_error
-    async def _unlock_with_op_lock(self) -> None:
-        """Unlock the lock."""
-        _LOGGER.debug("%s: Starting unlock", self.name)
-        self._update_any_state([LockStatus.UNLOCKING])
+    async def _execute_lock_operation(
+        self, op_attr: str, pending_state: LockStatus, complete_state: LockStatus
+    ) -> None:
+        """Execute a lock operation."""
+        _LOGGER.debug("%s: Starting %s", self.name, pending_state)
+        self._update_any_state([pending_state])
         self._cancel_future_update()
         try:
             lock = await self._ensure_connected()
             self._cancel_future_update()
-            await lock.force_unlock()
+            await getattr(lock, op_attr)()
         except Exception:
             self._update_any_state([LockStatus.UNKNOWN])
             raise
-        self._update_any_state([LockStatus.UNLOCKED])
-        _LOGGER.debug("%s: Finished unlock", self.name)
+        self._update_any_state([complete_state])
+        _LOGGER.debug("%s: Finished %s", self.name, complete_state)
+        self._last_lock_operation_complete_time = time.monotonic()
+        self._reset_disconnect_timer()
 
     def _state_callback(
         self, states: Iterable[LockStatus | DoorStatus | BatteryState]
@@ -755,11 +751,18 @@ class PushLock:
     def _deferred_update(self) -> None:
         """Update the lock state."""
         self._cancel_future_update()
+        now = time.monotonic()
         if self._update_task and not self._update_task.done():
             _LOGGER.debug(
                 "%s: Rescheduling update since one already in progress", self.name
             )
             self._schedule_future_update_with_debounce(UPDATE_IN_PROGRESS_DEFER_SECONDS)
+            return
+        if (
+            seconds_time_lock_op := (now - self._last_lock_operation_complete_time)
+        ) < LOCK_STATE_STATE_DEBOUNCE_DELAY:
+            _LOGGER.debug("%s: Rescheduling update to avoid stale state", self.name)
+            self._schedule_future_update_with_debounce(seconds_time_lock_op)
             return
         self._update_task = asyncio.create_task(self._execute_deferred_update())
 
