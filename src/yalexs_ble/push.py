@@ -468,6 +468,7 @@ class PushLock:
         self._update_any_state([complete_state])
         _LOGGER.debug("%s: Finished %s", self.name, complete_state)
         self._last_lock_operation_complete_time = time.monotonic()
+        self._reset_disconnect_timer()
 
     def _state_callback(
         self, states: Iterable[LockStatus | DoorStatus | BatteryState]
