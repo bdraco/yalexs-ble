@@ -56,7 +56,7 @@ RESYNC_DELAY = 0.01
 
 # After a lock operation we need to wait for the lock to
 # update its state or it will return a stale state.
-LOCK_STATE_STATE_DEBOUNCE_DELAY = 3.0
+LOCK_STALE_STATE_DEBOUNCE_DELAY = 4.0
 
 # How long to wait before processing an advertisement change
 ADV_UPDATE_COALESCE_SECONDS = 0.05
@@ -760,7 +760,7 @@ class PushLock:
             return
         if (
             seconds_time_lock_op := (now - self._last_lock_operation_complete_time)
-        ) < LOCK_STATE_STATE_DEBOUNCE_DELAY:
+        ) < LOCK_STALE_STATE_DEBOUNCE_DELAY:
             _LOGGER.debug("%s: Rescheduling update to avoid stale state", self.name)
             self._schedule_future_update_with_debounce(seconds_time_lock_op)
             return
