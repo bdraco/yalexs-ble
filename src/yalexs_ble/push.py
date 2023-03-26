@@ -344,7 +344,7 @@ class PushLock:
             self._lock_info,
         )
 
-    def _reset_disconnect_timer(self, seconds: float | None = None) -> None:
+    def _reset_disconnect_timer(self) -> None:
         """Reset disconnect timer."""
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
