@@ -229,6 +229,7 @@ class PushLock:
         self._connect_lock = asyncio.Lock()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._idle_disconnect_delay = idle_disconnect_delay
+        self._next_disconnect_delay = idle_disconnect_delay
         self._first_update_future: asyncio.Future[None] | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._auth_failures: int = 0
@@ -347,7 +348,7 @@ class PushLock:
         """Reset disconnect timer."""
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
-        timeout = seconds or self._idle_disconnect_delay
+        timeout = self._next_disconnect_delay
         self._disconnect_timer = self.loop.call_later(
             timeout, self._disconnect_with_timer, timeout
         )
@@ -432,6 +433,7 @@ class PushLock:
                 )
                 await self._client.disconnect()
                 raise
+            self._next_disconnect_delay = self._idle_disconnect_delay
             self._reset_disconnect_timer()
             return self._client
 
@@ -582,7 +584,8 @@ class PushLock:
             # slots. We reset the timer to a low number
             # so that if another update request is pending
             # we do not disconnect until it completes.
-            self._reset_disconnect_timer(FIRST_CONNECTION_DISCONNECT_TIME)
+            self._next_disconnect_delay = FIRST_CONNECTION_DISCONNECT_TIME
+            self._reset_disconnect_timer()
 
         return state
 
