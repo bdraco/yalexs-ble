@@ -349,6 +349,9 @@ class PushLock:
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
         timeout = self._next_disconnect_delay
+        _LOGGER.debug(
+            "%s: Resetting disconnect timer to %s seconds", self.name, timeout
+        )
         self._disconnect_timer = self.loop.call_later(
             timeout, self._disconnect_with_timer, timeout
         )
