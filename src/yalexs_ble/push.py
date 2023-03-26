@@ -56,7 +56,7 @@ RESYNC_DELAY = 0.01
 
 # Number of seconds to wait after the first connection
 # to disconnect to free up the bluetooth adapter.
-FIRST_CONNECTION_DISCONNECT_TIME = 1.1
+FIRST_CONNECTION_DISCONNECT_TIME = 2.1
 
 # After a lock operation we need to wait for the lock to
 # update its state or it will return a stale state.
