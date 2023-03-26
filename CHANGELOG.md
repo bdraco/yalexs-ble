@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.7 (2023-03-26)
+### Fix
+* Handle bad gatt cache during sessions setup ([#115](https://github.com/bdraco/yalexs-ble/issues/115)) ([`9032049`](https://github.com/bdraco/yalexs-ble/commit/9032049316bb67f9c2b6bf04c1cbfcc772045456))
+
 ## v2.1.6 (2023-03-26)
 ### Fix
 * Force a reconnect when the lock is in a bad state ([#114](https://github.com/bdraco/yalexs-ble/issues/114)) ([`ab40867`](https://github.com/bdraco/yalexs-ble/commit/ab408673b455eaad180fbaebf1f0a0bf48a2b9d0))
