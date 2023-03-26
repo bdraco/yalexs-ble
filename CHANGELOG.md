@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.9 (2023-03-26)
+### Fix
+* Add some more debug logging for command execution ([#117](https://github.com/bdraco/yalexs-ble/issues/117)) ([`17b58f7`](https://github.com/bdraco/yalexs-ble/commit/17b58f75b7cebc5ac4215dc44f257238c43e186a))
+
 ## v2.1.8 (2023-03-26)
 ### Fix
 * Delay disconnect after initial sync if another sync is pending ([#116](https://github.com/bdraco/yalexs-ble/issues/116)) ([`1dfdf2a`](https://github.com/bdraco/yalexs-ble/commit/1dfdf2a9479f3bc3429b53ae774868b8f53f8302))
