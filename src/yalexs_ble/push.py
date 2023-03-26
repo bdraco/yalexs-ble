@@ -557,6 +557,20 @@ class PushLock:
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
 
+        if state.battery and state.battery.voltage <= 3.0:
+            _LOGGER.debug(
+                "%s: Battery voltage is impossible: %s",
+                self.name,
+                state.battery.voltage,
+            )
+            # If the battery voltage is impossible, reconnect.
+            await self._execute_forced_disconnect()
+
+        if state.lock in (LockStatus.UNKNOWN_01, LockStatus.UNKNOWN_06):
+            _LOGGER.debug("%s: Lock is in an unknown state: %s", self.name, state.lock)
+            # If the lock is in a bad state, reconnect.
+            await self._execute_forced_disconnect()
+
         if not has_lock_info:
             # On first update free up the connection
             # so we can bring other locks online if
