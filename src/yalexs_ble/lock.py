@@ -173,7 +173,13 @@ class Lock:
         # the non-secure session
         await self.secure_session.start_notify()
         await self.session.start_notify()
-        await self._setup_session()
+        try:
+            await self._setup_session()
+        except BleakError as err:
+            error_desc = str(err).lower()
+            if "invalid handle" in error_desc:
+                await self._handle_missing_characteristic(error_desc)
+            raise err
 
     async def _handle_missing_characteristic(self, char_uuid: str) -> None:
         """Handle missing characteristic."""
