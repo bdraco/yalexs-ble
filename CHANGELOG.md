@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.6 (2023-03-26)
+### Fix
+* Force a reconnect when the lock is in a bad state ([#114](https://github.com/bdraco/yalexs-ble/issues/114)) ([`ab40867`](https://github.com/bdraco/yalexs-ble/commit/ab408673b455eaad180fbaebf1f0a0bf48a2b9d0))
+
 ## v2.1.5 (2023-03-25)
 ### Fix
 * Increase stale state debounce to 6.1s ([#113](https://github.com/bdraco/yalexs-ble/issues/113)) ([`25b6c09`](https://github.com/bdraco/yalexs-ble/commit/25b6c0992ae4d4902322de03a53f16c76eeb0f20))
