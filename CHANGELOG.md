@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.8 (2023-03-26)
+### Fix
+* Delay disconnect after initial sync if another sync is pending ([#116](https://github.com/bdraco/yalexs-ble/issues/116)) ([`1dfdf2a`](https://github.com/bdraco/yalexs-ble/commit/1dfdf2a9479f3bc3429b53ae774868b8f53f8302))
+
 ## v2.1.7 (2023-03-26)
 ### Fix
 * Handle bad gatt cache during sessions setup ([#115](https://github.com/bdraco/yalexs-ble/issues/115)) ([`9032049`](https://github.com/bdraco/yalexs-ble/commit/9032049316bb67f9c2b6bf04c1cbfcc772045456))
