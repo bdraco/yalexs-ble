@@ -347,8 +347,9 @@ class PushLock:
         """Reset disconnect timer."""
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
+        timeout = seconds or self._idle_disconnect_delay
         self._disconnect_timer = self.loop.call_later(
-            seconds or self._idle_disconnect_delay, self._disconnect_with_timer
+            timeout, self._disconnect_with_timer, timeout
         )
 
     async def _execute_forced_disconnect(self, reason: str) -> None:
@@ -362,7 +363,7 @@ class PushLock:
                 await update_task
         await self._execute_disconnect()
 
-    def _disconnect_with_timer(self) -> None:
+    def _disconnect_with_timer(self, timeout: float) -> None:
         """Disconnect from device."""
         if self._operation_lock.locked():
             _LOGGER.debug("%s: Disconnect timer reset due to operation lock", self.name)
@@ -377,7 +378,7 @@ class PushLock:
             self._deferred_update()
             return
         self._cancel_disconnect_timer()
-        self.background_task(self._execute_timed_disconnect())
+        self.background_task(self._execute_timed_disconnect(timeout))
 
     def _cancel_disconnect_timer(self) -> None:
         """Cancel disconnect timer."""
@@ -385,12 +386,12 @@ class PushLock:
             self._disconnect_timer.cancel()
             self._disconnect_timer = None
 
-    async def _execute_timed_disconnect(self) -> None:
+    async def _execute_timed_disconnect(self, timeout: float) -> None:
         """Execute timed disconnection."""
         _LOGGER.debug(
             "%s: Executing timed disconnect after timeout of %s",
             self.name,
-            DISCONNECT_DELAY,
+            timeout,
         )
         await self._execute_disconnect()
 
