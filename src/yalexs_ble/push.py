@@ -54,6 +54,10 @@ DISCONNECT_DELAY = 5.1
 
 RESYNC_DELAY = 0.01
 
+# Number of seconds to wait after the first connection
+# to disconnect to free up the bluetooth adapter.
+FIRST_CONNECTION_DISCONNECT_TIME = 2.1
+
 # After a lock operation we need to wait for the lock to
 # update its state or it will return a stale state.
 LOCK_STALE_STATE_DEBOUNCE_DELAY = 6.1
@@ -225,6 +229,7 @@ class PushLock:
         self._connect_lock = asyncio.Lock()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._idle_disconnect_delay = idle_disconnect_delay
+        self._next_disconnect_delay = idle_disconnect_delay
         self._first_update_future: asyncio.Future[None] | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._auth_failures: int = 0
@@ -343,17 +348,18 @@ class PushLock:
         """Reset disconnect timer."""
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
+        timeout = self._next_disconnect_delay
+        _LOGGER.debug(
+            "%s: Resetting disconnect timer to %s seconds", self.name, timeout
+        )
         self._disconnect_timer = self.loop.call_later(
-            self._idle_disconnect_delay, self._disconnect_with_timer
+            timeout, self._disconnect_with_timer, timeout
         )
 
-    async def _execute_forced_disconnect(self) -> None:
+    async def _execute_forced_disconnect(self, reason: str) -> None:
         """Execute forced disconnection."""
         self._cancel_disconnect_timer()
-        _LOGGER.debug(
-            "%s: Executing forced disconnect",
-            self.name,
-        )
+        _LOGGER.debug("%s: Executing forced disconnect: %s", self.name, reason)
         if (update_task := self._update_task) and not update_task.done():
             self._update_task = None
             update_task.cancel()
@@ -361,7 +367,7 @@ class PushLock:
                 await update_task
         await self._execute_disconnect()
 
-    def _disconnect_with_timer(self) -> None:
+    def _disconnect_with_timer(self, timeout: float) -> None:
         """Disconnect from device."""
         if self._operation_lock.locked():
             _LOGGER.debug("%s: Disconnect timer reset due to operation lock", self.name)
@@ -376,7 +382,7 @@ class PushLock:
             self._deferred_update()
             return
         self._cancel_disconnect_timer()
-        self.background_task(self._execute_timed_disconnect())
+        self.background_task(self._execute_timed_disconnect(timeout))
 
     def _cancel_disconnect_timer(self) -> None:
         """Cancel disconnect timer."""
@@ -384,12 +390,12 @@ class PushLock:
             self._disconnect_timer.cancel()
             self._disconnect_timer = None
 
-    async def _execute_timed_disconnect(self) -> None:
+    async def _execute_timed_disconnect(self, timeout: float) -> None:
         """Execute timed disconnection."""
         _LOGGER.debug(
             "%s: Executing timed disconnect after timeout of %s",
             self.name,
-            DISCONNECT_DELAY,
+            timeout,
         )
         await self._execute_disconnect()
 
@@ -430,6 +436,7 @@ class PushLock:
                 )
                 await self._client.disconnect()
                 raise
+            self._next_disconnect_delay = self._idle_disconnect_delay
             self._reset_disconnect_timer()
             return self._client
 
@@ -564,19 +571,24 @@ class PushLock:
                 state.battery.voltage,
             )
             # If the battery voltage is impossible, reconnect.
-            await self._execute_forced_disconnect()
+            await self._execute_forced_disconnect("impossible battery voltage")
 
         if state.lock in (LockStatus.UNKNOWN_01, LockStatus.UNKNOWN_06):
             _LOGGER.debug("%s: Lock is in an unknown state: %s", self.name, state.lock)
             # If the lock is in a bad state, reconnect.
-            await self._execute_forced_disconnect()
+            await self._execute_forced_disconnect(
+                f"lock is in unknown state: {state.lock}"
+            )
 
         if not has_lock_info:
             # On first update free up the connection
             # so we can bring other locks online if
             # the bluetooth adapter is out of connections
-            # slots
-            await self._execute_forced_disconnect()
+            # slots. We reset the timer to a low number
+            # so that if another update request is pending
+            # we do not disconnect until it completes.
+            self._next_disconnect_delay = FIRST_CONNECTION_DISCONNECT_TIME
+            self._reset_disconnect_timer()
 
         return state
 
@@ -692,7 +704,7 @@ class PushLock:
         def _cancel() -> None:
             self._running = False
             self._cancel_future_update()
-            self.background_task(self._execute_forced_disconnect())
+            self.background_task(self._execute_forced_disconnect("stopping"))
 
         return _cancel
 
