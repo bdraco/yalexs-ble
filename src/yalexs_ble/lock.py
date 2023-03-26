@@ -232,7 +232,9 @@ class Lock:
         # Send SEC_LOCK_TO_MOBILE_KEY_EXCHANGE
         cmd = self.secure_session.build_command(0x01)
         util._copy(cmd, handshake_keys[0x00:0x08], destLocation=0x04)
-        response = await self.secure_session.execute(cmd)
+        response = await self.secure_session.execute(
+            cmd, "SEC_LOCK_TO_MOBILE_KEY_EXCHANGE"
+        )
         if response[0x00] != 0x02:
             raise AuthError(
                 "Authentication error: key or slot (key index) is incorrect: unexpected response to SEC_LOCK_TO_MOBILE_KEY_EXCHANGE: "
@@ -249,7 +251,7 @@ class Lock:
         # Send SEC_INITIALIZATION_COMMAND
         cmd = self.secure_session.build_command(0x03)
         util._copy(cmd, handshake_keys[0x08:0x10], destLocation=0x04)
-        response = await self.secure_session.execute(cmd)
+        response = await self.secure_session.execute(cmd, "SEC_INITIALIZATION_COMMAND")
         if response[0] != 0x04:
             raise AuthError(
                 "Authentication error: key or slot (key index) is incorrect: unexpected response to SEC_INITIALIZATION_COMMAND: "
@@ -283,7 +285,9 @@ class Lock:
         """Force the lock to lock."""
         _LOGGER.debug("%s: Locking", self.name)
         assert self.session is not None  # nosec
-        await self.session.execute(self.session.build_command(Commands.LOCK.value))
+        await self.session.execute(
+            self.session.build_command(Commands.LOCK.value), "force_lock"
+        )
         _LOGGER.debug("%s: Finished locking", self.name)
 
     @raise_if_not_connected
@@ -291,7 +295,9 @@ class Lock:
         """Force the lock to unlock."""
         _LOGGER.debug("%s: Unlocking", self.name)
         assert self.session is not None  # nosec
-        await self.session.execute(self.session.build_command(Commands.UNLOCK.value))
+        await self.session.execute(
+            self.session.build_command(Commands.UNLOCK.value), "force_unlock"
+        )
         _LOGGER.debug("%s: Finished unlocking", self.name)
 
     async def lock(self) -> None:
@@ -302,10 +308,10 @@ class Lock:
         if (await self.status()).lock == LockStatus.LOCKED:
             await self.force_unlock()
 
-    async def _execute_command(self, cmd_byte: int) -> bytes:
+    async def _execute_command(self, cmd_byte: int, command_name: str) -> bytes:
         assert self.session is not None  # nosec
         response = await self.session.execute(
-            self.session.build_operation_command(cmd_byte)
+            self.session.build_operation_command(cmd_byte), command_name
         )
         _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
         return response
@@ -333,7 +339,7 @@ class Lock:
     async def status(self) -> LockState:
         _LOGGER.debug("%s: Executing status", self.name)
         response = await self._execute_command(
-            0x2F if self._lock_info and self._lock_info.door_sense else 0x02
+            0x2F if self._lock_info and self._lock_info.door_sense else 0x02, "status"
         )
         _LOGGER.debug("%s: Finished executing status", self.name)
         return LockState(*self._parse_lock_and_door_state(response), None, None)
@@ -352,7 +358,7 @@ class Lock:
     @raise_if_not_connected
     async def battery(self) -> BatteryState:
         _LOGGER.debug("%s: Executing battery", self.name)
-        response = await self._execute_command(0x0F)
+        response = await self._execute_command(0x0F, "battery")
         _LOGGER.debug("%s: Finished executing battery", self.name)
         return self._parse_battery_state(response)
 
@@ -380,7 +386,7 @@ class Lock:
         cmd[0x11] = 0x00
         response = None
         try:
-            response = await self.secure_session.execute(cmd)
+            response = await self.secure_session.execute(cmd, "shutdown")
         except (AuthError, DisconnectedError):
             # Lock already disconnected us
             return

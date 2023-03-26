@@ -122,10 +122,10 @@ class Session:
         if response[0x00] != 0xBB and response[0x00] != 0xAA:
             raise ResponseError(f"Incorrect flag in response: {response[0x00]}")
 
-    async def _write(self, command: bytearray) -> bytes:
+    async def _write(self, command: bytearray, command_name: str) -> bytes:
         """Write under the lock."""
         async with self._lock:
-            return await self._locked_write(command)
+            return await self._locked_write(command, command_name)
 
     def _notify(self, char: int, data: bytes) -> None:
         _LOGGER.debug(
@@ -152,7 +152,7 @@ class Session:
         self._notify_future.set_result(decrypted_data)
         self._notify_future = None
 
-    async def _locked_write(self, command: bytearray) -> bytes:
+    async def _locked_write(self, command: bytearray, command_name: str) -> bytes:
         # NOTE: The last two bytes are not encrypted
         # General idea seems to be that if the last byte
         # of the command indicates an offline key offset (is non-zero),
@@ -163,7 +163,9 @@ class Session:
         plainText = command[0x00:0x10]
         cipherText = self.cipher_encrypt.update(plainText)
         util._copy(command, cipherText)
-        _LOGGER.debug("%s: Encrypted command: %s", self.name, command.hex())
+        _LOGGER.debug(
+            "%s: Encrypted command %s: %s", self.name, command_name, command.hex()
+        )
 
         for attempt in range(3):
             future: asyncio.Future[bytes] = asyncio.Future()
@@ -231,11 +233,11 @@ class Session:
             _LOGGER.debug("%s: Bleak error stopping notify: %s", self.name, err)
             pass
 
-    async def execute(self, command: bytearray) -> bytes:
+    async def execute(self, command: bytearray, command_name: str) -> bytes:
         """Execute command."""
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         self._write_checksum(command)
-        write_task = asyncio.create_task(self._write(command))
+        write_task = asyncio.create_task(self._write(command, command_name))
         disconnect_task = asyncio.create_task(self._disconnected_event.wait())
         await asyncio.wait(
             (write_task, disconnect_task),
