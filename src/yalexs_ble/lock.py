@@ -400,7 +400,7 @@ class Lock:
         ):
             return
         if self.session:
-            self.session.stop_notify()
+            await self.session.stop_notify()
         cmd = self.secure_session.build_command(0x05)
         cmd[0x11] = 0x00
         response = None
