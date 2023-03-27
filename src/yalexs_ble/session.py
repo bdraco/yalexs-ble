@@ -78,6 +78,7 @@ class Session:
         self._disconnected_event = disconnected_event
         self._first_request = True
         self._last_callback_time = -86400.0
+        self._enable_cooldown = False
 
     def set_key(self, key: bytes) -> None:
         self.cipher_encrypt = Cipher(
@@ -86,6 +87,10 @@ class Session:
         self.cipher_decrypt = Cipher(
             algorithms.AES(key), modes.CBC(bytes(0x10))  # nosec
         ).decryptor()
+
+    def enable_cooldown(self) -> None:
+        """Enable cooldown after each request."""
+        self._enable_cooldown = True
 
     def decrypt(self, data: bytes | bytearray) -> bytes:
         if self.cipher_decrypt is not None:

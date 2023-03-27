@@ -258,6 +258,8 @@ class Lock:
                 + response.hex()
             )
         self.session.set_key(session_key)
+        self.secure_session.enable_cooldown()
+        self.session.enable_cooldown()
 
     @raise_if_not_connected
     async def lock_info(self) -> LockInfo:
