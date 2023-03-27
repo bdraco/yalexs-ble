@@ -336,11 +336,16 @@ class Lock:
         return lock_status_enum, door_status_enum
 
     @raise_if_not_connected
-    async def status(self) -> LockState:
+    async def lock_status(self) -> LockState:
         _LOGGER.debug("%s: Executing status", self.name)
-        response = await self._execute_command(
-            0x2F if self._lock_info and self._lock_info.door_sense else 0x02, "status"
-        )
+        response = await self._execute_command(0x02, "lock_status")
+        _LOGGER.debug("%s: Finished executing status", self.name)
+        return LockState(*self._parse_lock_and_door_state(response), None, None)
+
+    @raise_if_not_connected
+    async def door_status(self) -> LockState:
+        _LOGGER.debug("%s: Executing status", self.name)
+        response = await self._execute_command(0x2E, "door_status")
         _LOGGER.debug("%s: Finished executing status", self.name)
         return LockState(*self._parse_lock_and_door_state(response), None, None)
 

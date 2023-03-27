@@ -562,6 +562,19 @@ class PushLock:
             self._lock_info = await lock.lock_info()
         state = await lock.status()
         battery_state = await lock.battery()
+        # Only ask for the lock status if we haven't seen
+        # it this session since notify callbacks will happen
+        # if it changes and the extra polling can cause the lock
+        # to get into a bad state.
+        if type(LockStatus) not in self._seen_this_session:
+            state = await lock.lock_status()
+        if (
+            type(DoorStatus) not in self._seen_this_session
+            and self._lock_info
+            and self._lock_info.door_sense
+        ):
+            door_state = await lock.door_status()
+            state = replace(state, door=door_state.door)
         self._auth_failures = 0
         state = replace(state, battery=battery_state, auth=AuthState(successful=True))
         _LOGGER.debug("%s: Finished update", self.name)
