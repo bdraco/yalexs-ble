@@ -246,6 +246,9 @@ class Session:
             _LOGGER.debug(
                 "%s: Waiting %s for lock to settle", self.name, cooldown_remain
             )
+            # If we send commands to fast the lock may crash and stop
+            # advertising. This is a workaround to avoid that since
+            # it means a battery pull is required to recover.
             await asyncio.sleep(COOLDOWN_TIME - cooldown_remain)
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         self._write_checksum(command)
