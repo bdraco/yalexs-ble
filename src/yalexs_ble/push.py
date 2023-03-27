@@ -543,24 +543,13 @@ class PushLock:
         _LOGGER.debug(
             "%s: Starting update (has_lock_info: %s)", self.name, has_lock_info
         )
-        try:
-            lock = await self._ensure_connected()
-            if not self._lock_info:
-                self._lock_info = await lock.lock_info()
-            state = await lock.status()
-            battery_state = await lock.battery()
-        except asyncio.CancelledError:
-            _LOGGER.debug(
-                "%s: In-progress update canceled due "
-                "to lock operation or setup timeout",
-                self.name,
-            )
-            raise
-        else:
-            self._auth_failures = 0
-            state = replace(
-                state, battery=battery_state, auth=AuthState(successful=True)
-            )
+        lock = await self._ensure_connected()
+        if not self._lock_info:
+            self._lock_info = await lock.lock_info()
+        state = await lock.status()
+        battery_state = await lock.battery()
+        self._auth_failures = 0
+        state = replace(state, battery=battery_state, auth=AuthState(successful=True))
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
 
@@ -822,6 +811,7 @@ class PushLock:
         except asyncio.CancelledError:
             self._set_update_state(RuntimeError("Update was canceled"))
             _LOGGER.debug("%s: In-progress update canceled", self.name)
+            raise
         except asyncio.TimeoutError as ex:
             self._set_update_state(ex)
             _LOGGER.exception("%s: Timed out updating", self.name)
