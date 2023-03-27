@@ -403,7 +403,9 @@ class PushLock:
 
     async def _async_handle_disconnected(self, exc: Exception) -> None:
         """Clean up after a disconnect."""
-        _LOGGER.debug("%s: Disconnected due to %s, cleaning up", self.name, exc)
+        _LOGGER.debug(
+            "%s: Disconnected due to %s, cleaning up", self.name, str(exc) or type(exc)
+        )
         if self._connect_lock.locked():
             _LOGGER.error(
                 "%s: Disconnected while connection was in progress, ignoring",
@@ -411,7 +413,13 @@ class PushLock:
             )
             return
         self._cancel_disconnect_timer()
-        await self._execute_disconnect()
+        async with self._connect_lock:
+            client = self._client
+            self._client = None
+            if client and client.client:
+                _LOGGER.debug("%s: Disconnecting without shutdown", self.name)
+                await client.client.disconnect()
+                _LOGGER.debug("%s: Disconnect without shutdown completed", self.name)
 
     async def _execute_disconnect(self) -> None:
         """Execute disconnection."""
@@ -446,7 +454,9 @@ class PushLock:
                 await self._client.connect()
             except Exception as ex:
                 _LOGGER.debug(
-                    "%s: Failed to connect due to %s, forcing disconnect", self.name, ex
+                    "%s: Failed to connect due to %s, forcing disconnect",
+                    self.name,
+                    str(ex) or type(ex),
                 )
                 await self._client.disconnect()
                 raise

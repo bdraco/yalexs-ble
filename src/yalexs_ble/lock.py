@@ -34,6 +34,8 @@ from .session import AuthError, DisconnectedError, Session
 
 _LOGGER = logging.getLogger(__name__)
 
+DROP_CONNECTION_WITHOUT_SHUTDOWN = True
+
 AA_BATTERY_VOLTAGE_TO_PERCENTAGE = (
     (1.55, 100),
     (1.549, 97),
@@ -375,6 +377,9 @@ class Lock:
 
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
+        if DROP_CONNECTION_WITHOUT_SHUTDOWN:
+            _LOGGER.debug("%s: Dropping connection without shutdown", self.name)
+            return
         _LOGGER.debug("%s: Shutting down the connection", self.name)
         if (
             not self.is_secure
