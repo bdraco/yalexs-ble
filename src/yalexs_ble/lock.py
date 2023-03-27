@@ -172,7 +172,6 @@ class Lock:
         # Order matters here, we must start notify for the secure session before
         # the non-secure session
         await self.secure_session.start_notify()
-        await self.session.start_notify()
         try:
             await self._setup_session()
         except BleakError as err:
@@ -180,6 +179,7 @@ class Lock:
             if "invalid handle" in error_desc:
                 await self._handle_missing_characteristic(error_desc)
             raise err
+        await self.session.start_notify()
 
     async def _handle_missing_characteristic(self, char_uuid: str) -> None:
         """Handle missing characteristic."""
@@ -258,6 +258,8 @@ class Lock:
                 + response.hex()
             )
         self.session.set_key(session_key)
+        self.secure_session.enable_cooldown()
+        self.session.enable_cooldown()
 
     @raise_if_not_connected
     async def lock_info(self) -> LockInfo:
