@@ -215,7 +215,7 @@ class Lock:
         elif state[0] == 0xAA:
             if state[1] == Commands.UNLOCK.value:
                 self._state_callback([LockStatus.UNLOCKED])
-            if state[1] == Commands.LOCK.value:
+            elif state[1] == Commands.LOCK.value:
                 self._state_callback([LockStatus.LOCKED])
             else:
                 _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
@@ -378,6 +378,8 @@ class Lock:
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
         _LOGGER.debug("%s: Shutting down the connection", self.name)
+        if self.session:
+            await self.session.stop_notify()
         if (
             not self.is_secure
             or not self.secure_session
