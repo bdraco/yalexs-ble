@@ -393,6 +393,8 @@ class Lock:
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
         _LOGGER.debug("%s: Shutting down the connection", self.name)
+        if self.session:
+            await self.session.stop_notify()
         if (
             not self.is_secure
             or not self.secure_session
