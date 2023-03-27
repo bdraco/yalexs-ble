@@ -135,6 +135,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 # point in retrying.
                 raise
             except RETRY_BACKOFF_EXCEPTIONS as err:
+                await self._async_handle_disconnected(err)
                 if attempt >= max_attempts:
                     _LOGGER.debug(
                         "%s: %s error calling %s, reach max attempts (%s/%s)",
@@ -160,6 +161,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 )
                 await asyncio.sleep(0.25)
             except RETRY_EXCEPTIONS as err:
+                await self._async_handle_disconnected(err)
                 if attempt >= max_attempts:
                     _LOGGER.debug(
                         "%s: %s error calling %s, reach max attempts (%s/%s)",
@@ -397,6 +399,18 @@ class PushLock:
             self.name,
             timeout,
         )
+        await self._execute_disconnect()
+
+    async def _async_handle_disconnected(self, exc: Exception) -> None:
+        """Clean up after a disconnect."""
+        _LOGGER.debug("%s: Disconnected due to %s, cleaning up", self.name, exc)
+        if self._connect_lock.locked():
+            _LOGGER.error(
+                "%s: Disconnected while connection was in progress, ignoring",
+                self.name,
+            )
+            return
+        self._cancel_disconnect_timer()
         await self._execute_disconnect()
 
     async def _execute_disconnect(self) -> None:
