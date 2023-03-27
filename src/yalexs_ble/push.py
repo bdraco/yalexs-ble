@@ -577,8 +577,10 @@ class PushLock:
         # Asking for battery first seems to be reduce the chance of the lock
         # getting into a bad state.
         battery_state = await lock.battery()
-        # Only ask for the lock status if have it and notify
-        # has been active.
+        # Only ask for the lock status if we haven't seen
+        # it this session since notify callbacks will happen
+        # if it changes and the extra polling can cause the lock
+        # to get into a bad state.
         if not self._already_seen_status_this_session():
             state = await lock.status()
         self._auth_failures = 0
