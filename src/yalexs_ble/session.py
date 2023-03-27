@@ -246,8 +246,10 @@ class Session:
     async def execute(self, command: bytearray, command_name: str) -> bytes:
         """Execute command."""
         while (
-            cooldown_remain := time.monotonic() - self._last_callback_time
-        ) < COOLDOWN_TIME:
+            self._enable_cooldown
+            and (cooldown_remain := time.monotonic() - self._last_callback_time)
+            < COOLDOWN_TIME
+        ):
             _LOGGER.debug(
                 "%s: Waiting %s for lock to settle", self.name, cooldown_remain
             )
