@@ -135,6 +135,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 # point in retrying.
                 raise
             except RETRY_BACKOFF_EXCEPTIONS as err:
+                await self._async_handle_disconnected(err)
                 if attempt >= max_attempts:
                     _LOGGER.debug(
                         "%s: %s error calling %s, reach max attempts (%s/%s)",
@@ -160,6 +161,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                 )
                 await asyncio.sleep(0.25)
             except RETRY_EXCEPTIONS as err:
+                await self._async_handle_disconnected(err)
                 if attempt >= max_attempts:
                     _LOGGER.debug(
                         "%s: %s error calling %s, reach max attempts (%s/%s)",
@@ -399,6 +401,18 @@ class PushLock:
         )
         await self._execute_disconnect()
 
+    async def _async_handle_disconnected(self, exc: Exception) -> None:
+        """Clean up after a disconnect."""
+        _LOGGER.debug("%s: Disconnected due to %s, cleaning up", self.name, exc)
+        if self._connect_lock.locked():
+            _LOGGER.error(
+                "%s: Disconnected while connection was in progress, ignoring",
+                self.name,
+            )
+            return
+        self._cancel_disconnect_timer()
+        await self._execute_disconnect()
+
     async def _execute_disconnect(self) -> None:
         """Execute disconnection."""
         async with self._connect_lock:
@@ -543,24 +557,13 @@ class PushLock:
         _LOGGER.debug(
             "%s: Starting update (has_lock_info: %s)", self.name, has_lock_info
         )
-        try:
-            lock = await self._ensure_connected()
-            if not self._lock_info:
-                self._lock_info = await lock.lock_info()
-            state = await lock.status()
-            battery_state = await lock.battery()
-        except asyncio.CancelledError:
-            _LOGGER.debug(
-                "%s: In-progress update canceled due "
-                "to lock operation or setup timeout",
-                self.name,
-            )
-            raise
-        else:
-            self._auth_failures = 0
-            state = replace(
-                state, battery=battery_state, auth=AuthState(successful=True)
-            )
+        lock = await self._ensure_connected()
+        if not self._lock_info:
+            self._lock_info = await lock.lock_info()
+        state = await lock.status()
+        battery_state = await lock.battery()
+        self._auth_failures = 0
+        state = replace(state, battery=battery_state, auth=AuthState(successful=True))
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
 
@@ -822,6 +825,7 @@ class PushLock:
         except asyncio.CancelledError:
             self._set_update_state(RuntimeError("Update was canceled"))
             _LOGGER.debug("%s: In-progress update canceled", self.name)
+            raise
         except asyncio.TimeoutError as ex:
             self._set_update_state(ex)
             _LOGGER.exception("%s: Timed out updating", self.name)
@@ -830,6 +834,11 @@ class PushLock:
             wrapped_bleak_exc.__cause__ = ex
             self._set_update_state(wrapped_bleak_exc)
             _LOGGER.exception("%s: Bluetooth error updating", self.name)
+        except DisconnectedError as ex:
+            wrapped_bleak_exc = BluetoothError(str(ex))
+            wrapped_bleak_exc.__cause__ = ex
+            self._set_update_state(wrapped_bleak_exc)
+            _LOGGER.exception("%s: Disconnected while updating", self.name)
         except Exception as ex:  # pylint: disable=broad-except
             wrapped_exc = YaleXSBLEError(str(ex))
             wrapped_exc.__cause__ = ex
