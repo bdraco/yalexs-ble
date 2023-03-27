@@ -560,8 +560,8 @@ class PushLock:
         lock = await self._ensure_connected()
         if not self._lock_info:
             self._lock_info = await lock.lock_info()
-        state = await lock.status()
         battery_state = await lock.battery()
+        state = await lock.status()
         self._auth_failures = 0
         state = replace(state, battery=battery_state, auth=AuthState(successful=True))
         _LOGGER.debug("%s: Finished update", self.name)
