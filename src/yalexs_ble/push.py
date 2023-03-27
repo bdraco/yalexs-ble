@@ -820,6 +820,11 @@ class PushLock:
             wrapped_bleak_exc.__cause__ = ex
             self._set_update_state(wrapped_bleak_exc)
             _LOGGER.exception("%s: Bluetooth error updating", self.name)
+        except DisconnectedError as ex:
+            wrapped_bleak_exc = BluetoothError(str(ex))
+            wrapped_bleak_exc.__cause__ = ex
+            self._set_update_state(wrapped_bleak_exc)
+            _LOGGER.exception("%s: Disconnected while updating", self.name)
         except Exception as ex:  # pylint: disable=broad-except
             wrapped_exc = YaleXSBLEError(str(ex))
             wrapped_exc.__cause__ = ex
