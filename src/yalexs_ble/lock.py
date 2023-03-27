@@ -26,7 +26,6 @@ from .const import (
     Commands,
     DoorStatus,
     LockInfo,
-    LockState,
     LockStatus,
 )
 from .secure_session import SecureSession
@@ -303,11 +302,11 @@ class Lock:
         _LOGGER.debug("%s: Finished unlocking", self.name)
 
     async def lock(self) -> None:
-        if (await self.lock_status()).lock == LockStatus.UNLOCKED:
+        if (await self.lock_status()) == LockStatus.UNLOCKED:
             await self.force_lock()
 
     async def unlock(self) -> None:
-        if (await self.lock_status()).lock == LockStatus.LOCKED:
+        if (await self.lock_status()) == LockStatus.LOCKED:
             await self.force_unlock()
 
     async def _execute_command(self, cmd_byte: int, command_name: str) -> bytes:
@@ -347,24 +346,20 @@ class Lock:
         return door_status_enum
 
     @raise_if_not_connected
-    async def lock_status(self) -> LockState:
+    async def lock_status(self) -> LockStatus:
         _LOGGER.debug("%s: Executing lock_status", self.name)
         # We used to use 0x2F here but it seems to be broken on some locks
         response = await self._execute_command(0x02, "lock_status")
         _LOGGER.debug("%s: Finished executing lock_status", self.name)
-        return LockState(
-            self._parse_lock_status(response[0x08]), DoorStatus.UNKNOWN, None, None
-        )
+        return self._parse_lock_status(response[0x08])
 
     @raise_if_not_connected
-    async def door_status(self) -> LockState:
+    async def door_status(self) -> DoorStatus:
         _LOGGER.debug("%s: Executing door_status", self.name)
         # We used to use 0x2F here but it seems to be broken on some locks
         response = await self._execute_command(0x2E, "door_status")
         _LOGGER.debug("%s: Finished executing door_status", self.name)
-        return LockState(
-            LockStatus.UNKNOWN, self._parse_door_status(response[0x08]), None, None
-        )
+        return self._parse_door_status(response[0x08])
 
     def _parse_battery_state(self, response: bytes) -> BatteryState:
         """Parse the battery state from the response."""
