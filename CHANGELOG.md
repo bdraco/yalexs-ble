@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.11 (2023-03-27)
+### Fix
+* Implement a cooldown between commands ([#120](https://github.com/bdraco/yalexs-ble/issues/120)) ([`fd81a67`](https://github.com/bdraco/yalexs-ble/commit/fd81a670e5178f8f4ef839c91fc45fd64f5074f8))
+
 ## v2.1.10 (2023-03-27)
 ### Fix
 * Allow cancelation during update to raise ([#118](https://github.com/bdraco/yalexs-ble/issues/118)) ([`b1456d5`](https://github.com/bdraco/yalexs-ble/commit/b1456d56db4aba3639f98004879c81a2932d74f2))

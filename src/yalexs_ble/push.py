@@ -229,6 +229,9 @@ class PushLock:
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
+        self._seen_this_session: set[
+            type[LockStatus] | type[DoorStatus] | type[BatteryState] | type[AuthState]
+        ] = set()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._idle_disconnect_delay = idle_disconnect_delay
         self._next_disconnect_delay = idle_disconnect_delay
@@ -452,6 +455,7 @@ class PushLock:
                 raise
             self._next_disconnect_delay = self._idle_disconnect_delay
             self._reset_disconnect_timer()
+            self._seen_this_session.clear()
             return self._client
 
     async def lock(self) -> None:
@@ -498,15 +502,21 @@ class PushLock:
         self._reset_disconnect_timer()
         self._update_any_state(states)
 
+    def _get_current_state(self) -> LockState:
+        """Get the current state of the lock."""
+        return self._lock_state or LockState(
+            self.lock_status, self.door_status, self.battery, self.auth
+        )
+
     def _update_any_state(
         self, states: Iterable[LockStatus | DoorStatus | BatteryState | AuthState]
     ) -> None:
         _LOGGER.debug("%s: State changed: %s", self.name, states)
-        lock_state = self._lock_state or LockState(
-            self.lock_status, self.door_status, self.battery, self.auth
-        )
+        lock_state = self._get_current_state()
         original_lock_status = lock_state.lock
         for state in states:
+            state_type = type(state)
+            self._seen_this_session.add(state_type)
             if isinstance(state, AuthState):
                 lock_state = replace(lock_state, auth=state)
             elif isinstance(state, LockStatus):
@@ -560,23 +570,33 @@ class PushLock:
         lock = await self._ensure_connected()
         if not self._lock_info:
             self._lock_info = await lock.lock_info()
-        state = await lock.status()
-        battery_state = await lock.battery()
+        # Asking for battery first seems to be reduce the chance of the lock
+        # getting into a bad state.
+        state = self._get_current_state()
+        if type(BatteryState) not in self._seen_this_session:
+            battery_state = await lock.battery()
+            self._auth_failures = 0
+            state = replace(
+                state, battery=battery_state, auth=AuthState(successful=True)
+            )
         # Only ask for the lock status if we haven't seen
         # it this session since notify callbacks will happen
         # if it changes and the extra polling can cause the lock
         # to get into a bad state.
         if type(LockStatus) not in self._seen_this_session:
-            state = await lock.lock_status()
+            lock_state = await lock.lock_status()
+            self._auth_failures = 0
+            state = replace(state, lock=lock_state, auth=AuthState(successful=True))
         if (
             type(DoorStatus) not in self._seen_this_session
             and self._lock_info
             and self._lock_info.door_sense
         ):
             door_state = await lock.door_status()
-            state = replace(state, door=door_state.door)
-        self._auth_failures = 0
-        state = replace(state, battery=battery_state, auth=AuthState(successful=True))
+            self._auth_failures = 0
+            state = replace(
+                state, door=door_state.door, auth=AuthState(successful=True)
+            )
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
 

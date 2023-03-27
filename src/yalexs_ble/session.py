@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import time
 from typing import Callable
 
 import async_timeout
@@ -19,6 +20,8 @@ from . import util
 from .const import READ_CHARACTERISTIC, WRITE_CHARACTERISTIC
 
 _LOGGER = logging.getLogger(__name__)
+
+COOLDOWN_TIME = 0.25
 
 
 class YaleXSBLEError(Exception):
@@ -74,6 +77,8 @@ class Session:
         self._state_callback = state_callback
         self._disconnected_event = disconnected_event
         self._first_request = True
+        self._last_callback_time = -86400.0
+        self._enable_cooldown = False
 
     def set_key(self, key: bytes) -> None:
         self.cipher_encrypt = Cipher(
@@ -82,6 +87,10 @@ class Session:
         self.cipher_decrypt = Cipher(
             algorithms.AES(key), modes.CBC(bytes(0x10))  # nosec
         ).decryptor()
+
+    def enable_cooldown(self) -> None:
+        """Enable cooldown after each request."""
+        self._enable_cooldown = True
 
     def decrypt(self, data: bytes | bytearray) -> bytes:
         if self.cipher_decrypt is not None:
@@ -128,6 +137,7 @@ class Session:
             return await self._locked_write(command, command_name)
 
     def _notify(self, char: int, data: bytes) -> None:
+        self._last_callback_time = time.monotonic()
         _LOGGER.debug(
             "%s: Receiving response via notify: %s (waiting=%s)",
             self.name,
@@ -235,6 +245,18 @@ class Session:
 
     async def execute(self, command: bytearray, command_name: str) -> bytes:
         """Execute command."""
+        while (
+            self._enable_cooldown
+            and (cooldown_remain := time.monotonic() - self._last_callback_time)
+            < COOLDOWN_TIME
+        ):
+            _LOGGER.debug(
+                "%s: Waiting %s for lock to settle", self.name, cooldown_remain
+            )
+            # If we send commands to fast the lock may crash and stop
+            # advertising. This is a workaround to avoid that since
+            # it means a battery pull is required to recover.
+            await asyncio.sleep(COOLDOWN_TIME - cooldown_remain)
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         self._write_checksum(command)
         write_task = asyncio.create_task(self._write(command, command_name))
