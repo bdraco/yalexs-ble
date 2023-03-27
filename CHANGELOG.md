@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.10 (2023-03-27)
+### Fix
+* Allow cancelation during update to raise ([#118](https://github.com/bdraco/yalexs-ble/issues/118)) ([`b1456d5`](https://github.com/bdraco/yalexs-ble/commit/b1456d56db4aba3639f98004879c81a2932d74f2))
+
 ## v2.1.9 (2023-03-26)
 ### Fix
 * Add some more debug logging for command execution ([#117](https://github.com/bdraco/yalexs-ble/issues/117)) ([`17b58f7`](https://github.com/bdraco/yalexs-ble/commit/17b58f75b7cebc5ac4215dc44f257238c43e186a))
