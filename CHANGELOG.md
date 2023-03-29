@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.12 (2023-03-27)
+### Fix
+* Always stop notify before shutting down the session ([#122](https://github.com/bdraco/yalexs-ble/issues/122)) ([`fa7354d`](https://github.com/bdraco/yalexs-ble/commit/fa7354d95ba564f3567c9dfd4b74be0cff00d366))
+
 ## v2.1.11 (2023-03-27)
 ### Fix
 * Implement a cooldown between commands ([#120](https://github.com/bdraco/yalexs-ble/issues/120)) ([`fd81a67`](https://github.com/bdraco/yalexs-ble/commit/fd81a670e5178f8f4ef839c91fc45fd64f5074f8))
