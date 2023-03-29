@@ -502,13 +502,17 @@ class PushLock:
         self._reset_disconnect_timer()
         self._update_any_state(states)
 
+    def _get_current_state(self) -> LockState:
+        """Get the current state of the lock."""
+        return self._lock_state or LockState(
+            self.lock_status, self.door_status, self.battery, self.auth
+        )
+
     def _update_any_state(
         self, states: Iterable[LockStatus | DoorStatus | BatteryState | AuthState]
     ) -> None:
         _LOGGER.debug("%s: State changed: %s", self.name, states)
-        lock_state = self._lock_state or LockState(
-            self.lock_status, self.door_status, self.battery, self.auth
-        )
+        lock_state = self._get_current_state()
         original_lock_status = lock_state.lock
         for state in states:
             state_type = type(state)
@@ -554,14 +558,6 @@ class PushLock:
         await self._update()
         _LOGGER.debug("%s: Finished validate", self.name)
 
-    def _already_seen_status_this_session(self) -> bool:
-        """Return True if we have seen all states this session."""
-        if type(LockStatus) not in self._seen_this_session:
-            return False
-        if self._lock_info and self._lock_info.door_sense:
-            return type(DoorStatus) in self._seen_this_session
-        return True
-
     @operation_lock
     @retry_bluetooth_connection_error
     async def _update(self) -> LockState:
@@ -576,15 +572,29 @@ class PushLock:
             self._lock_info = await lock.lock_info()
         # Asking for battery first seems to be reduce the chance of the lock
         # getting into a bad state.
-        battery_state = await lock.battery()
+        state = self._get_current_state()
+        if type(BatteryState) not in self._seen_this_session:
+            battery_state = await lock.battery()
+            self._auth_failures = 0
+            state = replace(
+                state, battery=battery_state, auth=AuthState(successful=True)
+            )
         # Only ask for the lock status if we haven't seen
         # it this session since notify callbacks will happen
         # if it changes and the extra polling can cause the lock
         # to get into a bad state.
-        if not self._already_seen_status_this_session():
-            state = await lock.status()
-        self._auth_failures = 0
-        state = replace(state, battery=battery_state, auth=AuthState(successful=True))
+        if type(LockStatus) not in self._seen_this_session:
+            lock_status = await lock.lock_status()
+            self._auth_failures = 0
+            state = replace(state, lock=lock_status, auth=AuthState(successful=True))
+        if (
+            type(DoorStatus) not in self._seen_this_session
+            and self._lock_info
+            and self._lock_info.door_sense
+        ):
+            door_status = await lock.door_status()
+            self._auth_failures = 0
+            state = replace(state, door=door_status, auth=AuthState(successful=True))
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
 

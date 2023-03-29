@@ -26,7 +26,6 @@ from .const import (
     Commands,
     DoorStatus,
     LockInfo,
-    LockState,
     LockStatus,
 )
 from .secure_session import SecureSession
@@ -303,48 +302,64 @@ class Lock:
         _LOGGER.debug("%s: Finished unlocking", self.name)
 
     async def lock(self) -> None:
-        if (await self.status()).lock == LockStatus.UNLOCKED:
+        if (await self.lock_status()) == LockStatus.UNLOCKED:
             await self.force_lock()
 
     async def unlock(self) -> None:
-        if (await self.status()).lock == LockStatus.LOCKED:
+        if (await self.lock_status()) == LockStatus.LOCKED:
             await self.force_unlock()
 
     async def _execute_command(self, cmd_byte: int, command_name: str) -> bytes:
         assert self.session is not None  # nosec
-        response = await self.session.execute(
-            self.session.build_operation_command(cmd_byte), command_name
+        command = self.session.build_operation_command(cmd_byte)
+        _LOGGER.debug("%s: send: [%s] [%s]", self.name, command.hex(), hex(cmd_byte))
+        response = await self.session.execute(command, command_name)
+        _LOGGER.debug(
+            "%s: response: [%s] [%s]", self.name, response.hex(), hex(cmd_byte)
         )
-        _LOGGER.debug("%s: response: [%s]", self.name, response.hex())
         return response
 
     def _parse_lock_and_door_state(
         self, response: bytes
     ) -> tuple[LockStatus, DoorStatus]:
         """Parse the lock and door state from the response."""
-        lock_status = response[0x08]
-        door_status = response[0x09]
-        lock_status_enum = VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
-        door_status_enum = VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)
+        return self._parse_lock_status(response[0x08]), self._parse_door_status(
+            response[0x09]
+        )
 
+    def _parse_lock_status(self, lock_status: int) -> LockStatus:
+        """Parse the lock state from the response."""
+        lock_status_enum = VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
         if lock_status_enum == LockStatus.UNKNOWN:
             _LOGGER.debug(
                 "%s: Unrecognized lock_status_str code: %s", self.name, hex(lock_status)
             )
+        return lock_status_enum
+
+    def _parse_door_status(self, door_status: int) -> DoorStatus:
+        """Parse the door state from the response."""
+        door_status_enum = VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)
         if door_status_enum == DoorStatus.UNKNOWN:
             _LOGGER.debug(
                 "%s: Unrecognized door_status_str code: %s", self.name, hex(door_status)
             )
-        return lock_status_enum, door_status_enum
+        return door_status_enum
 
     @raise_if_not_connected
-    async def status(self) -> LockState:
-        _LOGGER.debug("%s: Executing status", self.name)
-        response = await self._execute_command(
-            0x2F if self._lock_info and self._lock_info.door_sense else 0x02, "status"
-        )
-        _LOGGER.debug("%s: Finished executing status", self.name)
-        return LockState(*self._parse_lock_and_door_state(response), None, None)
+    async def lock_status(self) -> LockStatus:
+        _LOGGER.debug("%s: Executing lock_status", self.name)
+        # We used to use 0x2F here but it seems to be broken on some locks
+        response = await self._execute_command(0x02, "lock_status")
+        _LOGGER.debug("%s: Finished executing lock_status", self.name)
+        return self._parse_lock_status(response[0x08])
+
+    @raise_if_not_connected
+    async def door_status(self) -> DoorStatus:
+        _LOGGER.debug("%s: Executing door_status", self.name)
+        # We used to use 0x2F here but it seems to be broken on some locks
+        response = await self._execute_command(0x2E, "door_status")
+        _LOGGER.debug("%s: Finished executing door_status", self.name)
+        return self._parse_door_status(response[0x08])
 
     def _parse_battery_state(self, response: bytes) -> BatteryState:
         """Parse the battery state from the response."""
@@ -391,6 +406,7 @@ class Lock:
         response = None
         try:
             response = await self.secure_session.execute(cmd, "shutdown")
+            await self.secure_session.stop_notify()
         except (AuthError, DisconnectedError):
             # Lock already disconnected us
             return
