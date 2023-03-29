@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.13 (2023-03-29)
+### Fix
+* Seperate door and lock status ([#121](https://github.com/bdraco/yalexs-ble/issues/121)) ([`36abe23`](https://github.com/bdraco/yalexs-ble/commit/36abe238c5554427a72da35ee84a9f03194856fa))
+
 ## v2.1.12 (2023-03-27)
 ### Fix
 * Always stop notify before shutting down the session ([#122](https://github.com/bdraco/yalexs-ble/issues/122)) ([`fa7354d`](https://github.com/bdraco/yalexs-ble/commit/fa7354d95ba564f3567c9dfd4b74be0cff00d366))
