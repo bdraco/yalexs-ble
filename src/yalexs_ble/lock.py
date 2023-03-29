@@ -401,13 +401,12 @@ class Lock:
             or self._disconnected_event is None
         ):
             return
-        if self.session:
-            await self.session.stop_notify()
         cmd = self.secure_session.build_command(0x05)
         cmd[0x11] = 0x00
         response = None
         try:
             response = await self.secure_session.execute(cmd, "shutdown")
+            await self.secure_session.stop_notify()
         except (AuthError, DisconnectedError):
             # Lock already disconnected us
             return
