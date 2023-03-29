@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.14 (2023-03-29)
+### Fix
+* Skip status for door/battery/lock if an update came over unsolicited notify ([#123](https://github.com/bdraco/yalexs-ble/issues/123)) ([`b41d579`](https://github.com/bdraco/yalexs-ble/commit/b41d57920374c6922ba0832a383d00954f6b0c70))
+
 ## v2.1.13 (2023-03-29)
 ### Fix
 * Seperate door and lock status ([#121](https://github.com/bdraco/yalexs-ble/issues/121)) ([`36abe23`](https://github.com/bdraco/yalexs-ble/commit/36abe238c5554427a72da35ee84a9f03194856fa))
