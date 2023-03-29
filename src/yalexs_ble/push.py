@@ -573,7 +573,7 @@ class PushLock:
         # Asking for battery first seems to be reduce the chance of the lock
         # getting into a bad state.
         state = self._get_current_state()
-        if type(BatteryState) not in self._seen_this_session:
+        if BatteryState not in self._seen_this_session:
             battery_state = await lock.battery()
             self._auth_failures = 0
             state = replace(
@@ -583,12 +583,12 @@ class PushLock:
         # it this session since notify callbacks will happen
         # if it changes and the extra polling can cause the lock
         # to get into a bad state.
-        if type(LockStatus) not in self._seen_this_session:
+        if LockStatus not in self._seen_this_session:
             lock_status = await lock.lock_status()
             self._auth_failures = 0
             state = replace(state, lock=lock_status, auth=AuthState(successful=True))
         if (
-            type(DoorStatus) not in self._seen_this_session
+            DoorStatus not in self._seen_this_session
             and self._lock_info
             and self._lock_info.door_sense
         ):
