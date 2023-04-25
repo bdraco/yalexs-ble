@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.16 (2023-04-25)
+### Fix
+* Handle flakey authentication with 1.3.4 firmware ([#125](https://github.com/bdraco/yalexs-ble/issues/125)) ([`21d20c9`](https://github.com/bdraco/yalexs-ble/commit/21d20c9609ca08315eb2fe83e86d4aeffe0932e8))
+
 ## v2.1.15 (2023-04-25)
 ### Fix
 * Handling of cancellation of first update ([#124](https://github.com/bdraco/yalexs-ble/issues/124)) ([`a850330`](https://github.com/bdraco/yalexs-ble/commit/a850330260c3634faddb2e947cd18a446d61bef7))
