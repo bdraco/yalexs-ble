@@ -104,6 +104,18 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
     return cast(WrapFuncType, _async_wrap_operation_lock)
 
 
+class AuthFailureHistory:
+    def __init__(self) -> None:
+        """Init the history."""
+        self._failures_by_mac: dict[str, int] = {}
+
+    def increment_failure(self, mac: str) -> None:
+        """Increment the number of auth failures."""
+
+
+_AUTH_FAILURE_HISTORY = AuthFailureHistory()
+
+
 def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to retry on bleak error.
 
