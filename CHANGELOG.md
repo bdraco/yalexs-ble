@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.15 (2023-04-25)
+### Fix
+* Handling of cancellation of first update ([#124](https://github.com/bdraco/yalexs-ble/issues/124)) ([`a850330`](https://github.com/bdraco/yalexs-ble/commit/a850330260c3634faddb2e947cd18a446d61bef7))
+
 ## v2.1.14 (2023-03-29)
 ### Fix
 * Skip status for door/battery/lock if an update came over unsolicited notify ([#123](https://github.com/bdraco/yalexs-ble/issues/123)) ([`b41d579`](https://github.com/bdraco/yalexs-ble/commit/b41d57920374c6922ba0832a383d00954f6b0c70))
