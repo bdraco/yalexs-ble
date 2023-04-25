@@ -14,6 +14,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
 from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS, BleakNotFoundError, get_device
+from lru import LRU  # pylint: disable=no-name-in-module
 
 from .const import (
     APPLE_MFR_ID,
@@ -104,6 +105,29 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
     return cast(WrapFuncType, _async_wrap_operation_lock)
 
 
+class AuthFailureHistory:
+    """Track the number of auth failures."""
+
+    def __init__(self) -> None:
+        """Init the history."""
+        self._failures_by_mac: dict[str, int] = LRU(1024)
+
+    def auth_failed(self, mac: str) -> None:
+        """Increment the number of auth failures."""
+        self._failures_by_mac[mac] = self._failures_by_mac.get(mac, 0) + 1
+
+    def auth_success(self, mac: str) -> None:
+        """Reset the number of auth failures."""
+        self._failures_by_mac[mac] = 0
+
+    def should_raise(self, mac: str) -> bool:
+        """Return if we should raise an error."""
+        return self._failures_by_mac.get(mac, 0) >= AUTH_FAILURE_TO_START_REAUTH
+
+
+_AUTH_FAILURE_HISTORY = AuthFailureHistory()
+
+
 def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to retry on bleak error.
 
@@ -122,8 +146,8 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
             try:
                 return await func(self, *args, **kwargs)
             except AuthError:
-                self._auth_failures += 1
-                if self._auth_failures >= AUTH_FAILURE_TO_START_REAUTH:
+                _AUTH_FAILURE_HISTORY.auth_failed(self.address)
+                if _AUTH_FAILURE_HISTORY.should_raise(self.address):
                     # If the bluetooth connection drops in the middle of authentication
                     # we may see it as a failed authentication. If we see 5 failed
                     # authentications in a row we can reasonably assume that the key has
@@ -237,7 +261,6 @@ class PushLock:
         self._next_disconnect_delay = idle_disconnect_delay
         self._first_update_future: asyncio.Future[None] | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
-        self._auth_failures: int = 0
         self._last_lock_operation_complete_time = NEVER_TIME
 
     @property
@@ -575,7 +598,7 @@ class PushLock:
         state = self._get_current_state()
         if BatteryState not in self._seen_this_session:
             battery_state = await lock.battery()
-            self._auth_failures = 0
+            _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(
                 state, battery=battery_state, auth=AuthState(successful=True)
             )
@@ -585,7 +608,7 @@ class PushLock:
         # to get into a bad state.
         if LockStatus not in self._seen_this_session:
             lock_status = await lock.lock_status()
-            self._auth_failures = 0
+            _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(state, lock=lock_status, auth=AuthState(successful=True))
         if (
             DoorStatus not in self._seen_this_session
@@ -593,7 +616,7 @@ class PushLock:
             and self._lock_info.door_sense
         ):
             door_status = await lock.door_status()
-            self._auth_failures = 0
+            _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(state, door=door_status, auth=AuthState(successful=True))
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
