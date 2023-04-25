@@ -757,11 +757,13 @@ class PushLock:
         try:
             async with async_timeout.timeout(timeout):
                 await self._first_update_future
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, asyncio.CancelledError) as ex:
             self._first_update_future.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._first_update_future
-            raise NoAdvertisementError("No advertisement received")
+            raise NoAdvertisementError(
+                "No advertisement received before timeout"
+            ) from ex
         finally:
             self._first_update_future = None
 
