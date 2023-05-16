@@ -55,7 +55,7 @@ DISCONNECT_DELAY = 5.1
 
 RESYNC_DELAY = 0.01
 
-KEEP_ALIVE_TIME = 23.0  # Lock will disconnect after 30 seconds of inactivity
+KEEP_ALIVE_TIME = 25.0  # Lock will disconnect after 30 seconds of inactivity
 
 # Number of seconds to wait after the first connection
 # to disconnect to free up the bluetooth adapter.
