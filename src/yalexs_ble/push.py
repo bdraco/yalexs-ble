@@ -535,6 +535,10 @@ class PushLock:
         self, op_attr: str, pending_state: LockStatus, complete_state: LockStatus
     ) -> None:
         """Execute a lock operation."""
+        if not self._running:
+            raise RuntimeError(
+                f"{self.name}: Lock operation not possible because not running"
+            )
         _LOGGER.debug("%s: Starting %s", self.name, pending_state)
         self._update_any_state([pending_state])
         self._cancel_future_update()
