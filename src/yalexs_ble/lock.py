@@ -126,6 +126,8 @@ class Lock:
         _LOGGER.debug("%s: Disconnected from lock callback", self.name)
         assert self._disconnected_event is not None  # nosec
         self._disconnected_event.set()
+        if self._disconnect_callback:
+            self._disconnect_callback()
 
     async def connect(self) -> None:
         """Connect to the lock."""
@@ -390,11 +392,7 @@ class Lock:
         try:
             await self._shutdown_connection()
         finally:
-            try:
-                await self.client.disconnect()
-            finally:
-                if self._disconnect_callback:
-                    self._disconnect_callback()
+            await self.client.disconnect()
 
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
