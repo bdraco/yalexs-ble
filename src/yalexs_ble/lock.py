@@ -103,6 +103,7 @@ class Lock:
             [Iterable[LockStatus | DoorStatus | BatteryState]], None
         ],
         info: LockInfo | None = None,
+        disconnect_callback: Callable[[], None] | None = None,
     ) -> None:
         self.ble_device_callback = ble_device_callback
         self.key = bytes.fromhex(keyString)
@@ -116,6 +117,7 @@ class Lock:
         self.client: BleakClientWithServiceCache | None = None
         self._disconnected_event: asyncio.Event | None = None
         self._state_callback = state_callback
+        self._disconnect_callback = disconnect_callback
 
     def set_name(self, name: str) -> None:
         self.name = name
@@ -388,7 +390,11 @@ class Lock:
         try:
             await self._shutdown_connection()
         finally:
-            await self.client.disconnect()
+            try:
+                await self.client.disconnect()
+            finally:
+                if self._disconnect_callback:
+                    self._disconnect_callback()
 
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""

@@ -374,7 +374,15 @@ class PushLock:
             self.name,
             self._state_callback,
             self._lock_info,
+            self._disconnected_callback,
         )
+
+    def _disconnected_callback(self) -> None:
+        """Handle a disconnect from the lock."""
+        if self._always_connected and not _AUTH_FAILURE_HISTORY.should_raise(
+            self.address
+        ):
+            self._reset_disconnect_or_keep_alive_timer()
 
     def _keep_alive(self) -> None:
         """Keep the lock connection alive."""
