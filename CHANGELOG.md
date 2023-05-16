@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.17 (2023-05-16)
+### Fix
+* Guard against reconnecting after shutdown ([#127](https://github.com/bdraco/yalexs-ble/issues/127)) ([`1499acb`](https://github.com/bdraco/yalexs-ble/commit/1499acb68fc85a660c326f237c003d0cdc8ebaf4))
+
 ## v2.1.16 (2023-04-25)
 ### Fix
 * Handle flakey authentication with 1.3.4 firmware ([#125](https://github.com/bdraco/yalexs-ble/issues/125)) ([`21d20c9`](https://github.com/bdraco/yalexs-ble/commit/21d20c9609ca08315eb2fe83e86d4aeffe0932e8))
