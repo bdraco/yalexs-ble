@@ -628,28 +628,40 @@ class PushLock:
         # Asking for battery first seems to be reduce the chance of the lock
         # getting into a bad state.
         state = self._get_current_state()
+        made_request = False
+
         if BatteryState not in self._seen_this_session:
+            made_request = True
             battery_state = await lock.battery()
             _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(
                 state, battery=battery_state, auth=AuthState(successful=True)
             )
-        # Only ask for the lock status if we haven't seen
-        # it this session since notify callbacks will happen
-        # if it changes and the extra polling can cause the lock
-        # to get into a bad state.
-        if LockStatus not in self._seen_this_session:
-            lock_status = await lock.lock_status()
-            _AUTH_FAILURE_HISTORY.auth_success(self.address)
-            state = replace(state, lock=lock_status, auth=AuthState(successful=True))
+
         if (
             DoorStatus not in self._seen_this_session
             and self._lock_info
             and self._lock_info.door_sense
         ):
+            made_request = True
             door_status = await lock.door_status()
             _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(state, door=door_status, auth=AuthState(successful=True))
+
+        # Only ask for the lock status if we haven't seen
+        # it this session since notify callbacks will happen
+        # if it changes and the extra polling can cause the lock
+        # to get into a bad state.
+        #
+        # However, we always want to poll lock
+        # state to keep the connection alive if we are always connected.
+        if LockStatus not in self._seen_this_session or (
+            not made_request and self._always_connected
+        ):
+            lock_status = await lock.lock_status()
+            _AUTH_FAILURE_HISTORY.auth_success(self.address)
+            state = replace(state, lock=lock_status, auth=AuthState(successful=True))
+
         _LOGGER.debug("%s: Finished update", self.name)
         self._callback_state(state)
 
