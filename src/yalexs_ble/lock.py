@@ -103,6 +103,7 @@ class Lock:
             [Iterable[LockStatus | DoorStatus | BatteryState]], None
         ],
         info: LockInfo | None = None,
+        disconnect_callback: Callable[[], None] | None = None,
     ) -> None:
         self.ble_device_callback = ble_device_callback
         self.key = bytes.fromhex(keyString)
@@ -116,6 +117,7 @@ class Lock:
         self.client: BleakClientWithServiceCache | None = None
         self._disconnected_event: asyncio.Event | None = None
         self._state_callback = state_callback
+        self._disconnect_callback = disconnect_callback
 
     def set_name(self, name: str) -> None:
         self.name = name
@@ -124,6 +126,8 @@ class Lock:
         _LOGGER.debug("%s: Disconnected from lock callback", self.name)
         assert self._disconnected_event is not None  # nosec
         self._disconnected_event.set()
+        if self._disconnect_callback:
+            self._disconnect_callback()
 
     async def connect(self) -> None:
         """Connect to the lock."""
