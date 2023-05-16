@@ -55,7 +55,7 @@ DISCONNECT_DELAY = 5.1
 
 RESYNC_DELAY = 0.01
 
-KEEP_ALIVE_TIME = 60.0
+KEEP_ALIVE_TIME = 50.0
 
 # Number of seconds to wait after the first connection
 # to disconnect to free up the bluetooth adapter.
@@ -379,10 +379,14 @@ class PushLock:
 
     def _disconnected_callback(self) -> None:
         """Handle a disconnect from the lock."""
+        _LOGGER.debug("%s: Disconnected from lock callback", self.name)
         if self._always_connected and not _AUTH_FAILURE_HISTORY.should_raise(
             self.address
         ):
-            self._reset_disconnect_or_keep_alive_timer()
+            _LOGGER.debug(
+                "%s: Scheduling reconnect from disconnected callback", self.name
+            )
+            self._keep_alive()
 
     def _keep_alive(self) -> None:
         """Keep the lock connection alive."""
