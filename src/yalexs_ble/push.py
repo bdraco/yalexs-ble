@@ -792,8 +792,20 @@ class PushLock:
                 next_update,
                 scheduled_update,
             )
-        if next_update:
-            self._schedule_future_update_with_debounce(next_update)
+        if not next_update:
+            return
+        if (
+            self._client
+            and self._client.is_connected
+            and self._next_disconnect_delay != FIRST_CONNECTION_DISCONNECT_TIME
+        ):
+            # Already connected, state will be pushed, but stay
+            # connected a bit longer to make sure we get it unless
+            # this is the first connection.
+            self._next_disconnect_delay = self._idle_disconnect_delay * 2
+            self._reset_disconnect_or_keep_alive_timer()
+            return
+        self._schedule_future_update_with_debounce(next_update)
 
     async def start(self) -> Callable[[], None]:
         """Start watching for updates."""
