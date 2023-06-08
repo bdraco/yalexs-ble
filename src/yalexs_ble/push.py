@@ -265,6 +265,7 @@ class PushLock:
         self._first_update_future: asyncio.Future[None] | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._last_lock_operation_complete_time = NEVER_TIME
+        self._last_operation_complete_time = NEVER_TIME
         self._always_connected = always_connected
 
     @property
@@ -398,8 +399,12 @@ class PushLock:
         self._cancel_disconnect_or_keep_alive_timer()
         self._expected_disconnect = False
         if self._always_connected:
+            next_keep_alive = min(
+                KEEP_ALIVE_TIME - time.monotonic() - self._last_operation_complete_time,
+                KEEP_ALIVE_TIME,
+            )
             self._disconnect_or_keep_alive_timer = self.loop.call_later(
-                KEEP_ALIVE_TIME, self._keep_alive
+                next_keep_alive, self._keep_alive
             )
             return
 
@@ -551,7 +556,9 @@ class PushLock:
             raise
         self._update_any_state([complete_state])
         _LOGGER.debug("%s: Finished %s", self.name, complete_state)
-        self._last_lock_operation_complete_time = time.monotonic()
+        now = time.monotonic()
+        self._last_lock_operation_complete_time = now
+        self._last_operation_complete_time = now
         self._reset_disconnect_or_keep_alive_timer()
 
     def _state_callback(
@@ -695,6 +702,7 @@ class PushLock:
             self._next_disconnect_delay = FIRST_CONNECTION_DISCONNECT_TIME
             self._reset_disconnect_or_keep_alive_timer()
 
+        self._last_operation_complete_time = time.monotonic()
         return state
 
     def _callback_state(self, lock_state: LockState) -> None:
@@ -798,10 +806,18 @@ class PushLock:
             self._client
             and self._client.is_connected
             and self._next_disconnect_delay != FIRST_CONNECTION_DISCONNECT_TIME
+            and (
+                time.monotonic()
+                - self._last_operation_complete_time
+                + self._idle_disconnect_delay
+            )
+            < KEEP_ALIVE_TIME
         ):
             # Already connected, state will be pushed, but stay
             # connected a bit longer to make sure we get it unless
-            # this is the first connection.
+            # this is the first connection or deferring the update
+            # would keep the connection idle for too long and
+            # get us disconnected anyways.
             self._next_disconnect_delay = self._idle_disconnect_delay * 2
             self._reset_disconnect_or_keep_alive_timer()
             return
