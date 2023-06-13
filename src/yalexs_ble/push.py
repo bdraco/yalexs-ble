@@ -259,7 +259,8 @@ class PushLock:
         self._seen_this_session: set[
             type[LockStatus] | type[DoorStatus] | type[BatteryState] | type[AuthState]
         ] = set()
-        self._disconnect_or_keep_alive_timer: asyncio.TimerHandle | None = None
+        self._disconnect_timer: asyncio.TimerHandle | None = None
+        self._keep_alive_timer: asyncio.TimerHandle | None = None
         self._idle_disconnect_delay = idle_disconnect_delay
         self._next_disconnect_delay = idle_disconnect_delay
         self._first_update_future: asyncio.Future[None] | None = None
@@ -397,34 +398,37 @@ class PushLock:
     def _keep_alive(self) -> None:
         """Keep the lock connection alive."""
         self._schedule_future_update_with_debounce(0)
-        self._reset_disconnect_or_keep_alive_timer()
+        self._schedule_next_keep_alive()
 
     def _time_since_last_operation(self) -> float:
         """Return the time since the last operation."""
         return time.monotonic() - self._last_operation_complete_time
 
-    def _reset_disconnect_or_keep_alive_timer(self) -> None:
-        """Reset disconnect timer."""
-        self._cancel_disconnect_or_keep_alive_timer()
-        self._expected_disconnect = False
-        if self._always_connected:
-            self._disconnect_or_keep_alive_timer = self.loop.call_later(
-                max(0, KEEP_ALIVE_TIME - self._time_since_last_operation()),
-                self._keep_alive,
-            )
-            return
+    def _schedule_next_keep_alive(self) -> None:
+        """Schedule the next keep alive."""
+        self._cancel_keepalive_timer()
+        self._keep_alive_timer = self.loop.call_later(
+            max(0, KEEP_ALIVE_TIME - self._time_since_last_operation()),
+            self._keep_alive,
+        )
 
+    def _reset_disconnect_timer(self) -> None:
+        """Reset disconnect timer."""
+        if self._always_connected:
+            return
+        self._cancel_disconnect_timer()
+        self._expected_disconnect = False
         timeout = self._next_disconnect_delay
         _LOGGER.debug(
             "%s: Resetting disconnect timer to %s seconds", self.name, timeout
         )
-        self._disconnect_or_keep_alive_timer = self.loop.call_later(
+        self._disconnect_timer = self.loop.call_later(
             timeout, self._disconnect_with_timer, timeout
         )
 
     async def _execute_forced_disconnect(self, reason: str) -> None:
         """Execute forced disconnection."""
-        self._cancel_disconnect_or_keep_alive_timer()
+        self._cancel_disconnect_timer()
         _LOGGER.debug("%s: Executing forced disconnect: %s", self.name, reason)
         if (update_task := self._update_task) and not update_task.done():
             self._update_task = None
@@ -436,28 +440,34 @@ class PushLock:
     def _disconnect_with_timer(self, timeout: float) -> None:
         """Disconnect from device.
 
-        This should only ever be called from _reset_disconnect_or_keep_alive_timer
+        This should only ever be called from _reset_disconnect_timer
         """
         if self._operation_lock.locked():
             _LOGGER.debug("%s: Disconnect timer reset due to operation lock", self.name)
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             return
         if self._cancel_deferred_update:
             _LOGGER.debug(
                 "%s: Disconnect timer fired while we were waiting to update", self.name
             )
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             self._cancel_future_update()
             self._deferred_update()
             return
-        self._cancel_disconnect_or_keep_alive_timer()
+        self._cancel_disconnect_timer()
         self.background_task(self._execute_timed_disconnect(timeout))
 
-    def _cancel_disconnect_or_keep_alive_timer(self) -> None:
+    def _cancel_disconnect_timer(self) -> None:
         """Cancel disconnect timer."""
-        if self._disconnect_or_keep_alive_timer:
-            self._disconnect_or_keep_alive_timer.cancel()
-            self._disconnect_or_keep_alive_timer = None
+        if self._disconnect_timer:
+            self._disconnect_timer.cancel()
+            self._disconnect_timer = None
+
+    def _cancel_keepalive_timer(self) -> None:
+        """Cancel keep alive timer."""
+        if self._keep_alive_timer:
+            self._keep_alive_timer.cancel()
+            self._keep_alive_timer = None
 
     async def _execute_timed_disconnect(self, timeout: float) -> None:
         """Execute timed disconnection."""
@@ -477,15 +487,13 @@ class PushLock:
                 self.name,
             )
             return
-        self._cancel_disconnect_or_keep_alive_timer()
+        self._cancel_disconnect_timer()
         await self._execute_disconnect()
 
     async def _execute_disconnect(self) -> None:
         """Execute disconnection."""
         async with self._connect_lock:
-            if (
-                self._disconnect_or_keep_alive_timer
-            ):  # If the timer was reset, don't disconnect
+            if self._disconnect_timer:  # If the timer was reset, don't disconnect
                 return
             client = self._client
             self._client = None
@@ -497,20 +505,20 @@ class PushLock:
     async def _ensure_connected(self) -> Lock:
         """Ensure connection to device is established."""
         if self._connect_lock.locked():
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             _LOGGER.debug(
                 "%s: Connection already in progress, waiting for it to complete",
                 self.name,
             )
         if self.is_connected:
             assert self._client is not None  # nosec
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             return self._client
         async with self._connect_lock:
             # Check again while holding the lock
             if self.is_connected:
                 assert self._client is not None  # type: ignore[unreachable] # nosec
-                self._reset_disconnect_or_keep_alive_timer()
+                self._reset_disconnect_timer()
                 return self._client
             self._client = self._get_lock_instance()
             try:
@@ -522,7 +530,7 @@ class PushLock:
                 await self._client.disconnect()
                 raise
             self._next_disconnect_delay = self._idle_disconnect_delay
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             self._seen_this_session.clear()
             return self._client
 
@@ -567,13 +575,14 @@ class PushLock:
         now = time.monotonic()
         self._last_lock_operation_complete_time = now
         self._last_operation_complete_time = now
-        self._reset_disconnect_or_keep_alive_timer()
+        self._reset_disconnect_timer()
+        self._schedule_next_keep_alive()
 
     def _state_callback(
         self, states: Iterable[LockStatus | DoorStatus | BatteryState]
     ) -> None:
         """Handle state change."""
-        self._reset_disconnect_or_keep_alive_timer()
+        self._reset_disconnect_timer()
         self._update_any_state(states)
 
     def _get_current_state(self) -> LockState:
@@ -706,10 +715,11 @@ class PushLock:
             # so that if another update request is pending
             # we do not disconnect until it completes.
             self._next_disconnect_delay = FIRST_CONNECTION_DISCONNECT_TIME
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
 
         if made_request:
             self._last_operation_complete_time = time.monotonic()
+            self._schedule_next_keep_alive()
         return state
 
     def _callback_state(self, lock_state: LockState) -> None:
@@ -821,7 +831,7 @@ class PushLock:
             # would keep the connection idle for too long and
             # get us disconnected anyways.
             self._next_disconnect_delay = self._idle_disconnect_delay * 2
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             return
         self._schedule_future_update_with_debounce(next_update)
 
