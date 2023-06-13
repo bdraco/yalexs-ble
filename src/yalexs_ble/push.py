@@ -407,8 +407,16 @@ class PushLock:
     def _schedule_next_keep_alive(self) -> None:
         """Schedule the next keep alive."""
         self._cancel_keepalive_timer()
+        next_keep_alive_time = max(
+            0, KEEP_ALIVE_TIME - self._time_since_last_operation()
+        )
+        _LOGGER.debug(
+            "%s: Scheduling next keep alive in %s seconds",
+            self.name,
+            next_keep_alive_time,
+        )
         self._keep_alive_timer = self.loop.call_later(
-            max(0, KEEP_ALIVE_TIME - self._time_since_last_operation()),
+            next_keep_alive_time,
             self._keep_alive,
         )
 
@@ -629,6 +637,7 @@ class PushLock:
 
     async def update(self) -> None:
         """Request that status be updated."""
+        _LOGGER.debug("%s: Starting manual update", self.name)
         self._schedule_future_update_with_debounce(
             0 if self.is_connected else MANUAL_UPDATE_COALESCE_SECONDS
         )
@@ -906,7 +915,9 @@ class PushLock:
                     time_till_update,
                 )
                 return
-            _LOGGER.debug("%s: Rescheduling update", self.name)
+            _LOGGER.debug(
+                "%s: Rescheduling update for %s", self.name, future_update_time
+            )
         self._schedule_future_update(future_update_time)
 
     def _schedule_future_update(self, future_update_time: float) -> None:
