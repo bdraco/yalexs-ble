@@ -397,6 +397,8 @@ class PushLock:
 
     def _keep_alive(self) -> None:
         """Keep the lock connection alive."""
+        if not self._always_connected:
+            return
         self._schedule_future_update_with_debounce(0)
         self._schedule_next_keep_alive()
 
