@@ -394,17 +394,18 @@ class PushLock:
         self._schedule_future_update_with_debounce(0)
         self._reset_disconnect_or_keep_alive_timer()
 
+    @property
+    def _time_since_last_operation(self) -> float:
+        """Return the time since the last operation."""
+        return time.monotonic() - self._last_lock_operation_complete_time
+
     def _reset_disconnect_or_keep_alive_timer(self) -> None:
         """Reset disconnect timer."""
         self._cancel_disconnect_or_keep_alive_timer()
         self._expected_disconnect = False
         if self._always_connected:
-            next_keep_alive = min(
-                KEEP_ALIVE_TIME - time.monotonic() - self._last_operation_complete_time,
-                KEEP_ALIVE_TIME,
-            )
             self._disconnect_or_keep_alive_timer = self.loop.call_later(
-                next_keep_alive, self._keep_alive
+                KEEP_ALIVE_TIME - self._time_since_last_operation, self._keep_alive
             )
             return
 
