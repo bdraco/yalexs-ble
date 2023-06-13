@@ -329,6 +329,11 @@ class PushLock:
         """Return the current BLEDevice."""
         return self._ble_device
 
+    @property
+    def is_connected(self) -> bool:
+        """Return if the lock is connected."""
+        return bool(self._client and self._client.is_connected)
+
     def set_name(self, name: str) -> None:
         """Set the name of the lock."""
         self._name = name
@@ -394,7 +399,6 @@ class PushLock:
         self._schedule_future_update_with_debounce(0)
         self._reset_disconnect_or_keep_alive_timer()
 
-    @property
     def _time_since_last_operation(self) -> float:
         """Return the time since the last operation."""
         return time.monotonic() - self._last_operation_complete_time
@@ -405,7 +409,7 @@ class PushLock:
         self._expected_disconnect = False
         if self._always_connected:
             self._disconnect_or_keep_alive_timer = self.loop.call_later(
-                max(0, KEEP_ALIVE_TIME - self._time_since_last_operation),
+                max(0, KEEP_ALIVE_TIME - self._time_since_last_operation()),
                 self._keep_alive,
             )
             return
@@ -498,12 +502,14 @@ class PushLock:
                 "%s: Connection already in progress, waiting for it to complete",
                 self.name,
             )
-        if self._client and self._client.is_connected:
+        if self.is_connected:
+            assert self._client is not None  # nosec
             self._reset_disconnect_or_keep_alive_timer()
             return self._client
         async with self._connect_lock:
             # Check again while holding the lock
-            if self._client and self._client.is_connected:
+            if self.is_connected:
+                assert self._client is not None  # type: ignore[unreachable] # nosec
                 self._reset_disconnect_or_keep_alive_timer()
                 return self._client
             self._client = self._get_lock_instance()
@@ -615,9 +621,7 @@ class PushLock:
     async def update(self) -> None:
         """Request that status be updated."""
         self._schedule_future_update_with_debounce(
-            0
-            if self._client and self._client.is_connected
-            else MANUAL_UPDATE_COALESCE_SECONDS
+            0 if self.is_connected else MANUAL_UPDATE_COALESCE_SECONDS
         )
 
     async def validate(self) -> None:
@@ -805,14 +809,9 @@ class PushLock:
         if not next_update:
             return
         if (
-            self._client
-            and self._client.is_connected
+            self.is_connected
             and self._next_disconnect_delay != FIRST_CONNECTION_DISCONNECT_TIME
-            and (
-                time.monotonic()
-                - self._last_operation_complete_time
-                + self._idle_disconnect_delay
-            )
+            and (self._time_since_last_operation() + (self._idle_disconnect_delay * 2))
             < KEEP_ALIVE_TIME
         ):
             # Already connected, state will be pushed, but stay
