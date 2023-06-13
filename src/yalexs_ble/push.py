@@ -405,7 +405,8 @@ class PushLock:
         self._expected_disconnect = False
         if self._always_connected:
             self._disconnect_or_keep_alive_timer = self.loop.call_later(
-                KEEP_ALIVE_TIME - self._time_since_last_operation, self._keep_alive
+                max(0, KEEP_ALIVE_TIME - self._time_since_last_operation),
+                self._keep_alive,
             )
             return
 
