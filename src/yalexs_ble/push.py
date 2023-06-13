@@ -401,25 +401,29 @@ class PushLock:
             return
         _LOGGER.debug("%s: Executing keep alive", self.name)
         self._schedule_future_update(0)
-        self._schedule_next_keep_alive()
+        self._schedule_next_keep_alive(KEEP_ALIVE_TIME)
 
     def _time_since_last_operation(self) -> float:
         """Return the time since the last operation."""
         return time.monotonic() - self._last_operation_complete_time
 
-    def _schedule_next_keep_alive(self) -> None:
-        """Schedule the next keep alive."""
-        self._cancel_keepalive_timer()
+    def _reschedule_next_keep_alive(self) -> None:
+        """Reschedule the next keep alive."""
         next_keep_alive_time = max(
             0, KEEP_ALIVE_TIME - self._time_since_last_operation()
         )
+        self._schedule_next_keep_alive(next_keep_alive_time)
+
+    def _schedule_next_keep_alive(self, delay: float) -> None:
+        """Schedule the next keep alive."""
+        self._cancel_keepalive_timer()
         _LOGGER.debug(
             "%s: Scheduling next keep alive in %s seconds",
             self.name,
-            next_keep_alive_time,
+            delay,
         )
         self._keep_alive_timer = self.loop.call_later(
-            next_keep_alive_time,
+            delay,
             self._keep_alive,
         )
 
@@ -587,7 +591,7 @@ class PushLock:
         self._last_lock_operation_complete_time = now
         self._last_operation_complete_time = now
         self._reset_disconnect_timer()
-        self._schedule_next_keep_alive()
+        self._reschedule_next_keep_alive()
 
     def _state_callback(
         self, states: Iterable[LockStatus | DoorStatus | BatteryState]
@@ -731,7 +735,7 @@ class PushLock:
 
         if made_request:
             self._last_operation_complete_time = time.monotonic()
-            self._schedule_next_keep_alive()
+            self._reschedule_next_keep_alive()
         return state
 
     def _callback_state(self, lock_state: LockState) -> None:
