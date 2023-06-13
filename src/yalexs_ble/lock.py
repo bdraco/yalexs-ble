@@ -393,10 +393,15 @@ class Lock:
             await self._shutdown_connection()
         except BleakError:
             _LOGGER.debug(
-                "%s: Failed to cleanly disconnect from lock", self.name, exc_info=True
+                "%s: Failed to shutdown connection to lock", self.name, exc_info=True
             )
         finally:
-            await self.client.disconnect()
+            try:
+                await self.client.disconnect()
+            except BleakError:
+                _LOGGER.debug(
+                    "%s: Failed to disconnect from lock", self.name, exc_info=True
+                )
 
     async def _shutdown_connection(self) -> None:
         """Shutdown the connection."""
