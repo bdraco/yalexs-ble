@@ -391,6 +391,10 @@ class Lock:
 
         try:
             await self._shutdown_connection()
+        except BleakError:
+            _LOGGER.debug(
+                "%s: Failed to cleanly disconnect from lock", self.name, exc_info=True
+            )
         finally:
             await self.client.disconnect()
 
