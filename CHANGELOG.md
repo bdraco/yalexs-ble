@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.18 (2023-06-13)
+### Fix
+* Reduce battery drain when advertisement changes frequently ([#128](https://github.com/bdraco/yalexs-ble/issues/128)) ([`7f3fdfd`](https://github.com/bdraco/yalexs-ble/commit/7f3fdfd55bc4c004d89f4a377aa37d2b31d0f968))
+
 ## v2.1.17 (2023-05-16)
 ### Fix
 * Guard against reconnecting after shutdown ([#127](https://github.com/bdraco/yalexs-ble/issues/127)) ([`1499acb`](https://github.com/bdraco/yalexs-ble/commit/1499acb68fc85a660c326f237c003d0cdc8ebaf4))
