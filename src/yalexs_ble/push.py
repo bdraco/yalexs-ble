@@ -708,7 +708,8 @@ class PushLock:
             self._next_disconnect_delay = FIRST_CONNECTION_DISCONNECT_TIME
             self._reset_disconnect_or_keep_alive_timer()
 
-        self._last_operation_complete_time = time.monotonic()
+        if made_request:
+            self._last_operation_complete_time = time.monotonic()
         return state
 
     def _callback_state(self, lock_state: LockState) -> None:
