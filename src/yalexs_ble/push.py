@@ -51,7 +51,11 @@ NEVER_TIME = -86400.0
 
 DEFAULT_ATTEMPTS = 4
 
+# How long to wait to disconnect after an operation
 DISCONNECT_DELAY = 5.1
+
+# How long to wait to disconnect after an operation if there is a pending update
+DISCONNECT_DELAY_PENDING_UPDATE = 12.5
 
 RESYNC_DELAY = 0.01
 
@@ -236,6 +240,7 @@ class PushLock:
         advertisement_data: AdvertisementData | None = None,
         idle_disconnect_delay: float = DISCONNECT_DELAY,
         always_connected: bool = False,
+        idle_disconnect_delay_pending_update: float = DISCONNECT_DELAY_PENDING_UPDATE,
     ) -> None:
         """Init the lock watcher."""
         if local_name is None and address is None:
@@ -270,6 +275,9 @@ class PushLock:
         ] = set()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._keep_alive_timer: asyncio.TimerHandle | None = None
+        self._idle_disconnect_delay_pending_update = (
+            idle_disconnect_delay_pending_update
+        )
         self._idle_disconnect_delay = idle_disconnect_delay
         self._next_disconnect_delay = idle_disconnect_delay
         self._first_update_future: asyncio.Future[None] | None = None
@@ -852,10 +860,7 @@ class PushLock:
             and self._next_disconnect_delay != FIRST_CONNECTION_DISCONNECT_TIME
             and (
                 self._time_since_last_operation()
-                + (
-                    idle_disconnect_delay_with_pending_update := self._idle_disconnect_delay
-                    * 2.5
-                )
+                + self._idle_disconnect_delay_pending_update
             )
             < KEEP_ALIVE_TIME
         ):
@@ -864,7 +869,7 @@ class PushLock:
             # this is the first connection or deferring the update
             # would keep the connection idle for too long and
             # get us disconnected anyways.
-            self._next_disconnect_delay = idle_disconnect_delay_with_pending_update
+            self._next_disconnect_delay = self._idle_disconnect_delay_pending_update
             self._reset_disconnect_timer()
             return
         self._schedule_future_update_with_debounce(next_update)
