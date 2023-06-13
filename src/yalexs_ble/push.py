@@ -851,7 +851,11 @@ class PushLock:
             self.is_connected
             and self._next_disconnect_delay != FIRST_CONNECTION_DISCONNECT_TIME
             and (
-                self._time_since_last_operation() + (self._idle_disconnect_delay * 2.5)
+                self._time_since_last_operation()
+                + (
+                    idle_disconnect_delay_with_pending_update := self._idle_disconnect_delay
+                    * 2.5
+                )
             )
             < KEEP_ALIVE_TIME
         ):
@@ -860,7 +864,7 @@ class PushLock:
             # this is the first connection or deferring the update
             # would keep the connection idle for too long and
             # get us disconnected anyways.
-            self._next_disconnect_delay = self._idle_disconnect_delay * 2.5
+            self._next_disconnect_delay = idle_disconnect_delay_with_pending_update
             self._reset_disconnect_timer()
             return
         self._schedule_future_update_with_debounce(next_update)
