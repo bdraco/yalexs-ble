@@ -702,6 +702,7 @@ class PushLock:
         if LockStatus not in self._seen_this_session or (
             not made_request and self._always_connected
         ):
+            made_request = True
             lock_status = await lock.lock_status()
             _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(state, lock=lock_status, auth=AuthState(successful=True))
