@@ -897,10 +897,9 @@ class PushLock:
 
     def _schedule_future_update_with_debounce(self, seconds: float) -> None:
         """Schedule an update with a potential debounce."""
-        now = self.loop.time()
         future_update_time = seconds
         if self._cancel_deferred_update:
-            time_till_update = self._cancel_deferred_update.when() - now
+            time_till_update = self._cancel_deferred_update.when() - self.loop.time()
             if time_till_update < HK_UPDATE_COALESCE_SECONDS:
                 future_update_time = HK_UPDATE_COALESCE_SECONDS
                 _LOGGER.debug(
