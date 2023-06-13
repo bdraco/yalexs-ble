@@ -400,7 +400,7 @@ class PushLock:
         if not self._always_connected:
             return
         _LOGGER.debug("%s: Executing keep alive", self.name)
-        self._schedule_future_update_with_debounce(0)
+        self._schedule_future_update(0)
         self._schedule_next_keep_alive()
 
     def _time_since_last_operation(self) -> float:
