@@ -155,7 +155,16 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                     # authentications in a row we can reasonably assume that the key has
                     # changed and we should re-authenticate.
                     self._update_any_state([AuthState(successful=False)])
-                raise
+                    raise
+                _LOGGER.debug(
+                    "%s: Auth error calling %s, retrying (%s/%s)...",
+                    self.name,
+                    func,
+                    attempt,
+                    max_attempts,
+                    exc_info=True,
+                )
+                await asyncio.sleep(0.25)
             except BleakNotFoundError:
                 # The lock cannot be found so there is no
                 # point in retrying.
