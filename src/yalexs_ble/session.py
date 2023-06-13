@@ -268,6 +268,9 @@ class Session:
         if disconnect_task.done():
             write_task.cancel()
         if write_task.done():
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                disconnect_task.cancel()
+                await disconnect_task
             try:
                 return await write_task
             except BleakError as err:

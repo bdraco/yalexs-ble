@@ -51,7 +51,11 @@ NEVER_TIME = -86400.0
 
 DEFAULT_ATTEMPTS = 4
 
+# How long to wait to disconnect after an operation
 DISCONNECT_DELAY = 5.1
+
+# How long to wait to disconnect after an operation if there is a pending update
+DISCONNECT_DELAY_PENDING_UPDATE = 12.5
 
 RESYNC_DELAY = 0.01
 
@@ -81,7 +85,7 @@ MANUAL_UPDATE_COALESCE_SECONDS = 0.05
 POST_OPERATION_SYNC_TIME = 10.00
 
 # How long to wait if we get an update storm from the lock
-UPDATE_IN_PROGRESS_DEFER_SECONDS = 1.0
+UPDATE_IN_PROGRESS_DEFER_SECONDS = DISCONNECT_DELAY - 1
 
 RETRY_BACKOFF_EXCEPTIONS = (BleakDBusError, DisconnectedError)
 
@@ -155,7 +159,16 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                     # authentications in a row we can reasonably assume that the key has
                     # changed and we should re-authenticate.
                     self._update_any_state([AuthState(successful=False)])
-                raise
+                    raise
+                _LOGGER.debug(
+                    "%s: Auth error calling %s, retrying (%s/%s)...",
+                    self.name,
+                    func,
+                    attempt,
+                    max_attempts,
+                    exc_info=True,
+                )
+                await asyncio.sleep(0.25)
             except BleakNotFoundError:
                 # The lock cannot be found so there is no
                 # point in retrying.
@@ -227,6 +240,7 @@ class PushLock:
         advertisement_data: AdvertisementData | None = None,
         idle_disconnect_delay: float = DISCONNECT_DELAY,
         always_connected: bool = False,
+        idle_disconnect_delay_pending_update: float = DISCONNECT_DELAY_PENDING_UPDATE,
     ) -> None:
         """Init the lock watcher."""
         if local_name is None and address is None:
@@ -259,12 +273,17 @@ class PushLock:
         self._seen_this_session: set[
             type[LockStatus] | type[DoorStatus] | type[BatteryState] | type[AuthState]
         ] = set()
-        self._disconnect_or_keep_alive_timer: asyncio.TimerHandle | None = None
+        self._disconnect_timer: asyncio.TimerHandle | None = None
+        self._keep_alive_timer: asyncio.TimerHandle | None = None
+        self._idle_disconnect_delay_pending_update = (
+            idle_disconnect_delay_pending_update
+        )
         self._idle_disconnect_delay = idle_disconnect_delay
         self._next_disconnect_delay = idle_disconnect_delay
         self._first_update_future: asyncio.Future[None] | None = None
         self._background_tasks: set[asyncio.Task[None]] = set()
         self._last_lock_operation_complete_time = NEVER_TIME
+        self._last_operation_complete_time = NEVER_TIME
         self._always_connected = always_connected
 
     @property
@@ -328,6 +347,11 @@ class PushLock:
         """Return the current BLEDevice."""
         return self._ble_device
 
+    @property
+    def is_connected(self) -> bool:
+        """Return if the lock is connected."""
+        return bool(self._client and self._client.is_connected)
+
     def set_name(self, name: str) -> None:
         """Set the name of the lock."""
         self._name = name
@@ -390,30 +414,55 @@ class PushLock:
 
     def _keep_alive(self) -> None:
         """Keep the lock connection alive."""
-        self._schedule_future_update_with_debounce(0)
-        self._reset_disconnect_or_keep_alive_timer()
-
-    def _reset_disconnect_or_keep_alive_timer(self) -> None:
-        """Reset disconnect timer."""
-        self._cancel_disconnect_or_keep_alive_timer()
-        self._expected_disconnect = False
-        if self._always_connected:
-            self._disconnect_or_keep_alive_timer = self.loop.call_later(
-                KEEP_ALIVE_TIME, self._keep_alive
-            )
+        if not self._always_connected:
             return
+        _LOGGER.debug("%s: Executing keep alive", self.name)
+        self._schedule_future_update(0)
+        self._schedule_next_keep_alive(KEEP_ALIVE_TIME)
 
+    def _time_since_last_operation(self) -> float:
+        """Return the time since the last operation."""
+        return time.monotonic() - self._last_operation_complete_time
+
+    def _reschedule_next_keep_alive(self) -> None:
+        """Reschedule the next keep alive."""
+        next_keep_alive_time = max(
+            0, KEEP_ALIVE_TIME - self._time_since_last_operation()
+        )
+        self._schedule_next_keep_alive(next_keep_alive_time)
+
+    def _schedule_next_keep_alive(self, delay: float) -> None:
+        """Schedule the next keep alive."""
+        self._cancel_keepalive_timer()
+        if not self._always_connected:
+            return
+        _LOGGER.debug(
+            "%s: Scheduling next keep alive in %s seconds",
+            self.name,
+            delay,
+        )
+        self._keep_alive_timer = self.loop.call_later(
+            delay,
+            self._keep_alive,
+        )
+
+    def _reset_disconnect_timer(self) -> None:
+        """Reset disconnect timer."""
+        if self._always_connected:
+            return
+        self._cancel_disconnect_timer()
+        self._expected_disconnect = False
         timeout = self._next_disconnect_delay
         _LOGGER.debug(
             "%s: Resetting disconnect timer to %s seconds", self.name, timeout
         )
-        self._disconnect_or_keep_alive_timer = self.loop.call_later(
+        self._disconnect_timer = self.loop.call_later(
             timeout, self._disconnect_with_timer, timeout
         )
 
     async def _execute_forced_disconnect(self, reason: str) -> None:
         """Execute forced disconnection."""
-        self._cancel_disconnect_or_keep_alive_timer()
+        self._cancel_disconnect_timer()
         _LOGGER.debug("%s: Executing forced disconnect: %s", self.name, reason)
         if (update_task := self._update_task) and not update_task.done():
             self._update_task = None
@@ -425,28 +474,34 @@ class PushLock:
     def _disconnect_with_timer(self, timeout: float) -> None:
         """Disconnect from device.
 
-        This should only ever be called from _reset_disconnect_or_keep_alive_timer
+        This should only ever be called from _reset_disconnect_timer
         """
         if self._operation_lock.locked():
             _LOGGER.debug("%s: Disconnect timer reset due to operation lock", self.name)
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             return
         if self._cancel_deferred_update:
             _LOGGER.debug(
                 "%s: Disconnect timer fired while we were waiting to update", self.name
             )
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             self._cancel_future_update()
             self._deferred_update()
             return
-        self._cancel_disconnect_or_keep_alive_timer()
+        self._cancel_disconnect_timer()
         self.background_task(self._execute_timed_disconnect(timeout))
 
-    def _cancel_disconnect_or_keep_alive_timer(self) -> None:
+    def _cancel_disconnect_timer(self) -> None:
         """Cancel disconnect timer."""
-        if self._disconnect_or_keep_alive_timer:
-            self._disconnect_or_keep_alive_timer.cancel()
-            self._disconnect_or_keep_alive_timer = None
+        if self._disconnect_timer:
+            self._disconnect_timer.cancel()
+            self._disconnect_timer = None
+
+    def _cancel_keepalive_timer(self) -> None:
+        """Cancel keep alive timer."""
+        if self._keep_alive_timer:
+            self._keep_alive_timer.cancel()
+            self._keep_alive_timer = None
 
     async def _execute_timed_disconnect(self, timeout: float) -> None:
         """Execute timed disconnection."""
@@ -466,15 +521,13 @@ class PushLock:
                 self.name,
             )
             return
-        self._cancel_disconnect_or_keep_alive_timer()
+        self._cancel_disconnect_timer()
         await self._execute_disconnect()
 
     async def _execute_disconnect(self) -> None:
         """Execute disconnection."""
         async with self._connect_lock:
-            if (
-                self._disconnect_or_keep_alive_timer
-            ):  # If the timer was reset, don't disconnect
+            if self._disconnect_timer:  # If the timer was reset, don't disconnect
                 return
             client = self._client
             self._client = None
@@ -486,18 +539,20 @@ class PushLock:
     async def _ensure_connected(self) -> Lock:
         """Ensure connection to device is established."""
         if self._connect_lock.locked():
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             _LOGGER.debug(
                 "%s: Connection already in progress, waiting for it to complete",
                 self.name,
             )
-        if self._client and self._client.is_connected:
-            self._reset_disconnect_or_keep_alive_timer()
+        if self.is_connected:
+            assert self._client is not None  # nosec
+            self._reset_disconnect_timer()
             return self._client
         async with self._connect_lock:
             # Check again while holding the lock
-            if self._client and self._client.is_connected:
-                self._reset_disconnect_or_keep_alive_timer()
+            if self.is_connected:
+                assert self._client is not None  # type: ignore[unreachable] # nosec
+                self._reset_disconnect_timer()
                 return self._client
             self._client = self._get_lock_instance()
             try:
@@ -509,7 +564,7 @@ class PushLock:
                 await self._client.disconnect()
                 raise
             self._next_disconnect_delay = self._idle_disconnect_delay
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
             self._seen_this_session.clear()
             return self._client
 
@@ -551,14 +606,17 @@ class PushLock:
             raise
         self._update_any_state([complete_state])
         _LOGGER.debug("%s: Finished %s", self.name, complete_state)
-        self._last_lock_operation_complete_time = time.monotonic()
-        self._reset_disconnect_or_keep_alive_timer()
+        now = time.monotonic()
+        self._last_lock_operation_complete_time = now
+        self._last_operation_complete_time = now
+        self._reset_disconnect_timer()
+        self._reschedule_next_keep_alive()
 
     def _state_callback(
         self, states: Iterable[LockStatus | DoorStatus | BatteryState]
     ) -> None:
         """Handle state change."""
-        self._reset_disconnect_or_keep_alive_timer()
+        self._reset_disconnect_timer()
         self._update_any_state(states)
 
     def _get_current_state(self) -> LockState:
@@ -605,10 +663,9 @@ class PushLock:
 
     async def update(self) -> None:
         """Request that status be updated."""
+        _LOGGER.debug("%s: Starting manual update", self.name)
         self._schedule_future_update_with_debounce(
-            0
-            if self._client and self._client.is_connected
-            else MANUAL_UPDATE_COALESCE_SECONDS
+            0 if self.is_connected else MANUAL_UPDATE_COALESCE_SECONDS
         )
 
     async def validate(self) -> None:
@@ -662,6 +719,7 @@ class PushLock:
         if LockStatus not in self._seen_this_session or (
             not made_request and self._always_connected
         ):
+            made_request = True
             lock_status = await lock.lock_status()
             _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(state, lock=lock_status, auth=AuthState(successful=True))
@@ -693,8 +751,11 @@ class PushLock:
             # so that if another update request is pending
             # we do not disconnect until it completes.
             self._next_disconnect_delay = FIRST_CONNECTION_DISCONNECT_TIME
-            self._reset_disconnect_or_keep_alive_timer()
+            self._reset_disconnect_timer()
 
+        if made_request:
+            self._last_operation_complete_time = time.monotonic()
+            self._reschedule_next_keep_alive()
         return state
 
     def _callback_state(self, lock_state: LockState) -> None:
@@ -792,8 +853,26 @@ class PushLock:
                 next_update,
                 scheduled_update,
             )
-        if next_update:
-            self._schedule_future_update_with_debounce(next_update)
+        if not next_update:
+            return
+        if (
+            self.is_connected
+            and self._next_disconnect_delay != FIRST_CONNECTION_DISCONNECT_TIME
+            and (
+                self._time_since_last_operation()
+                + self._idle_disconnect_delay_pending_update
+            )
+            < KEEP_ALIVE_TIME
+        ):
+            # Already connected, state will be pushed, but stay
+            # connected a bit longer to make sure we get it unless
+            # this is the first connection or deferring the update
+            # would keep the connection idle for too long and
+            # get us disconnected anyways.
+            self._next_disconnect_delay = self._idle_disconnect_delay_pending_update
+            self._reset_disconnect_timer()
+            return
+        self._schedule_future_update_with_debounce(next_update)
 
     async def start(self) -> Callable[[], None]:
         """Start watching for updates."""
@@ -846,10 +925,9 @@ class PushLock:
 
     def _schedule_future_update_with_debounce(self, seconds: float) -> None:
         """Schedule an update with a potential debounce."""
-        now = self.loop.time()
         future_update_time = seconds
         if self._cancel_deferred_update:
-            time_till_update = self._cancel_deferred_update.when() - now
+            time_till_update = self._cancel_deferred_update.when() - self.loop.time()
             if time_till_update < HK_UPDATE_COALESCE_SECONDS:
                 future_update_time = HK_UPDATE_COALESCE_SECONDS
                 _LOGGER.debug(
@@ -866,7 +944,9 @@ class PushLock:
                     time_till_update,
                 )
                 return
-            _LOGGER.debug("%s: Rescheduling update", self.name)
+            _LOGGER.debug(
+                "%s: Rescheduling update for %s", self.name, future_update_time
+            )
         self._schedule_future_update(future_update_time)
 
     def _schedule_future_update(self, future_update_time: float) -> None:
