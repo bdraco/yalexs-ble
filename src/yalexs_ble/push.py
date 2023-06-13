@@ -397,7 +397,7 @@ class PushLock:
     @property
     def _time_since_last_operation(self) -> float:
         """Return the time since the last operation."""
-        return time.monotonic() - self._last_lock_operation_complete_time
+        return time.monotonic() - self._last_operation_complete_time
 
     def _reset_disconnect_or_keep_alive_timer(self) -> None:
         """Reset disconnect timer."""
