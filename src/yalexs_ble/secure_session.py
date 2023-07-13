@@ -22,10 +22,10 @@ class SecureSession(Session):
         client: BleakClient,
         name: str,
         lock: asyncio.Lock,
-        disconnected_event: asyncio.Event,
+        disconnected_futures: set[asyncio.Future[None]],
         key_index: int,
     ) -> None:
-        super().__init__(client, name, lock, disconnected_event)
+        super().__init__(client, name, lock, disconnected_futures)
         self.key_index = key_index
         self.write_characteristic = client.services.get_characteristic(
             self._write_characteristic

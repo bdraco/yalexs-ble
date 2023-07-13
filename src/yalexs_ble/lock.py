@@ -115,17 +115,21 @@ class Lock:
         self._lock = asyncio.Lock()
         self._lock_info = info
         self.client: BleakClientWithServiceCache | None = None
-        self._disconnected_event: asyncio.Event | None = None
         self._state_callback = state_callback
+        self._disconnected = False
         self._disconnect_callback = disconnect_callback
+        self._disconnected_futures: set[asyncio.Future[None]] = set()
 
     def set_name(self, name: str) -> None:
         self.name = name
 
     def disconnected(self, *args: Any, **kwargs: Any) -> None:
         _LOGGER.debug("%s: Disconnected from lock callback", self.name)
-        assert self._disconnected_event is not None  # nosec
-        self._disconnected_event.set()
+        self._disconnected = True
+        for future in self._disconnected_futures:
+            if not future.done():
+                future.set_result(None)
+        self._disconnected_futures.clear()
         if self._disconnect_callback:
             self._disconnect_callback()
 
@@ -135,7 +139,6 @@ class Lock:
             "%s: Connecting to the lock",
             self.name,
         )
-        self._disconnected_event = asyncio.Event()
         try:
             self.client = await establish_connection(
                 BleakClientWithServiceCache,
@@ -154,11 +157,15 @@ class Lock:
             self.client,
             self.name,
             self._lock,
-            self._disconnected_event,
+            self._disconnected_futures,
             self._internal_state_callback,
         )
         self.secure_session = SecureSession(
-            self.client, self.name, self._lock, self._disconnected_event, self.key_index
+            self.client,
+            self.name,
+            self._lock,
+            self._disconnected_futures,
+            self.key_index,
         )
         session = self.session
         secure_session = self.secure_session
@@ -227,7 +234,6 @@ class Lock:
         """Setup the session."""
         assert self.session is not None  # nosec
         assert self.secure_session is not None  # nosec
-        assert self._disconnected_event is not None  # nosec
         _LOGGER.debug("%s: Setting up the session", self.name)
         self.secure_session.set_key(self.key)
         handshake_keys = os.urandom(16)
@@ -408,11 +414,7 @@ class Lock:
         _LOGGER.debug("%s: Shutting down the connection", self.name)
         if self.session:
             await self.session.stop_notify()
-        if (
-            not self.is_secure
-            or not self.secure_session
-            or self._disconnected_event is None
-        ):
+        if not self.is_secure or not self.secure_session or self._disconnected:
             return
         cmd = self.secure_session.build_command(0x05)
         cmd[0x11] = 0x00
@@ -440,6 +442,5 @@ class Lock:
             and self.client.is_connected
             and self.session
             and self.secure_session
-            and self._disconnected_event is not None
-            and not self._disconnected_event.is_set()
+            and not self._disconnected
         )
