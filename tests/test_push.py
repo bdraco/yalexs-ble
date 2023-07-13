@@ -31,6 +31,8 @@ async def test_operation_lock():
     for _ in range(10):
         tasks.append(asyncio.create_task(lock.do_something()))
 
+    await asyncio.sleep(0)
+
     for _ in range(10):
         await asyncio.sleep(0)
         assert counter == 1
