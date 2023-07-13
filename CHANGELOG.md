@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.2.0 (2023-07-13)
+
+### Feature
+
+* Refactor to avoid asyncio.wait and task creation during write ([#129](https://github.com/bdraco/yalexs-ble/issues/129)) ([`ae0ea36`](https://github.com/bdraco/yalexs-ble/commit/ae0ea3609371f2383f1aa66cb1a727732300f03d))
+
 ## v2.1.18 (2023-06-13)
 ### Fix
 * Reduce battery drain when advertisement changes frequently ([#128](https://github.com/bdraco/yalexs-ble/issues/128)) ([`7f3fdfd`](https://github.com/bdraco/yalexs-ble/commit/7f3fdfd55bc4c004d89f4a377aa37d2b31d0f968))
