@@ -279,7 +279,7 @@ class Session:
             raise
         except asyncio.CancelledError:
             _LOGGER.debug(
-                "%s: %s Cancelled due to disconnect during write",
+                "%s: `%s` cancelled due to disconnect during write",
                 self.name,
                 command_name,
             )
