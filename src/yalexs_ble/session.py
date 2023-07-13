@@ -278,7 +278,11 @@ class Session:
                 raise DisconnectedError(f"{self.name}: {err}") from err
             raise
         except asyncio.CancelledError:
-            _LOGGER.debug("%s: Cancelled due to disconnect during write", self.name)
+            _LOGGER.debug(
+                "%s: %s Cancelled due to disconnect during write",
+                self.name,
+                command_name,
+            )
             raise DisconnectedError(f"{self.name}: Disconnected")
         finally:
             self._disconnected_futures.discard(disconnected_future)
