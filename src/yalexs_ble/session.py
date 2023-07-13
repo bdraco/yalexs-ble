@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 import time
 from typing import Callable
@@ -57,7 +56,7 @@ class Session:
         client: BleakClient,
         name: str,
         lock: asyncio.Lock,
-        disconnected_event: asyncio.Event,
+        disconnected_futures: set[asyncio.Future[None]],
         state_callback: Callable[[bytes], None] | None = None,
     ) -> None:
         """Init the session."""
@@ -75,7 +74,7 @@ class Session:
         self._notifications_started = False
         self._notify_future: asyncio.Future[bytes] | None = None
         self._state_callback = state_callback
-        self._disconnected_event = disconnected_event
+        self._disconnected_futures = disconnected_futures
         self._first_request = True
         self._last_callback_time = -86400.0
         self._enable_cooldown = False
@@ -167,7 +166,7 @@ class Session:
         # General idea seems to be that if the last byte
         # of the command indicates an offline key offset (is non-zero),
         # the command is "secure" and encrypted with the offline key
-        if not self.client.is_connected or self._disconnected_event.is_set():
+        if not self.client.is_connected:
             raise BleakError("disconnected")
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         plainText = command[0x00:0x10]
@@ -259,31 +258,33 @@ class Session:
             await asyncio.sleep(COOLDOWN_TIME - cooldown_remain)
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         self._write_checksum(command)
-        write_task = asyncio.create_task(self._write(command, command_name))
-        disconnect_task = asyncio.create_task(self._disconnected_event.wait())
-        await asyncio.wait(
-            (write_task, disconnect_task),
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-        if disconnect_task.done():
-            write_task.cancel()
-        if write_task.done():
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                disconnect_task.cancel()
-                await disconnect_task
-            try:
-                return await write_task
-            except BleakError as err:
-                if self._first_request and util.is_key_error(err):
-                    raise AuthError(
-                        f"Authentication error: key or slot (key index) is incorrect: {err}"
-                    ) from err
-                if util.is_disconnected_error(err):
-                    raise DisconnectedError(f"{self.name}: {err}") from err
-                raise
-            finally:
-                self._first_request = False
-        write_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError, Exception):
-            await write_task
-        raise DisconnectedError(f"{self.name}: Disconnected")
+        task = asyncio.current_task()
+        disconnected_future = asyncio.get_running_loop().create_future()
+        self._disconnected_futures.add(disconnected_future)
+
+        def _on_disconnected(fut: asyncio.Future[None]) -> None:
+            if task and not task.done():
+                task.cancel()
+
+        disconnected_future.add_done_callback(_on_disconnected)
+        try:
+            return await self._write(command, command_name)
+        except BleakError as err:
+            if self._first_request and util.is_key_error(err):
+                raise AuthError(
+                    f"Authentication error: key or slot (key index) is incorrect: {err}"
+                ) from err
+            if util.is_disconnected_error(err):
+                raise DisconnectedError(f"{self.name}: {err}") from err
+            raise
+        except asyncio.CancelledError:
+            _LOGGER.debug(
+                "%s: `%s` cancelled due to disconnect during write",
+                self.name,
+                command_name,
+            )
+            raise DisconnectedError(f"{self.name}: Disconnected")
+        finally:
+            self._disconnected_futures.discard(disconnected_future)
+            disconnected_future.remove_done_callback(_on_disconnected)
+            self._first_request = False
