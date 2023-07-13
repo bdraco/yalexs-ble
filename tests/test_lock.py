@@ -30,7 +30,6 @@ async def test_connection_canceled_on_disconnect():
         lambda _: None,
     )
     lock.client = mock_client
-    lock._disconnected_event = asyncio.Event()
 
     async def connect_and_wait():
         await lock.connect()
