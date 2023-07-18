@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Callable
+from functools import partial
+from typing import Any, Callable
 
 import async_timeout
 from bleak import BleakClient
@@ -45,6 +46,11 @@ class NoAdvertisementError(YaleXSBLEError):
 
 class BluetoothError(YaleXSBLEError):
     """Bluetooth error."""
+
+
+def _on_disconnected(task: asyncio.Task[Any], fut: asyncio.Future[None]) -> None:
+    if task and not task.done():
+        task.cancel()
 
 
 class Session:
@@ -258,15 +264,11 @@ class Session:
             await asyncio.sleep(COOLDOWN_TIME - cooldown_remain)
         assert self.cipher_encrypt is not None, "Cipher not set"  # nosec
         self._write_checksum(command)
-        task = asyncio.current_task()
         disconnected_future = asyncio.get_running_loop().create_future()
-        self._disconnected_futures.add(disconnected_future)
-
-        def _on_disconnected(fut: asyncio.Future[None]) -> None:
-            if task and not task.done():
-                task.cancel()
-
-        disconnected_future.add_done_callback(_on_disconnected)
+        disconnected_futures = self._disconnected_futures
+        disconnected_futures.add(disconnected_future)
+        disconnected_callback = partial(_on_disconnected, asyncio.current_task())
+        disconnected_future.add_done_callback(disconnected_callback)
         try:
             return await self._write(command, command_name)
         except BleakError as err:
@@ -278,6 +280,11 @@ class Session:
                 raise DisconnectedError(f"{self.name}: {err}") from err
             raise
         except asyncio.CancelledError:
+            if not disconnected_future.done():
+                # If we get cancelled and the disconnect callback hasn't
+                # been called yet, it came from somewhere else and we should
+                # raise to propagate it
+                raise
             _LOGGER.debug(
                 "%s: `%s` cancelled due to disconnect during write",
                 self.name,
@@ -285,6 +292,6 @@ class Session:
             )
             raise DisconnectedError(f"{self.name}: Disconnected")
         finally:
-            self._disconnected_futures.discard(disconnected_future)
-            disconnected_future.remove_done_callback(_on_disconnected)
+            disconnected_futures.discard(disconnected_future)
+            disconnected_future.remove_done_callback(disconnected_callback)
             self._first_request = False
