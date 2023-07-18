@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.2.1 (2023-07-18)
+
+### Fix
+
+* Ensure cancellation is propagated during write if it is not from a disconnect ([#131](https://github.com/bdraco/yalexs-ble/issues/131)) ([`dd65807`](https://github.com/bdraco/yalexs-ble/commit/dd65807d5dbf42387c0e46d2836af89a9876b4e7))
+
 ## v2.2.0 (2023-07-13)
 
 ### Feature
