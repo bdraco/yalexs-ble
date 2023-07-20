@@ -34,6 +34,7 @@ bleak-retry-connector = ">=2.9.0"
 async-timeout = ">=3.0.1"
 cryptography = ">=38.0.0"
 lru-dict = ">=1.1.4"
+async-interrupt = ">=1.1.1"
 
 [tool.poetry.extras]
 docs = [
