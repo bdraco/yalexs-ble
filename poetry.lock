@@ -149,6 +149,18 @@ files = [
 ]
 
 [[package]]
+name = "async-interrupt"
+version = "1.1.1"
+description = "Context manager to raise an exception when a future is done"
+category = "main"
+optional = false
+python-versions = ">=3.9,<4.0"
+files = [
+    {file = "async_interrupt-1.1.1-py3-none-any.whl", hash = "sha256:b0d8c8228b75834fd39608382e1c721d3e68e0011443e0f434b8e8e1cc7bd391"},
+    {file = "async_interrupt-1.1.1.tar.gz", hash = "sha256:1e5999f0980b5db21293e4cd022518eeaf52284c0499631932a1df250cb99215"},
+]
+
+[[package]]
 name = "async-timeout"
 version = "4.0.2"
 description = "Timeout context manager for asyncio programs"
@@ -1677,4 +1689,4 @@ docs = ["myst-parser", "Sphinx", "sphinx-rtd-theme"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "be78a1d209e503046e751145409decd88d026cf8eb15896419223d4ed549683f"
+content-hash = "762f08a2b290cb4c2100848aaeea6cb08bfb4fc25f1a2e9ccd44881554474b4e"

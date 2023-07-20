@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from functools import partial
-from typing import Any, Callable
+from typing import Callable
 
 import async_timeout
+from async_interrupt import interrupt
 from bleak import BleakClient
 from bleak_retry_connector import BleakError
 from cryptography.hazmat.primitives.ciphers import (
@@ -46,11 +46,6 @@ class NoAdvertisementError(YaleXSBLEError):
 
 class BluetoothError(YaleXSBLEError):
     """Bluetooth error."""
-
-
-def _on_disconnected(task: asyncio.Task[Any], fut: asyncio.Future[None]) -> None:
-    if task and not task.done():
-        task.cancel()
 
 
 class Session:
@@ -267,11 +262,11 @@ class Session:
         disconnected_future = asyncio.get_running_loop().create_future()
         disconnected_futures = self._disconnected_futures
         disconnected_futures.add(disconnected_future)
-        task = asyncio.current_task()
-        disconnected_callback = partial(_on_disconnected, task)
-        disconnected_future.add_done_callback(disconnected_callback)
         try:
-            return await self._write(command, command_name)
+            async with interrupt(
+                disconnected_future, DisconnectedError, f"{self.name}: Disconnected"
+            ):
+                return await self._write(command, command_name)
         except BleakError as err:
             if self._first_request and util.is_key_error(err):
                 raise AuthError(
@@ -280,25 +275,6 @@ class Session:
             if util.is_disconnected_error(err):
                 raise DisconnectedError(f"{self.name}: {err}") from err
             raise
-        except asyncio.CancelledError:
-            if not disconnected_future.done():
-                # If we get cancelled and the disconnect callback hasn't
-                # been called yet, it came from somewhere else and we should
-                # raise to propagate it
-                raise
-            _LOGGER.debug(
-                "%s: `%s` cancelled due to disconnect during write",
-                self.name,
-                command_name,
-            )
-            # On python 3.11+ we use task.uncancel()
-            # since we catch the CancelledError
-            if uncancel := getattr(task, "uncancel", None):
-                uncancel()
-            # Do not propagate the cancellation to the caller
-            # with from exception chaining
-            raise DisconnectedError(f"{self.name}: Disconnected")
         finally:
             disconnected_futures.discard(disconnected_future)
-            disconnected_future.remove_done_callback(disconnected_callback)
             self._first_request = False
