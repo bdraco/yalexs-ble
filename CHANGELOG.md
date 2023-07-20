@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.2.2 (2023-07-20)
+
+### Fix
+
+* Ensure task is uncancelled when catching CancelledError and re-raising as different exception ([#132](https://github.com/bdraco/yalexs-ble/issues/132)) ([`a4dc7ed`](https://github.com/bdraco/yalexs-ble/commit/a4dc7ed8c605b3996ca015109ca900aef6372b17))
+
 ## v2.2.1 (2023-07-18)
 
 ### Fix
