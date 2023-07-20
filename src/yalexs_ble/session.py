@@ -267,7 +267,8 @@ class Session:
         disconnected_future = asyncio.get_running_loop().create_future()
         disconnected_futures = self._disconnected_futures
         disconnected_futures.add(disconnected_future)
-        disconnected_callback = partial(_on_disconnected, asyncio.current_task())
+        task = asyncio.current_task()
+        disconnected_callback = partial(_on_disconnected, task)
         disconnected_future.add_done_callback(disconnected_callback)
         try:
             return await self._write(command, command_name)
@@ -290,6 +291,12 @@ class Session:
                 self.name,
                 command_name,
             )
+            # On python 3.11+ we use task.uncancel()
+            # since we catch the CancelledError
+            if uncancel := getattr(task, "uncancel", None):
+                uncancel()
+            # Do not propagate the cancellation to the caller
+            # with from exception chaining
             raise DisconnectedError(f"{self.name}: Disconnected")
         finally:
             disconnected_futures.discard(disconnected_future)
