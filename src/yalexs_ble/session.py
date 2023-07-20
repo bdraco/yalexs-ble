@@ -291,7 +291,7 @@ class Session:
                 self.name,
                 command_name,
             )
-            # On python 3.11+ we could use task.cancel()
+            # On python 3.11+ we use task.uncancel()
             # since we catch the CancelledError
             if uncancel := getattr(task, "uncancel", None):
                 uncancel()
