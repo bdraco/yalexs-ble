@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.2.3 (2023-07-20)
+
+### Fix
+
+* Use async-interrupt to avoid race in write ([#133](https://github.com/bdraco/yalexs-ble/issues/133)) ([`436f57b`](https://github.com/bdraco/yalexs-ble/commit/436f57bc230d58721c2221077f51340aa6866524))
+
 ## v2.2.2 (2023-07-20)
 
 ### Fix
