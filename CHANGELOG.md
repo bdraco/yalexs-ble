@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.3.0 (2023-09-09)
+
+### Feature
+
+* Switch to asyncio.timeout on py3.11+ ([#134](https://github.com/bdraco/yalexs-ble/issues/134)) ([`bce9605`](https://github.com/bdraco/yalexs-ble/commit/bce9605eb49a5d03512e7875c97f8695b665ca97))
+
 ## v2.2.3 (2023-07-20)
 
 ### Fix
