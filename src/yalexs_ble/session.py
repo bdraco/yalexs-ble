@@ -5,7 +5,6 @@ import logging
 import time
 from typing import Callable
 
-import async_timeout
 from async_interrupt import interrupt
 from bleak import BleakClient
 from bleak_retry_connector import BleakError
@@ -79,6 +78,7 @@ class Session:
         self._first_request = True
         self._last_callback_time = -86400.0
         self._enable_cooldown = False
+        self.loop = asyncio.get_running_loop()
 
     def set_key(self, key: bytes) -> None:
         self.cipher_encrypt = Cipher(
@@ -178,7 +178,7 @@ class Session:
         )
 
         for attempt in range(3):
-            future: asyncio.Future[bytes] = asyncio.Future()
+            future: asyncio.Future[bytes] = self.loop.create_future()
             self._notify_future = future
             _LOGGER.debug(
                 "%s: Writing command to %s: %s",
@@ -187,7 +187,7 @@ class Session:
                 command.hex(),
             )
             _LOGGER.debug("%s: Waiting for response", self.name)
-            async with async_timeout.timeout(10):
+            async with util.asyncio_timeout(10):
                 try:
                     await self.client.write_gatt_char(
                         self.write_characteristic, command, True

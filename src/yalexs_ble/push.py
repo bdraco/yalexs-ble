@@ -9,7 +9,6 @@ from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
-import async_timeout
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
@@ -38,7 +37,7 @@ from .session import (
     ResponseError,
     YaleXSBLEError,
 )
-from .util import is_disconnected_error, local_name_is_unique
+from .util import asyncio_timeout, is_disconnected_error, local_name_is_unique
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -905,7 +904,7 @@ class PushLock:
         if not self._first_update_future:
             raise RuntimeError("Already waited for first update")
         try:
-            async with async_timeout.timeout(timeout):
+            async with asyncio_timeout(timeout):
                 await self._first_update_future
         except (asyncio.TimeoutError, asyncio.CancelledError) as ex:
             self._first_update_future.cancel()
