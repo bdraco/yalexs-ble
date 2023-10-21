@@ -630,15 +630,19 @@ class PushLock:
         _LOGGER.debug("%s: State changed: %s", self.name, states)
         lock_state = self._get_current_state()
         original_lock_status = lock_state.lock
+        changes: dict[str, Any] = {}
         for state in states:
             state_type = type(state)
             self._seen_this_session.add(state_type)
             if isinstance(state, AuthState):
-                lock_state = replace(lock_state, auth=state)
+                if lock_state.auth != state:
+                    changes["auth"] = state
             elif isinstance(state, LockStatus):
-                lock_state = replace(lock_state, lock=state)
+                if lock_state.lock != state:
+                    changes["lock"] = state
             elif isinstance(state, DoorStatus):
-                lock_state = replace(lock_state, door=state)
+                if lock_state.door != state:
+                    changes["door"] = state
             elif isinstance(state, BatteryState):
                 if state.voltage <= 3.0:
                     _LOGGER.debug(
@@ -647,10 +651,15 @@ class PushLock:
                         state.voltage,
                     )
                     continue
-                lock_state = replace(lock_state, battery=state)
+                if lock_state.battery != state:
+                    changes["battery"] = state
             else:
                 raise ValueError(f"Unexpected state type: {state}")
 
+        if not changes:
+            return
+
+        lock_state = replace(lock_state, **changes)
         if (
             original_lock_status != lock_state.lock
             and (not lock_state.auth or lock_state.auth.successful)
