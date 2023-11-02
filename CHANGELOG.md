@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.3.2 (2023-11-02)
+
+### Fix
+
+* Ensure keep alives are disabled after stop ([#146](https://github.com/bdraco/yalexs-ble/issues/146)) ([`f4ec54d`](https://github.com/bdraco/yalexs-ble/commit/f4ec54d1dfa816152a44efda2871ec7cc016e433))
+
 ## v2.3.1 (2023-10-21)
 
 ### Fix
