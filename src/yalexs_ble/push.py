@@ -433,7 +433,7 @@ class PushLock:
     def _schedule_next_keep_alive(self, delay: float) -> None:
         """Schedule the next keep alive."""
         self._cancel_keepalive_timer()
-        if not self._always_connected:
+        if not self._always_connected or not self._running:
             return
         _LOGGER.debug(
             "%s: Scheduling next keep alive in %s seconds",
