@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.3.1 (2023-10-21)
+
+### Fix
+
+* Avoid state callbacks when nothing has changed ([#136](https://github.com/bdraco/yalexs-ble/issues/136)) ([`c4d3bc8`](https://github.com/bdraco/yalexs-ble/commit/c4d3bc89d797b6a9d8e9e564f14362041e8ec265))
+
 ## v2.3.0 (2023-09-09)
 
 ### Feature
