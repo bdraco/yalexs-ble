@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.4.0 (2024-01-01)
+
+### Feature
+
+* Make close_stale_connections_by_address available ([#150](https://github.com/bdraco/yalexs-ble/issues/150)) ([`3baf07f`](https://github.com/bdraco/yalexs-ble/commit/3baf07fc03aa48db534fef11d8ecf351d5e34e98))
+
 ## v2.3.2 (2023-11-02)
 
 ### Fix
