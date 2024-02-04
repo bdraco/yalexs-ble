@@ -447,7 +447,7 @@ class PushLock:
 
     def _reset_disconnect_timer(self) -> None:
         """Reset disconnect timer."""
-        if self._always_connected:
+        if self._always_connected and self._running:
             return
         self._cancel_disconnect_timer()
         self._expected_disconnect = False
@@ -526,7 +526,9 @@ class PushLock:
     async def _execute_disconnect(self) -> None:
         """Execute disconnection."""
         async with self._connect_lock:
-            if self._disconnect_timer:  # If the timer was reset, don't disconnect
+            if (
+                self._running and self._disconnect_timer
+            ):  # If the timer was reset, don't disconnect
                 return
             client = self._client
             self._client = None
@@ -893,12 +895,12 @@ class PushLock:
             self.set_ble_device(device)
             self._schedule_future_update_with_debounce(ADV_UPDATE_COALESCE_SECONDS)
 
-        def _cancel() -> None:
-            self._running = False
-            self._cancel_future_update()
-            self.background_task(self._execute_forced_disconnect("stopping"))
+        return self._cancel
 
-        return _cancel
+    def _cancel(self) -> None:
+        self._running = False
+        self._cancel_future_update()
+        self.background_task(self._execute_forced_disconnect("stopping"))
 
     def background_task(self, fut: Awaitable[Any]) -> None:
         """Execute a background task."""
