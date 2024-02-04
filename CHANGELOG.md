@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v2.4.1 (2024-02-04)
+
+### Fix
+
+* Handle YaleXSBLEError while shutting down the lock connection ([#154](https://github.com/bdraco/yalexs-ble/issues/154)) ([`787efa4`](https://github.com/bdraco/yalexs-ble/commit/787efa43ec95d3f6265b5d874af813fc3c937732))
+* Add running guards to ensure cancel does not get suppressed ([#153](https://github.com/bdraco/yalexs-ble/issues/153)) ([`f14fbee`](https://github.com/bdraco/yalexs-ble/commit/f14fbeee44682192c2f2bb2bedfc0ea8d641598d))
+
 ## v2.4.0 (2024-01-01)
 
 ### Feature
