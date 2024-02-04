@@ -29,7 +29,7 @@ from .const import (
     LockStatus,
 )
 from .secure_session import SecureSession
-from .session import AuthError, DisconnectedError, Session
+from .session import AuthError, DisconnectedError, Session, YaleXSBLEError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -430,6 +430,11 @@ class Lock:
                 _LOGGER.debug(
                     "%s: Failed to cleanly disconnect from lock: %s", self.name, err
                 )
+            return
+        except YaleXSBLEError as err:
+            _LOGGER.debug(
+                "%s: Failed to cleanly disconnect from lock: %s", self.name, err
+            )
             return
         if response and response[0] != 0x8B:
             _LOGGER.debug("%s: Unexpected response to DISCONNECT: %s", response.hex())
