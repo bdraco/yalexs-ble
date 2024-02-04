@@ -600,8 +600,13 @@ class PushLock:
             lock = await self._ensure_connected()
             self._cancel_future_update()
             await getattr(lock, op_attr)()
-        except Exception:
+        except Exception as ex:
             self._update_any_state([LockStatus.UNKNOWN])
+            _LOGGER.debug(
+                "%s: Failed to execute lock operation due to %s, forcing disconnect",
+                self.name,
+                ex,
+            )
             raise
         self._update_any_state([complete_state])
         _LOGGER.debug("%s: Finished %s", self.name, complete_state)
