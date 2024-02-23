@@ -9,10 +9,15 @@ from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
-from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
-from bleak_retry_connector import BLEAK_RETRY_EXCEPTIONS, BleakNotFoundError, get_device
+from bleak_retry_connector import (
+    BLEAK_RETRY_EXCEPTIONS,
+    MAX_CONNECT_ATTEMPTS,
+    BleakNotFoundError,
+    BLEDevice,
+    get_device,
+)
 from lru import LRU  # pylint: disable=no-name-in-module
 
 from .const import (
@@ -556,8 +561,9 @@ class PushLock:
                 self._reset_disconnect_timer()
                 return self._client
             self._client = self._get_lock_instance()
+            max_attempts = 1 if self._first_update_future else MAX_CONNECT_ATTEMPTS
             try:
-                await self._client.connect()
+                await self._client.connect(max_attempts)
             except Exception as ex:
                 _LOGGER.debug(
                     "%s: Failed to connect due to %s, forcing disconnect", self.name, ex
