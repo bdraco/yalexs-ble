@@ -9,6 +9,7 @@ from typing import Any, TypeVar, cast
 
 from bleak import BleakError
 from bleak_retry_connector import (
+    MAX_CONNECT_ATTEMPTS,
     BleakClientWithServiceCache,
     BLEDevice,
     establish_connection,
@@ -133,7 +134,7 @@ class Lock:
         if self._disconnect_callback:
             self._disconnect_callback()
 
-    async def connect(self) -> None:
+    async def connect(self, max_attempts: int = MAX_CONNECT_ATTEMPTS) -> None:
         """Connect to the lock."""
         _LOGGER.debug(
             "%s: Connecting to the lock",
@@ -147,6 +148,7 @@ class Lock:
                 self.disconnected,
                 use_services_cache=True,
                 ble_device_callback=self.ble_device_callback,
+                max_attempts=max_attempts,
             )
         except (asyncio.TimeoutError, BleakError) as err:
             _LOGGER.error("%s: Failed to connect to the lock: %s", self.name, err)
