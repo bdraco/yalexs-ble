@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.4.2 (2024-02-23)
+
+### Fix
+
+* Only try to connect once at startup ([#158](https://github.com/bdraco/yalexs-ble/issues/158)) ([`c7ad2ef`](https://github.com/bdraco/yalexs-ble/commit/c7ad2ef25c4d6bcb7fae82ee9142b68e638aa8c6))
+
 ## v2.4.1 (2024-02-04)
 
 ### Fix
