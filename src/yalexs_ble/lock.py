@@ -75,7 +75,7 @@ def raise_if_not_connected(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to raise if we are not connected to the lock."""
 
     async def _async_wrap_connected_operation(
-        self: "Lock", *args: Any, **kwargs: Any
+        self: Lock, *args: Any, **kwargs: Any
     ) -> None:
         """Wrap a function to make sure the lock is connected."""
         if not self.is_connected:
