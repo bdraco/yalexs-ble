@@ -266,9 +266,9 @@ class PushLock:
         self._ble_device = ble_device
         self._operation_lock = asyncio.Lock()
         self._running = False
-        self._callbacks: list[Callable[[LockState, LockInfo, ConnectionInfo], None]] = (
-            []
-        )
+        self._callbacks: list[
+            Callable[[LockState, LockInfo, ConnectionInfo], None]
+        ] = []
         self._update_task: asyncio.Task[None] | None = None
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
