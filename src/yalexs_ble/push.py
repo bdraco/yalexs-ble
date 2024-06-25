@@ -5,7 +5,7 @@ import contextlib
 import logging
 import struct
 import time
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Coroutine, Callable, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
@@ -913,9 +913,9 @@ class PushLock:
         self._cancel_future_update()
         self.background_task(self._execute_forced_disconnect("stopping"))
 
-    def background_task(self, fut: Awaitable[Any]) -> None:
+    def background_task(self, fut: Coroutine[Any, Any, Any]) -> None:
         """Execute a background task."""
-        task = asyncio.create_task(fut)
+        task: asyncio.Task[Any] = asyncio.create_task(fut)
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.remove)
 
