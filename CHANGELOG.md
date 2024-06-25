@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.4.3 (2024-06-25)
+
+### Fix
+
+* Fix license classifier ([#163](https://github.com/bdraco/yalexs-ble/issues/163)) ([`86a4ad8`](https://github.com/bdraco/yalexs-ble/commit/86a4ad87ac09b4277cd1d7c941c6c0e38a34e278))
+
 ## v2.4.2 (2024-02-23)
 
 ### Fix
