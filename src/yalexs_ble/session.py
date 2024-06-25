@@ -82,10 +82,12 @@ class Session:
 
     def set_key(self, key: bytes) -> None:
         self.cipher_encrypt = Cipher(
-            algorithms.AES(key), modes.CBC(bytes(0x10))  # nosec
+            algorithms.AES(key),
+            modes.CBC(bytes(0x10)),  # nosec
         ).encryptor()
         self.cipher_decrypt = Cipher(
-            algorithms.AES(key), modes.CBC(bytes(0x10))  # nosec
+            algorithms.AES(key),
+            modes.CBC(bytes(0x10)),  # nosec
         ).decryptor()
 
     def enable_cooldown(self) -> None:
