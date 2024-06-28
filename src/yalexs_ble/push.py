@@ -106,7 +106,7 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
 
     async def _async_wrap_operation_lock(
-        self: "PushLock", *args: Any, **kwargs: Any
+        self: PushLock, *args: Any, **kwargs: Any
     ) -> None:
         _LOGGER.debug("%s: Acquiring lock", self.name)
         async with self._operation_lock:
@@ -146,7 +146,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
     """
 
     async def _async_wrap_retry_bluetooth_connection_error(
-        self: "PushLock", *args: Any, **kwargs: Any
+        self: PushLock, *args: Any, **kwargs: Any
     ) -> Any:
         _LOGGER.debug("%s: Starting retry loop", self.name)
         attempts = DEFAULT_ATTEMPTS
