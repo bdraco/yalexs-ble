@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.5.0 (2024-10-06)
+
+### Feature
+
+* Add support for Python 3.13 ([#178](https://github.com/bdraco/yalexs-ble/issues/178)) ([`807eb53`](https://github.com/bdraco/yalexs-ble/commit/807eb536d862699098d9c98dea3f22ada1152860))
+
 ## v2.4.3 (2024-06-25)
 
 ### Fix
