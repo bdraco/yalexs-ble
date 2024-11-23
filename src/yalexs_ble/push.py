@@ -307,7 +307,10 @@ class PushLock:
     @property
     def address(self) -> str:
         """Get the address of the lock."""
-        return self._ble_device.address if self._ble_device else self._address
+        if self._ble_device:
+            return self._ble_device.address
+        assert self._address is not None  # nosec
+        return self._address
 
     @property
     def door_status(self) -> DoorStatus:
