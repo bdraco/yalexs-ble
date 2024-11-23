@@ -564,12 +564,17 @@ class PushLock:
             max_attempts = 1 if self._first_update_future else MAX_CONNECT_ATTEMPTS
             try:
                 await self._client.connect(max_attempts)
-            except Exception as ex:
+            except BaseException as ex:  # Might be cancelled
                 _LOGGER.debug(
                     "%s: Failed to connect due to %s, forcing disconnect", self.name, ex
                 )
-                await self._client.disconnect()
-                raise
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    _LOGGER.exception(
+                        "%s: Failed to disconnect after failed connect", self.name
+                    )
+                raise ex
             self._next_disconnect_delay = self._idle_disconnect_delay
             self._reset_disconnect_timer()
             self._seen_this_session.clear()
