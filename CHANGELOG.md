@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.5.1 (2024-11-23)
+
+### Fix
+
+* Ensure disconnect still happens when connect gets cancellation ([#180](https://github.com/bdraco/yalexs-ble/issues/180)) ([`c26b18f`](https://github.com/bdraco/yalexs-ble/commit/c26b18f4767b9d0dcdc93e409eff658c674cfc32))
+
 ## v2.5.0 (2024-10-06)
 
 ### Feature
