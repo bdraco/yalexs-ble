@@ -101,6 +101,8 @@ VALID_ADV_VALUES = {0, 1}
 
 AUTH_FAILURE_TO_START_REAUTH = 5
 
+NO_BATTERY_SUPPORT_MODELS = {"SL-103"}
+
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
@@ -720,7 +722,10 @@ class PushLock:
         state = self._get_current_state()
         made_request = False
 
-        if BatteryState not in self._seen_this_session:
+        if (
+            self._lock_info.model not in NO_BATTERY_SUPPORT_MODELS
+            and BatteryState not in self._seen_this_session
+        ):
             made_request = True
             battery_state = await lock.battery()
             _AUTH_FAILURE_HISTORY.auth_success(self.address)
