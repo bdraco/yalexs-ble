@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.5.2 (2024-12-07)
+
+### Fix
+
+* Add battery workaround for the SL-103 model aka Yale Linus 2 ([#183](https://github.com/bdraco/yalexs-ble/issues/183)) ([`282800d`](https://github.com/bdraco/yalexs-ble/commit/282800dea766e370cf136485a440a262b49d2ade))
+
 ## v2.5.1 (2024-11-23)
 
 ### Fix
