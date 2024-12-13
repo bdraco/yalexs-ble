@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.5.3 (2024-12-13)
+
+### Fix
+
+* Add Yale Smart Code Handle to battery exclude list ([#185](https://github.com/bdraco/yalexs-ble/issues/185)) ([`ddd708b`](https://github.com/bdraco/yalexs-ble/commit/ddd708b9c4a7874a3601bd2a734660777fd7a8d9))
+
 ## v2.5.2 (2024-12-07)
 
 ### Fix
