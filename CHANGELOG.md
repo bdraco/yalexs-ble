@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.5.4 (2024-12-13)
+
+### Fix
+
+* Add lock info debug logging to help troubleshoot specific locks ([#186](https://github.com/bdraco/yalexs-ble/issues/186)) ([`3661e41`](https://github.com/bdraco/yalexs-ble/commit/3661e4131bcee4de6e7ca9ad4e52ca71248cc40f))
+
 ## v2.5.3 (2024-12-13)
 
 ### Fix
