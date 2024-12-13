@@ -101,7 +101,10 @@ VALID_ADV_VALUES = {0, 1}
 
 AUTH_FAILURE_TO_START_REAUTH = 5
 
-NO_BATTERY_SUPPORT_MODELS = {"SL-103"}
+NO_BATTERY_SUPPORT_MODELS = {
+    "SL-103"  # Linus L2
+    "CERES"  # Smart code handle
+}
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
