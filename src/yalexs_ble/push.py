@@ -720,6 +720,7 @@ class PushLock:
         lock = await self._ensure_connected()
         if not self._lock_info:
             self._lock_info = await lock.lock_info()
+            _LOGGER.debug("Obtained lock info: %s", self._lock_info)
         # Asking for battery first seems to be reduce the chance of the lock
         # getting into a bad state.
         state = self._get_current_state()
