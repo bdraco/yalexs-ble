@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.5.5 (2024-12-14)
+
+### Fix
+
+* Battery workaround for models with removal L-Ion battery ([#187](https://github.com/bdraco/yalexs-ble/issues/187)) ([`a937a48`](https://github.com/bdraco/yalexs-ble/commit/a937a48dd074f57cad90cd9f7250b360b625ccf3))
+
 ## v2.5.4 (2024-12-13)
 
 ### Fix
