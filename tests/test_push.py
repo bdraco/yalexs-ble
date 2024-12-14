@@ -2,7 +2,11 @@ import asyncio
 
 import pytest
 
-from yalexs_ble.push import operation_lock, retry_bluetooth_connection_error
+from yalexs_ble.push import (
+    operation_lock,
+    retry_bluetooth_connection_error,
+    NO_BATTERY_SUPPORT_MODELS,
+)
 
 
 @pytest.mark.asyncio
@@ -128,3 +132,9 @@ async def test_retry_bluetooth_connection_error_with_operation_lock():
     for task in tasks:
         task.cancel()
     await asyncio.sleep(0)
+
+
+def test_needs_battery_workaround():
+    assert "SL-103" in NO_BATTERY_SUPPORT_MODELS
+    assert "CERES" in NO_BATTERY_SUPPORT_MODELS
+    assert "ASL-03" not in NO_BATTERY_SUPPORT_MODELS
