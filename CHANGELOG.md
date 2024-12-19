@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.5.6 (2024-12-19)
+
+### Fix
+
+* Downgrade BleakNotFoundError while updating to debug ([#189](https://github.com/bdraco/yalexs-ble/issues/189)) ([`26a4392`](https://github.com/bdraco/yalexs-ble/commit/26a4392627eded8a7c6a9f19487de562b2f9d1d7))
+
 ## v2.5.5 (2024-12-14)
 
 ### Fix
