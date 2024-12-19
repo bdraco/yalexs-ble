@@ -1054,6 +1054,11 @@ class PushLock:
         except asyncio.TimeoutError as ex:
             self._set_update_state(ex)
             _LOGGER.exception("%s: Timed out updating", self.name)
+        except BleakNotFoundError as ex:
+            wrapped_bleak_exc = BluetoothError(str(ex))
+            wrapped_bleak_exc.__cause__ = ex
+            self._set_update_state(wrapped_bleak_exc)
+            _LOGGER.debug("%s: not found error updating", self.name, exc_info=True)
         except BleakError as ex:
             wrapped_bleak_exc = BluetoothError(str(ex))
             wrapped_bleak_exc.__cause__ = ex
