@@ -1,12 +1,20 @@
-[tool.poetry]
+[project]
 name = "yalexs-ble"
 version = "2.5.6"
 description = "Bluetooth control of Yale and August locks"
-authors = ["J. Nick Koston <nick@koston.org>"]
+authors = [{ name = "J. Nick Koston", email = "nick@koston.org" }]
 license = "GPL-3.0-only"
 readme = "README.md"
-repository = "https://github.com/bdraco/yalexs-ble"
-documentation = "https://yalexs-ble.readthedocs.io"
+requires-python = ">=3.10"
+dynamic = ["classifiers", "dependencies"]
+
+[project.urls]
+"Documentation" = "https://yalexs-ble.readthedocs.io"
+"Repository" = "https://github.com/bdraco/yalexs-ble"
+"Bug Tracker" = "https://github.com/bdraco/yalexs-ble/issues"
+"Changelog" = "https://github.com/bdraco/yalexs-ble/blob/main/CHANGELOG.md"
+
+[tool.poetry]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
@@ -17,10 +25,6 @@ classifiers = [
 packages = [
     { include = "yalexs_ble", from = "src" },
 ]
-
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/bdraco/yalexs-ble/issues"
-"Changelog" = "https://github.com/bdraco/yalexs-ble/blob/main/CHANGELOG.md"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.14"
@@ -33,14 +37,14 @@ cryptography = ">=38.0.0"
 lru-dict = ">=1.1.4"
 async-interrupt = ">=1.1.1"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
 pytest-cov = "^3.0"
 pytest-asyncio = "^0.19.0"
 
 [tool.semantic_release]
 branch = "main"
-version_toml = "pyproject.toml:tool.poetry.version"
+version_toml = "pyproject.toml:project.version"
 version_variable = "src/yalexs_ble/__init__.py:__version__"
 build_command = "pip install poetry && poetry build"
 
@@ -87,5 +91,5 @@ module = "docs.*"
 ignore_errors = true
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
