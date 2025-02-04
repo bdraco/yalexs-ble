@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.5.7 (2025-02-04)
+
+### Fix
+
+* Update poetry to v2 ([#196](https://github.com/bdraco/yalexs-ble/issues/196)) ([`7c422e8`](https://github.com/bdraco/yalexs-ble/commit/7c422e8cbb43860919700b34d925978748cf0f7b))
+
 ## v2.5.6 (2024-12-19)
 
 ### Fix
