@@ -137,4 +137,5 @@ async def test_retry_bluetooth_connection_error_with_operation_lock():
 def test_needs_battery_workaround():
     assert "SL-103" in NO_BATTERY_SUPPORT_MODELS
     assert "CERES" in NO_BATTERY_SUPPORT_MODELS
+    assert "Yale Linus L2" in NO_BATTERY_SUPPORT_MODELS
     assert "ASL-03" not in NO_BATTERY_SUPPORT_MODELS
