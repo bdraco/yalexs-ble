@@ -104,9 +104,9 @@ class Session:
 
         return data
 
-    def build_operation_command(self, cmd_byte: int) -> bytearray:
+    def build_operation_command(self, opcode: int, cmd_byte: int) -> bytearray:
         """Build a command to send to the lock."""
-        cmd = self.build_command(0x02)
+        cmd = self.build_command(opcode)
         cmd[0x04] = cmd_byte
         return cmd
 

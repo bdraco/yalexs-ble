@@ -25,8 +25,10 @@ NO_DOOR_SENSE_MODELS = {"ASL-02", "ASL-01"}
 
 
 class Commands(Enum):
+    GETSTATUS = 0x02
     UNLOCK = 0x0A
     LOCK = 0x0B
+    NOP = 0x22
 
 
 class LockStatus(Enum):
@@ -37,7 +39,15 @@ class LockStatus(Enum):
     LOCKING = 0x04
     LOCKED = 0x05
     UNKNOWN_06 = 0x06
-
+    UNKNOWN_07 = 0x07
+    UNKNOWN_08 = 0x08
+    UNLATCHING = 0x09
+    UNLATCHED = 0x0A
+    UNKNOWN_0B = 0x0B
+    SECUREMODE = 0x0C
+    UNKNOWN_0D = 0x0D
+    UNKNOWN_0E = 0x0E
+    UNKNOWN_0F = 0x0F
 
 VALUE_TO_LOCK_STATUS = {status.value: status for status in LockStatus}
 
@@ -45,9 +55,20 @@ VALUE_TO_LOCK_STATUS = {status.value: status for status in LockStatus}
 class DoorStatus(Enum):
     UNKNOWN = 0x00
     CLOSED = 0x01
-    UNKNOWN_02 = 0x02
+    AJAR = 0x02
     OPENED = 0x03
     UNKNOWN_04 = 0x04
+    UNKNOWN_05 = 0x05
+    UNKNOWN_06 = 0x06
+    UNKNOWN_07 = 0x07
+    UNKNOWN_08 = 0x08
+    UNKNOWN_09 = 0x09
+    UNKNOWN_0A = 0x0A
+    UNKNOWN_0B = 0x0B
+    UNKNOWN_0C = 0x0C
+    UNKNOWN_0D = 0x0D
+    UNKNOWN_0E = 0x0E
+    UNKNOWN_0F = 0x0F
 
 
 VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
