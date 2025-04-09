@@ -588,6 +588,14 @@ class PushLock:
             self._seen_this_session.clear()
             return self._client
 
+    async def securemode(self) -> None:
+        """Set the lock into securemode."""
+        self._update_any_state([LockStatus.LOCKING])
+        self._cancel_future_update()
+        await self._execute_lock_operation(
+            "force_securemode", LockStatus.LOCKING, LockStatus.SECUREMODE
+        )
+
     async def lock(self) -> None:
         """Lock the lock."""
         self._update_any_state([LockStatus.LOCKING])
@@ -595,7 +603,6 @@ class PushLock:
         await self._execute_lock_operation(
             "force_lock", LockStatus.LOCKING, LockStatus.LOCKED
         )
-
     async def unlock(self) -> None:
         """Unlock the lock."""
         self._update_any_state([LockStatus.UNLOCKING])
