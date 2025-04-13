@@ -306,7 +306,7 @@ class Lock:
         await self.session.execute(
             self.session.build_operation_command(Commands.LOCK, 0x04), "force_securemode"
         )
-        _LOGGER.info("%s: Finished securemode", self.name)
+        _LOGGER.debug("%s: Finished securemode", self.name)
 
     @raise_if_not_connected
     async def force_lock(self) -> None:
@@ -316,7 +316,7 @@ class Lock:
         await self.session.execute(
             self.session.build_command(Commands.LOCK), "force_lock"
         )
-        _LOGGER.info("%s: Finished locking", self.name)
+        _LOGGER.debug("%s: Finished locking", self.name)
 
     @raise_if_not_connected
     async def force_unlock(self) -> None:
@@ -326,7 +326,7 @@ class Lock:
         await self.session.execute(
             self.session.build_command(Commands.UNLOCK), "force_unlock"
         )
-        _LOGGER.info("%s: Finished unlocking", self.name)
+        _LOGGER.debug("%s: Finished unlocking", self.name)
 
     async def securemode(self) -> None:
         if (await self.lock_status()) != LockStatus.SECUREMODE:
