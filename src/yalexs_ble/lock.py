@@ -137,8 +137,9 @@ class Lock:
     async def connect(self, max_attempts: int = MAX_CONNECT_ATTEMPTS) -> None:
         """Connect to the lock."""
         _LOGGER.info(
-            "%s: Running my_yalesxs_ble 4.0.3",
+            "%s: Running my_yalesxs_ble %s",
             self.name,
+            __VERSION__,
         )
         _LOGGER.debug(
             "%s: Connecting to the lock",
@@ -227,14 +228,14 @@ class Lock:
             elif state[4] == 0x0F:
                 self._state_callback([self._parse_battery_state(state)])
             else:
-                _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
+                _LOGGER.info("%s: Unknown state: %s", self.name, state.hex())
         elif state[0] == 0xAA:
             if state[1] == Commands.UNLOCK.value:
                 self._state_callback([LockStatus.UNLOCKED])
             elif state[1] == Commands.LOCK.value:
                 self._state_callback([LockStatus.LOCKED])
             else:
-                _LOGGER.debug("%s: Unknown state: %s", self.name, state.hex())
+                _LOGGER.info("%s: Unknown state: %s", self.name, state.hex())
 
     async def _setup_session(self) -> None:
         """Setup the session."""
@@ -303,7 +304,7 @@ class Lock:
         _LOGGER.debug("%s: Securing", self.name)
         assert self.session is not None  # nosec
         await self.session.execute(
-            self.session.build_operation_command(Commands.LOCK.value, 0x04), "force_securemode"
+            self.session.build_operation_command(Commands.LOCK, 0x04), "force_securemode"
         )
         _LOGGER.info("%s: Finished securemode", self.name)
 
@@ -313,7 +314,7 @@ class Lock:
         _LOGGER.debug("%s: Locking", self.name)
         assert self.session is not None  # nosec
         await self.session.execute(
-            self.session.build_command(Commands.LOCK.value), "force_lock"
+            self.session.build_command(Commands.LOCK), "force_lock"
         )
         _LOGGER.info("%s: Finished locking", self.name)
 
@@ -323,7 +324,7 @@ class Lock:
         _LOGGER.debug("%s: Unlocking", self.name)
         assert self.session is not None  # nosec
         await self.session.execute(
-            self.session.build_command(Commands.UNLOCK.value), "force_unlock"
+            self.session.build_command(Commands.UNLOCK), "force_unlock"
         )
         _LOGGER.info("%s: Finished unlocking", self.name)
 
@@ -361,7 +362,7 @@ class Lock:
         """Parse the lock state from the response."""
         lock_status_enum = VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)
         if lock_status_enum == LockStatus.UNKNOWN:
-            _LOGGER.debug(
+            _LOGGER.info(
                 "%s: Unrecognized lock_status_str code: %s", self.name, hex(lock_status)
             )
         return lock_status_enum
@@ -370,7 +371,7 @@ class Lock:
         """Parse the door state from the response."""
         door_status_enum = VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)
         if door_status_enum == DoorStatus.UNKNOWN:
-            _LOGGER.debug(
+            _LOGGER.info(
                 "%s: Unrecognized door_status_str code: %s", self.name, hex(door_status)
             )
         return door_status_enum
@@ -379,7 +380,7 @@ class Lock:
     async def lock_status(self) -> LockStatus:
         _LOGGER.debug("%s: Executing lock_status", self.name)
         # We used to use 0x2F here but it seems to be broken on some locks
-        response = await self._execute_command(Commands.GETSTATUS.value, 0x02, "lock_status")
+        response = await self._execute_command(Commands.GETSTATUS, 0x02, "lock_status")
         _LOGGER.debug("%s: Finished executing lock_status", self.name)
         return self._parse_lock_status(response[0x08])
 
@@ -387,7 +388,7 @@ class Lock:
     async def door_status(self) -> DoorStatus:
         _LOGGER.debug("%s: Executing door_status", self.name)
         # We used to use 0x2F here but it seems to be broken on some locks
-        response = await self._execute_command(Commands.GETSTATUS.value, 0x2E, "door_status")
+        response = await self._execute_command(Commands.GETSTATUS, 0x2E, "door_status")
         _LOGGER.debug("%s: Finished executing door_status", self.name)
         return self._parse_door_status(response[0x08])
 
@@ -405,7 +406,7 @@ class Lock:
     @raise_if_not_connected
     async def battery(self) -> BatteryState:
         _LOGGER.debug("%s: Executing battery", self.name)
-        response = await self._execute_command(Commands.GETSTATUS.value, 0x0F, "battery")
+        response = await self._execute_command(Commands.GETSTATUS, 0x0F, "battery")
         _LOGGER.debug("%s: Finished executing battery", self.name)
         return self._parse_battery_state(response)
 
