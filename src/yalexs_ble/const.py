@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import TypedDict
 
 COMMAND_SERVICE_UUID = "0000fe24-0000-1000-8000-00805f9b34fb"
@@ -24,7 +24,7 @@ FIRMWARE_REVISION_CHARACTERISTIC = "00002a26-0000-1000-8000-00805f9b34fb"
 NO_DOOR_SENSE_MODELS = {"ASL-02", "ASL-01"}
 
 
-class Commands(Enum):
+class Commands(IntEnum):
     GETSTATUS = 0x02
     UNLOCK = 0x0A
     LOCK = 0x0B

@@ -136,11 +136,6 @@ class Lock:
 
     async def connect(self, max_attempts: int = MAX_CONNECT_ATTEMPTS) -> None:
         """Connect to the lock."""
-        _LOGGER.info(
-            "%s: Running my_yalesxs_ble %s",
-            self.name,
-            __VERSION__,
-        )
         _LOGGER.debug(
             "%s: Connecting to the lock",
             self.name,
