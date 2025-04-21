@@ -44,8 +44,8 @@ pytest-asyncio = "^0.19.0"
 
 [tool.semantic_release]
 branch = "main"
-version_toml = "pyproject.toml:project.version"
-version_variable = "src/yalexs_ble/__init__.py:__version__"
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["src/yalexs_ble/__init__.py:__version__"]
 build_command = "pip install poetry && poetry build"
 
 [tool.pytest.ini_options]
