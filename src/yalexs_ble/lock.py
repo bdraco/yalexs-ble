@@ -406,9 +406,8 @@ class Lock:
         """Parse the lock activity from the response."""
         # We only know a subset of lock activities currently
         # response[0x04] seems to be the activity type
-        # the rest of the response is data for the activity
-        # response[0x05-0x08] is the timestamp
-        # response[0x09] (and onwards?) is the data for the activity
+        # the rest of the response is data for the activity, 
+        # format seems to be specific to each individual activity type
         activity_type = response[0x04]
         _LOGGER.debug("%s: Activity type: 0x%02X", self.name, activity_type)
         if activity_type == LockActivityType.DOOR.value:
