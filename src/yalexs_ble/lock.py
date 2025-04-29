@@ -394,19 +394,23 @@ class Lock:
         response = await self._execute_command(0x0F, "battery")
         _LOGGER.debug("%s: Finished executing battery", self.name)
         return self._parse_battery_state(response)
-    
+
     def _parse_unix_timestamp(self, timestamp_bytes: bytes) -> datetime:
         """Parse the unix timestamp to datetime from the bytes."""
-        _LOGGER.debug("%s: Parsing unix timestamp: %s", self.name, timestamp_bytes.hex())
+        _LOGGER.debug(
+            "%s: Parsing unix timestamp: %s", self.name, timestamp_bytes.hex()
+        )
         unix_timestamp = int.from_bytes(timestamp_bytes, byteorder="little")
         _LOGGER.debug("%s: Parsed unix timestamp: %d", self.name, unix_timestamp)
         return datetime.fromtimestamp(unix_timestamp)
 
-    def _parse_lock_activity(self, response: bytes) -> DoorActivity | LockActivity | None:
+    def _parse_lock_activity(
+        self, response: bytes
+    ) -> DoorActivity | LockActivity | None:
         """Parse the lock activity from the response."""
         # We only know a subset of lock activities currently
         # response[0x04] seems to be the activity type
-        # the rest of the response is data for the activity, 
+        # the rest of the response is data for the activity,
         # format seems to be specific to each individual activity type
         activity_type = response[0x04]
         _LOGGER.debug("%s: Activity type: 0x%02X", self.name, activity_type)

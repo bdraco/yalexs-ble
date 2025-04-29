@@ -54,6 +54,7 @@ class DoorStatus(Enum):
 
 VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 
+
 class LockActivityType(Enum):
     LOCK = 0x00
     DOOR = 0x20
@@ -77,6 +78,7 @@ class LockState:
 class LockActivity:
     timestamp: datetime
     status: LockStatus
+
 
 @dataclass
 class DoorActivity:
