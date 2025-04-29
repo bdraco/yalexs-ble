@@ -5,6 +5,7 @@ import bisect
 import logging
 import os
 from collections.abc import Callable, Iterable
+from datetime import datetime
 from typing import Any, TypeVar, cast
 
 from bleak import BleakError
@@ -25,7 +26,10 @@ from .const import (
     VALUE_TO_LOCK_STATUS,
     BatteryState,
     Commands,
+    DoorActivity,
     DoorStatus,
+    LockActivity,
+    LockActivityType,
     LockInfo,
     LockStatus,
 )
@@ -390,6 +394,46 @@ class Lock:
         response = await self._execute_command(0x0F, "battery")
         _LOGGER.debug("%s: Finished executing battery", self.name)
         return self._parse_battery_state(response)
+    
+    def _parse_unix_timestamp(self, timestamp_bytes: bytes) -> datetime:
+        """Parse the unix timestamp to datetime from the bytes."""
+        _LOGGER.debug("%s: Parsing unix timestamp: %s", self.name, timestamp_bytes.hex())
+        unix_timestamp = int.from_bytes(timestamp_bytes, byteorder="little")
+        _LOGGER.debug("%s: Parsed unix timestamp: %d", self.name, unix_timestamp)
+        return datetime.fromtimestamp(unix_timestamp)
+
+    def _parse_lock_activity(self, response: bytes) -> DoorActivity | LockActivity | None:
+        """Parse the lock activity from the response."""
+        # We only know a subset of lock activities currently
+        # response[0x04] seems to be the activity type
+        # the rest of the response is data for the activity
+        # response[0x05-0x08] is the timestamp
+        # response[0x09] (and onwards?) is the data for the activity
+        activity_type = response[0x04]
+        _LOGGER.debug("%s: Activity type: 0x%02X", self.name, activity_type)
+        if activity_type == LockActivityType.DOOR.value:
+            # Timestamp is at 0x05-0x08
+            # Door status is at 0x09
+            timestamp = self._parse_unix_timestamp(response[0x05:0x09])
+            door_status = self._parse_door_status(response[0x09])
+            return DoorActivity(timestamp, door_status)
+        elif activity_type == LockActivityType.LOCK.value:
+            # Timestamp is at 0x08-0x0B
+            # Lock status is at 0x06
+            timestamp = self._parse_unix_timestamp(response[0x08:0x0C])
+            lock_status = self._parse_lock_status(response[0x06])
+            return LockActivity(timestamp, lock_status)
+        _LOGGER.warning("%s: Unknown activity type: 0x%02X", self.name, activity_type)
+        return None
+
+    @raise_if_not_connected
+    async def lock_activity(self) -> DoorActivity | LockActivity | None:
+        _LOGGER.debug("%s: Executing lock_activity", self.name)
+        response = await self.session.execute(
+            self.session.build_command(Commands.LOCK_ACTIVITY.value), "lock_activity"
+        )
+        _LOGGER.debug("%s: Finished executing lock_activity", self.name)
+        return self._parse_lock_activity(response)
 
     async def disconnect(self) -> None:
         """Disconnect from the lock."""
