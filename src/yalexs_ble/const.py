@@ -38,7 +38,7 @@ class LockStatus(Enum):
     LOCKING = 0x04
     LOCKED = 0x05
     UNKNOWN_06 = 0x06 #PolDiscovery
-    #UNKNOWNSTATICPOSITION = 0x07
+    #STATICPOSITION = 0x07
     #UNLATCHING = 0x09
     #UNLATCHED = 0x0A
     SECUREMODE = 0x0C
