@@ -32,15 +32,15 @@ class Commands(IntEnum):
 
 class LockStatus(Enum):
     UNKNOWN = 0x00
-    UNKNOWN_01 = 0x01 #Calibrating
+    UNKNOWN_01 = 0x01  # Calibrating
     UNLOCKING = 0x02
     UNLOCKED = 0x03
     LOCKING = 0x04
     LOCKED = 0x05
-    UNKNOWN_06 = 0x06 #PolDiscovery
-    #STATICPOSITION = 0x07
-    #UNLATCHING = 0x09
-    #UNLATCHED = 0x0A
+    UNKNOWN_06 = 0x06  # PolDiscovery
+    # STATICPOSITION = 0x07
+    # UNLATCHING = 0x09
+    # UNLATCHED = 0x0A
     SECUREMODE = 0x0C
 
 
@@ -48,11 +48,12 @@ VALUE_TO_LOCK_STATUS = {status.value: status for status in LockStatus}
 
 
 class DoorStatus(Enum):
-    UNKNOWN = 0x00 #Init
+    UNKNOWN = 0x00  # Init
     CLOSED = 0x01
     AJAR = 0x02
     OPENED = 0x03
-    UNKNOWN_04 = 0x04 #Unknown
+    UNKNOWN_04 = 0x04  # Unknown
+
 
 VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 

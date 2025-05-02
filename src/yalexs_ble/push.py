@@ -603,7 +603,7 @@ class PushLock:
         await self._execute_lock_operation(
             "force_lock", LockStatus.LOCKING, LockStatus.LOCKED
         )
-        
+
     async def unlock(self) -> None:
         """Unlock the lock."""
         self._update_any_state([LockStatus.UNLOCKING])

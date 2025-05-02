@@ -299,7 +299,8 @@ class Lock:
         _LOGGER.debug("%s: Securing", self.name)
         assert self.session is not None  # nosec
         await self.session.execute(
-            self.session.build_operation_command(Commands.LOCK, 0x04), "force_securemode"
+            self.session.build_operation_command(Commands.LOCK, 0x04),
+            "force_securemode",
         )
         _LOGGER.debug("%s: Finished securemode", self.name)
 
@@ -335,7 +336,9 @@ class Lock:
         if (await self.lock_status()) != LockStatus.UNLOCKED:
             await self.force_unlock()
 
-    async def _execute_command(self, opcode: int, cmd_byte: int, command_name: str) -> bytes:
+    async def _execute_command(
+        self, opcode: int, cmd_byte: int, command_name: str
+    ) -> bytes:
         assert self.session is not None  # nosec
         command = self.session.build_operation_command(opcode, cmd_byte)
         _LOGGER.debug("%s: send: [%s] [%s]", self.name, command.hex(), hex(cmd_byte))
