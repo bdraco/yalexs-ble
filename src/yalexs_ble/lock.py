@@ -206,7 +206,7 @@ class Lock:
 
     def _internal_state_callback(self, state: bytes) -> None:
         """Handle state change."""
-        _LOGGER.info("%s: State changed: %s", self.name, state.hex())
+        _LOGGER.debug("%s: State changed: %s", self.name, state.hex())
         if state[0] == 0xBB:
             if state[4] == 0x02:  # lock only
                 lock_status = state[0x08]
