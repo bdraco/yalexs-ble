@@ -431,7 +431,17 @@ class Lock:
             # Lock status is at 0x06
             timestamp = self._parse_unix_timestamp(response[0x08:0x0C])
             lock_status = self._parse_lock_status(response[0x06])
+
             return LockActivity(timestamp, lock_status)
+        elif activity_type == LockActivityType.PIN.value:
+            # Timestamp is at 0x05-0x08
+            # Slot is at 0x10
+            # Lock status seems to be at lower half of 0x0C
+            timestamp = self._parse_unix_timestamp(response[0x05:0x09])
+            pin_slot = response[0x10]
+            lock_status = self._parse_lock_status(response[0x0C] & 0x0F)
+
+            return LockActivity(timestamp, lock_status, pin_slot)
         _LOGGER.warning("%s: Unknown activity type: 0x%02X", self.name, activity_type)
         return None
 
