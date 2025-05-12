@@ -416,6 +416,10 @@ class Lock:
         # format seems to be specific to each individual activity type
         activity_type = response[0x04]
         _LOGGER.debug("%s: Activity type: 0x%02X", self.name, activity_type)
+        if activity_type == LockActivityType.NONE.value:
+            _LOGGER.debug("%s: No activity", self.name)
+            return None
+
         if activity_type == LockActivityType.DOOR.value:
             # Timestamp is at 0x05-0x08
             # Door status is at 0x09
