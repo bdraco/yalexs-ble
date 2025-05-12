@@ -434,6 +434,7 @@ class Lock:
     @raise_if_not_connected
     async def lock_activity(self) -> DoorActivity | LockActivity | None:
         _LOGGER.debug("%s: Executing lock_activity", self.name)
+        assert self.session is not None  # nosec
         response = await self.session.execute(
             self.session.build_command(Commands.LOCK_ACTIVITY.value), "lock_activity"
         )
