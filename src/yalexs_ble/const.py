@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TypedDict
 from datetime import datetime
-from typing import Optional
 
 COMMAND_SERVICE_UUID = "0000fe24-0000-1000-8000-00805f9b34fb"
 WRITE_CHARACTERISTIC = "bd4ac611-0b45-11e3-8ffd-0800200c9a66"
@@ -59,7 +58,7 @@ VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 class LockActivityType(Enum):
     LOCK = 0x00
     DOOR = 0x20
-    PIN = 0x0e
+    PIN = 0x0E
     NONE = 0x80
 
 
@@ -81,7 +80,7 @@ class LockState:
 class LockActivity:
     timestamp: datetime
     status: LockStatus
-    slot: Optional[int] = None
+    slot: int | None = None
 
 
 @dataclass
