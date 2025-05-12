@@ -213,7 +213,7 @@ class Lock:
         _LOGGER.debug("%s: State changed: %s", self.name, state.hex())
         if state[0] == 0xBB:
             if state[1] == Commands.LOCK_ACTIVITY.value:
-                return # Ignore lock activity as these are historical events
+                return  # Ignore lock activity as these are historical events
             if state[4] == 0x02:  # lock only
                 lock_status = state[0x08]
                 self._state_callback(
