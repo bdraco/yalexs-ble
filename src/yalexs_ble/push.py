@@ -26,11 +26,13 @@ from .const import (
     HAP_FIRST_BYTE,
     YALE_MFR_ID,
     AuthState,
+    AutoLockState,
     BatteryState,
     ConnectionInfo,
     DoorStatus,
     LockInfo,
     LockState,
+    LockStateValue,
     LockStatus,
 )
 from .lock import Lock
@@ -280,7 +282,7 @@ class PushLock:
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._seen_this_session: set[
-            type[LockStatus] | type[DoorStatus] | type[BatteryState] | type[AuthState]
+            type[LockStatus] | type[DoorStatus] | type[BatteryState] | type[AuthState] | type[AutoLockState]
         ] = set()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._keep_alive_timer: asyncio.TimerHandle | None = None
@@ -336,6 +338,16 @@ class PushLock:
     def auth(self) -> AuthState | None:
         """Return the current auth state."""
         return self._lock_state.auth if self._lock_state else None
+
+    @property
+    def auto_lock(self) -> AutoLockState | None:
+        """Return the current auto lock state."""
+        return self._lock_state.auto_lock if self._lock_state else None
+
+    @property
+    def auto_lock_prev(self) -> AutoLockState | None:
+        """Return the previous auto lock state."""
+        return self._lock_state.auto_lock_prev if self._lock_state else None
 
     @property
     def lock_state(self) -> LockState | None:
@@ -646,7 +658,7 @@ class PushLock:
         self._reschedule_next_keep_alive()
 
     def _state_callback(
-        self, states: Iterable[LockStatus | DoorStatus | BatteryState]
+        self, states: Iterable[LockStateValue]
     ) -> None:
         """Handle state change."""
         self._reset_disconnect_timer()
@@ -655,11 +667,16 @@ class PushLock:
     def _get_current_state(self) -> LockState:
         """Get the current state of the lock."""
         return self._lock_state or LockState(
-            self.lock_status, self.door_status, self.battery, self.auth
+            self.lock_status,
+            self.door_status,
+            self.battery,
+            self.auth,
+            self.auto_lock,
+            self.auto_lock_prev,
         )
 
     def _update_any_state(
-        self, states: Iterable[LockStatus | DoorStatus | BatteryState | AuthState]
+        self, states: Iterable[LockStateValue | AuthState]
     ) -> None:
         _LOGGER.debug("%s: State changed: %s", self.name, states)
         lock_state = self._get_current_state()
@@ -687,6 +704,10 @@ class PushLock:
                     continue
                 if lock_state.battery != state:
                     changes["battery"] = state
+            elif isinstance(state, AutoLockState):
+                if lock_state.auto_lock != state:
+                    changes["auto_lock"] = state
+                    changes["auto_lock_prev"] = lock_state.auto_lock
             else:
                 raise ValueError(f"Unexpected state type: {state}")
 
@@ -757,6 +778,17 @@ class PushLock:
             door_status = await lock.door_status()
             _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(state, door=door_status, auth=AuthState(successful=True))
+
+        if AutoLockState not in self._seen_this_session:
+            made_request = True
+            auto_lock_state = await lock.auto_lock_status()
+            _AUTH_FAILURE_HISTORY.auth_success(self.address)
+            state = replace(
+                state,
+                auto_lock=auto_lock_state,
+                auto_lock_prev=state.auto_lock,
+                auth=AuthState(successful=True)
+            )
 
         # Only ask for the lock status if we haven't seen
         # it this session since notify callbacks will happen
