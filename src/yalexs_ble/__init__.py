@@ -1,6 +1,7 @@
 from bleak_retry_connector import close_stale_connections_by_address
 
 from .const import (
+    AutoLockMode,
     ConnectionInfo,
     DoorStatus,
     LockInfo,
@@ -24,6 +25,7 @@ __version__ = "3.0.0"
 
 __all__ = [
     "AuthError",
+    "AutoLockMode",
     "ConnectionInfo",
     "DisconnectedError",
     "DoorStatus",

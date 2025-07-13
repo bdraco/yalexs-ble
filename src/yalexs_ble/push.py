@@ -26,6 +26,7 @@ from .const import (
     HAP_FIRST_BYTE,
     YALE_MFR_ID,
     AuthState,
+    AutoLockMode,
     AutoLockState,
     BatteryState,
     ConnectionInfo,
@@ -107,6 +108,8 @@ NO_BATTERY_SUPPORT_MODELS = {
     "SL-103",  # Linus L2
     "CERES",  # Smart code handle
 }
+
+AUTO_LOCK_DEFAULT_DURATION = 90
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -653,6 +656,78 @@ class PushLock:
         _LOGGER.debug("%s: Finished %s", self.name, complete_state)
         now = time.monotonic()
         self._last_lock_operation_complete_time = now
+        self._last_operation_complete_time = now
+        self._reset_disconnect_timer()
+        self._reschedule_next_keep_alive()
+
+    @property
+    def auto_lock_durations(self) -> list[int]:
+        return [0, 10, 30, 60, 90, 120, 150, 180, 240, 300, 600, 1200, 1800]
+
+    @property
+    def auto_lock_modes(self) -> list[str]:
+        return ["off", "instant", "timer"]
+
+    async def set_auto_lock_mode(self, mode: AutoLockMode) -> None:
+        """Set auto lock setting."""
+        if mode == AutoLockMode.OFF:
+            if self.auto_lock and self.auto_lock.mode == AutoLockMode.OFF:
+                _LOGGER.debug(
+                    "%s: Auto lock is already off", self.name
+                )
+                return
+            await self._set_auto_lock(AutoLockMode.OFF, 0)
+            return
+
+        duration = AUTO_LOCK_DEFAULT_DURATION
+        if self.auto_lock and self.auto_lock.mode != AutoLockMode.OFF:
+            duration = self.auto_lock.duration
+        elif self.auto_lock_prev and self.auto_lock_prev.mode != AutoLockMode.OFF:
+            # If the auto lock is currently off, use the previous duration
+            duration = self.auto_lock_prev.duration
+        await self._set_auto_lock(mode, duration)
+
+    async def set_auto_lock_duration(self, duration: int) -> None:
+        """Set auto lock setting."""
+        if duration == 0:
+            if self.auto_lock and self.auto_lock.mode == AutoLockMode.OFF:
+                _LOGGER.debug(
+                    "%s: Auto lock is already off", self.name
+                )
+                return
+            await self._set_auto_lock(AutoLockMode.OFF, 0)
+            return
+
+        mode = AutoLockMode.TIMER
+        if self.auto_lock and self.auto_lock.mode != AutoLockMode.OFF:
+            mode = self.auto_lock.mode
+        elif self.auto_lock_prev and self.auto_lock_prev.mode != AutoLockMode.OFF:
+            # If the auto lock is currently off, use the previous mode
+            mode = self.auto_lock_prev.mode
+        await self._set_auto_lock(mode, duration)
+
+    @retry_bluetooth_connection_error
+    async def _set_auto_lock(self, mode: AutoLockMode, duration: int) -> None:
+        """Set auto lock setting."""
+        if not self._running:
+            raise RuntimeError(
+                f"{self.name}: Set auto lock operation not possible because not running"
+            )
+        # Duration validation
+        if duration not in self.auto_lock_durations:
+            duration = AUTO_LOCK_DEFAULT_DURATION
+        try:
+            lock = await self._ensure_connected()
+            self._cancel_future_update()
+            await lock.set_auto_lock(mode, duration)
+        except Exception as ex:
+            _LOGGER.debug(
+                "%s: Failed to execute set auto lock operation due to %s, forcing disconnect",
+                self.name,
+                ex,
+            )
+            raise
+        now = time.monotonic()
         self._last_operation_complete_time = now
         self._reset_disconnect_timer()
         self._reschedule_next_keep_alive()
