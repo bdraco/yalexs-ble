@@ -106,9 +106,7 @@ class Lock:
         keyString: str,
         keyIndex: int,
         name: str,
-        state_callback: Callable[
-            [Iterable[LockStateValue]], None
-        ],
+        state_callback: Callable[[Iterable[LockStateValue]], None],
         info: LockInfo | None = None,
         disconnect_callback: Callable[[], None] | None = None,
     ) -> None:
@@ -336,13 +334,17 @@ class Lock:
     @raise_if_not_connected
     async def set_auto_lock(self, mode: AutoLockMode, duration: int) -> None:
         """Change the auto lock setting."""
-        _LOGGER.debug("%s: Setting auto lock to mode=%d, dur=%d", self.name, mode, duration)
+        _LOGGER.debug(
+            "%s: Setting auto lock to mode=%d, dur=%d", self.name, mode, duration
+        )
         assert self.session is not None  # nosec
         if mode == AutoLockMode.OFF:
             mode = AutoLockMode.INSTANT
             duration = 0
 
-        cmd = self.session.build_operation_command(Commands.WRITESETTING, SettingType.AUTOLOCK)
+        cmd = self.session.build_operation_command(
+            Commands.WRITESETTING, SettingType.AUTOLOCK
+        )
         util._copy(cmd, util._int_to_bytes(duration, 2), destLocation=0x08)
         cmd[0x0A] = mode
         await self.session.execute(cmd, "set_auto_lock")
@@ -415,7 +417,9 @@ class Lock:
     async def lock_status(self) -> LockStatus:
         _LOGGER.debug("%s: Executing lock_status", self.name)
         # We used to use 0x2F here but it seems to be broken on some locks
-        response = await self._execute_command(Commands.GETSTATUS, StatusType.LOCK_ONLY, "lock_status")
+        response = await self._execute_command(
+            Commands.GETSTATUS, StatusType.LOCK_ONLY, "lock_status"
+        )
         _LOGGER.debug("%s: Finished executing lock_status", self.name)
         return self._parse_lock_status(response[0x08])
 
@@ -423,7 +427,9 @@ class Lock:
     async def door_status(self) -> DoorStatus:
         _LOGGER.debug("%s: Executing door_status", self.name)
         # We used to use 0x2F here but it seems to be broken on some locks
-        response = await self._execute_command(Commands.GETSTATUS, StatusType.DOOR_ONLY, "door_status")
+        response = await self._execute_command(
+            Commands.GETSTATUS, StatusType.DOOR_ONLY, "door_status"
+        )
         _LOGGER.debug("%s: Finished executing door_status", self.name)
         return self._parse_door_status(response[0x08])
 
@@ -441,14 +447,18 @@ class Lock:
     @raise_if_not_connected
     async def battery(self) -> BatteryState:
         _LOGGER.debug("%s: Executing battery", self.name)
-        response = await self._execute_command(Commands.GETSTATUS, StatusType.BATTERY, "battery")
+        response = await self._execute_command(
+            Commands.GETSTATUS, StatusType.BATTERY, "battery"
+        )
         _LOGGER.debug("%s: Finished executing battery", self.name)
         return self._parse_battery_state(response)
 
     @raise_if_not_connected
     async def auto_lock_status(self) -> AutoLockState:
         _LOGGER.debug("%s: Executing auto_lock_status", self.name)
-        response = await self._execute_command(Commands.READSETTING, SettingType.AUTOLOCK, "auto_lock_status")
+        response = await self._execute_command(
+            Commands.READSETTING, SettingType.AUTOLOCK, "auto_lock_status"
+        )
         _LOGGER.debug("%s: Finished executing auto_lock_status", self.name)
         return self._parse_auto_lock_state(response)
 

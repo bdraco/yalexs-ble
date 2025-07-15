@@ -285,7 +285,11 @@ class PushLock:
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._seen_this_session: set[
-            type[LockStatus] | type[DoorStatus] | type[BatteryState] | type[AuthState] | type[AutoLockState]
+            type[LockStatus]
+            | type[DoorStatus]
+            | type[BatteryState]
+            | type[AuthState]
+            | type[AutoLockState]
         ] = set()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._keep_alive_timer: asyncio.TimerHandle | None = None
@@ -672,9 +676,7 @@ class PushLock:
         """Set auto lock setting."""
         if mode == AutoLockMode.OFF:
             if self.auto_lock and self.auto_lock.mode == AutoLockMode.OFF:
-                _LOGGER.debug(
-                    "%s: Auto lock is already off", self.name
-                )
+                _LOGGER.debug("%s: Auto lock is already off", self.name)
                 return
             await self._set_auto_lock(AutoLockMode.OFF, 0)
             return
@@ -691,9 +693,7 @@ class PushLock:
         """Set auto lock setting."""
         if duration == 0:
             if self.auto_lock and self.auto_lock.mode == AutoLockMode.OFF:
-                _LOGGER.debug(
-                    "%s: Auto lock is already off", self.name
-                )
+                _LOGGER.debug("%s: Auto lock is already off", self.name)
                 return
             await self._set_auto_lock(AutoLockMode.OFF, 0)
             return
@@ -732,9 +732,7 @@ class PushLock:
         self._reset_disconnect_timer()
         self._reschedule_next_keep_alive()
 
-    def _state_callback(
-        self, states: Iterable[LockStateValue]
-    ) -> None:
+    def _state_callback(self, states: Iterable[LockStateValue]) -> None:
         """Handle state change."""
         self._reset_disconnect_timer()
         self._update_any_state(states)
@@ -750,9 +748,7 @@ class PushLock:
             self.auto_lock_prev,
         )
 
-    def _update_any_state(
-        self, states: Iterable[LockStateValue | AuthState]
-    ) -> None:
+    def _update_any_state(self, states: Iterable[LockStateValue | AuthState]) -> None:
         _LOGGER.debug("%s: State changed: %s", self.name, states)
         lock_state = self._get_current_state()
         original_lock_status = lock_state.lock
@@ -862,7 +858,7 @@ class PushLock:
                 state,
                 auto_lock=auto_lock_state,
                 auto_lock_prev=state.auto_lock,
-                auth=AuthState(successful=True)
+                auth=AuthState(successful=True),
             )
 
         # Only ask for the lock status if we haven't seen
