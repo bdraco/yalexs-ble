@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from typing import TypedDict
+from datetime import datetime
 
 COMMAND_SERVICE_UUID = "0000fe24-0000-1000-8000-00805f9b34fb"
 WRITE_CHARACTERISTIC = "bd4ac611-0b45-11e3-8ffd-0800200c9a66"
@@ -28,6 +29,7 @@ class Commands(IntEnum):
     GETSTATUS = 0x02
     UNLOCK = 0x0A
     LOCK = 0x0B
+    LOCK_ACTIVITY = 0x2D
 
 
 class LockStatus(Enum):
@@ -58,6 +60,13 @@ class DoorStatus(Enum):
 VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 
 
+class LockActivityType(Enum):
+    LOCK = 0x00
+    DOOR = 0x20
+    PIN = 0x0E
+    NONE = 0x80
+
+
 @dataclass
 class BatteryState:
     voltage: float
@@ -70,6 +79,19 @@ class LockState:
     door: DoorStatus
     battery: BatteryState | None
     auth: AuthState | None
+
+
+@dataclass
+class LockActivity:
+    timestamp: datetime
+    status: LockStatus
+    slot: int | None = None
+
+
+@dataclass
+class DoorActivity:
+    timestamp: datetime
+    status: DoorStatus
 
 
 @dataclass
