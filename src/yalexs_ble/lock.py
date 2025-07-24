@@ -8,14 +8,13 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any, TypeVar, cast
 
+from bleak import BleakError
 from bleak_retry_connector import (
     MAX_CONNECT_ATTEMPTS,
     BleakClientWithServiceCache,
     BLEDevice,
     establish_connection,
 )
-
-from bleak import BleakError
 
 from . import util
 from .const import (
@@ -215,16 +214,16 @@ class Lock:
         if state[0] == 0xBB:
             if state[1] == Commands.LOCK_ACTIVITY.value:
                 return None  # Ignore lock activity as these are historical events
-            elif state[1] == Commands.GETSTATUS:
+            if state[1] == Commands.GETSTATUS:
                 if state[4] == StatusType.LOCK_ONLY:
                     lock_status = state[0x08]
                     return [VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)]
-                elif state[4] == StatusType.DOOR_ONLY:
+                if state[4] == StatusType.DOOR_ONLY:
                     door_status = state[0x08]
                     return [VALUE_TO_DOOR_STATUS.get(door_status, DoorStatus.UNKNOWN)]
-                elif state[4] == StatusType.DOOR_AND_LOCK:
+                if state[4] == StatusType.DOOR_AND_LOCK:
                     return self._parse_lock_and_door_state(state)
-                elif state[4] == StatusType.BATTERY:
+                if state[4] == StatusType.BATTERY:
                     return [self._parse_battery_state(state)]
             elif state[1] == Commands.WRITESETTING or state[1] == Commands.READSETTING:
                 if state[4] == SettingType.AUTOLOCK:
@@ -232,7 +231,7 @@ class Lock:
         elif state[0] == 0xAA:
             if state[1] == Commands.UNLOCK:
                 return [LockStatus.UNLOCKED]
-            elif state[1] == Commands.LOCK:
+            if state[1] == Commands.LOCK:
                 return [LockStatus.LOCKED]
         return None
 
