@@ -101,6 +101,7 @@ target-version = "py311"
 ignore = [
     "S101", # use of assert
     "S104",  # S104 Possible binding to all interfaces
+    "S305", # ECB mode is required for this protocol
     "PLR0912", # too many to fix right now
     "TID252", # skip
     "PLR0913", # too late to make changes here
