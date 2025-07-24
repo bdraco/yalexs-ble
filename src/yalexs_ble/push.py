@@ -9,6 +9,8 @@ from collections.abc import Callable, Coroutine, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
+from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakDBusError, BleakError
 from bleak_retry_connector import (
     BLEAK_RETRY_EXCEPTIONS,
     MAX_CONNECT_ATTEMPTS,
@@ -17,9 +19,6 @@ from bleak_retry_connector import (
     get_device,
 )
 from lru import LRU  # pylint: disable=no-name-in-module
-
-from bleak.backends.scanner import AdvertisementData
-from bleak.exc import BleakDBusError, BleakError
 
 from .const import (
     APPLE_MFR_ID,
@@ -234,6 +233,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                     max_attempts,
                     exc_info=True,
                 )
+        return None
 
     return cast(WrapFuncType, _async_wrap_retry_bluetooth_connection_error)
 
@@ -282,7 +282,7 @@ class PushLock:
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._seen_this_session: set[
-            type[LockStatus] | type[DoorStatus] | type[BatteryState] | type[AuthState]
+            type[LockStatus | DoorStatus | BatteryState | AuthState]
         ] = set()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._keep_alive_timer: asyncio.TimerHandle | None = None
@@ -585,7 +585,7 @@ class PushLock:
                     _LOGGER.exception(
                         "%s: Failed to disconnect after failed connect", self.name
                     )
-                raise ex
+                raise
             self._next_disconnect_delay = self._idle_disconnect_delay
             self._reset_disconnect_timer()
             self._seen_this_session.clear()
@@ -1057,11 +1057,9 @@ class PushLock:
             self._set_update_state(None)
         except AuthError as ex:
             self._set_update_state(ex)
-            _LOGGER.error(
-                "%s: Auth error: key or slot (key index) is incorrect: %s",
+            _LOGGER.exception(
+                "%s: Auth error: key or slot (key index) is incorrect",
                 self.name,
-                ex,
-                exc_info=True,
             )
         except asyncio.CancelledError:
             self._set_update_state(RuntimeError("Update was canceled"))

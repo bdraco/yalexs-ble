@@ -69,9 +69,7 @@ AA_BATTERY_VOLTAGE_TO_PERCENTAGE = (
 AA_BATTERY_VOLTAGE_LIST = [
     voltage for voltage, _ in sorted(AA_BATTERY_VOLTAGE_TO_PERCENTAGE)
 ]
-AA_BATTERY_VOLTAGE_MAP = {
-    voltage: percentage for voltage, percentage in AA_BATTERY_VOLTAGE_TO_PERCENTAGE
-}
+AA_BATTERY_VOLTAGE_MAP = dict(AA_BATTERY_VOLTAGE_TO_PERCENTAGE)
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 
@@ -154,9 +152,9 @@ class Lock:
                 ble_device_callback=self.ble_device_callback,
                 max_attempts=max_attempts,
             )
-        except (asyncio.TimeoutError, BleakError) as err:
+        except (TimeoutError, BleakError) as err:
             _LOGGER.error("%s: Failed to connect to the lock: %s", self.name, err)
-            raise err
+            raise
         _LOGGER.debug("%s: Connected", self.name)
 
         self.session = Session(
@@ -194,7 +192,7 @@ class Lock:
             error_desc = str(err).lower()
             if "invalid handle" in error_desc:
                 await self._handle_missing_characteristic(error_desc)
-            raise err
+            raise
         await self.session.start_notify()
 
     async def _handle_missing_characteristic(self, char_uuid: str) -> None:
@@ -254,7 +252,8 @@ class Lock:
         )
         if response[0x00] != 0x02:
             raise AuthError(
-                "Authentication error: key or slot (key index) is incorrect: unexpected response to SEC_LOCK_TO_MOBILE_KEY_EXCHANGE: "
+                "Authentication error: key or slot (key index) is incorrect: "
+                "unexpected response to SEC_LOCK_TO_MOBILE_KEY_EXCHANGE: "
                 + response.hex()
             )
 
@@ -271,8 +270,8 @@ class Lock:
         response = await self.secure_session.execute(cmd, "SEC_INITIALIZATION_COMMAND")
         if response[0] != 0x04:
             raise AuthError(
-                "Authentication error: key or slot (key index) is incorrect: unexpected response to SEC_INITIALIZATION_COMMAND: "
-                + response.hex()
+                "Authentication error: key or slot (key index) is incorrect: "
+                "unexpected response to SEC_INITIALIZATION_COMMAND: " + response.hex()
             )
         self.session.set_key(session_key)
         self.secure_session.enable_cooldown()
@@ -443,14 +442,14 @@ class Lock:
             timestamp = self._parse_unix_timestamp(response[0x05:0x09])
             door_status = self._parse_door_status(response[0x09])
             return DoorActivity(timestamp, door_status)
-        elif activity_type == LockActivityType.LOCK.value:
+        if activity_type == LockActivityType.LOCK.value:
             # Timestamp is at 0x08-0x0B
             # Lock status is at 0x06
             timestamp = self._parse_unix_timestamp(response[0x08:0x0C])
             lock_status = self._parse_lock_status(response[0x06])
 
             return LockActivity(timestamp, lock_status)
-        elif activity_type == LockActivityType.PIN.value:
+        if activity_type == LockActivityType.PIN.value:
             # Timestamp is at 0x05-0x08
             # Slot is at 0x10
             # Lock status seems to be at lower half of 0x0C
@@ -508,7 +507,7 @@ class Lock:
         except (AuthError, DisconnectedError):
             # Lock already disconnected us
             return
-        except (BleakError, asyncio.TimeoutError, EOFError) as err:
+        except (TimeoutError, BleakError, EOFError) as err:
             if not util.is_disconnected_error(err):
                 _LOGGER.debug(
                     "%s: Failed to cleanly disconnect from lock: %s", self.name, err
@@ -520,7 +519,9 @@ class Lock:
             )
             return
         if response and response[0] != 0x8B:
-            _LOGGER.debug("%s: Unexpected response to DISCONNECT: %s", response.hex())
+            _LOGGER.debug(
+                "%s: Unexpected response to DISCONNECT: %s", self.name, response.hex()
+            )
 
     @property
     def is_connected(self) -> bool:
