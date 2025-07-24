@@ -115,6 +115,7 @@ ignore = [
     "PYI032", # breaks Cython
     "PYI041",  # breaks Cython
     "PERF401", # Cython: closures inside cpdef functions not yet supported
+    "TRY400", # use logging.exception as is
 ]
 select = [
     "ASYNC", # async rules
