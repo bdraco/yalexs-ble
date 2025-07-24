@@ -214,7 +214,7 @@ class Lock:
         if state[0] == 0xBB:
             if state[1] == Commands.LOCK_ACTIVITY.value:
                 return None  # Ignore lock activity as these are historical events
-            if state[1] == Commands.GETSTATUS:
+            if state[1] == Commands.GETSTATUS.value:
                 if state[4] == StatusType.LOCK_ONLY:
                     lock_status = state[0x08]
                     return [VALUE_TO_LOCK_STATUS.get(lock_status, LockStatus.UNKNOWN)]
@@ -225,13 +225,16 @@ class Lock:
                     return self._parse_lock_and_door_state(state)
                 if state[4] == StatusType.BATTERY:
                     return [self._parse_battery_state(state)]
-            elif state[1] == Commands.WRITESETTING or state[1] == Commands.READSETTING:
+            elif (
+                state[1] == Commands.WRITESETTING.value
+                or state[1] == Commands.READSETTING.value
+            ):
                 if state[4] == SettingType.AUTOLOCK:
                     return [self._parse_auto_lock_state(state)]
         elif state[0] == 0xAA:
-            if state[1] == Commands.UNLOCK:
+            if state[1] == Commands.UNLOCK.value:
                 return [LockStatus.UNLOCKED]
-            if state[1] == Commands.LOCK:
+            if state[1] == Commands.LOCK.value:
                 return [LockStatus.LOCKED]
         return None
 
