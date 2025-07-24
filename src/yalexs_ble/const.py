@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import TypedDict
 from datetime import datetime
 
@@ -25,7 +25,8 @@ FIRMWARE_REVISION_CHARACTERISTIC = "00002a26-0000-1000-8000-00805f9b34fb"
 NO_DOOR_SENSE_MODELS = {"ASL-02", "ASL-01"}
 
 
-class Commands(Enum):
+class Commands(IntEnum):
+    GETSTATUS = 0x02
     UNLOCK = 0x0A
     LOCK = 0x0B
     LOCK_ACTIVITY = 0x2D
@@ -33,23 +34,27 @@ class Commands(Enum):
 
 class LockStatus(Enum):
     UNKNOWN = 0x00
-    UNKNOWN_01 = 0x01
+    UNKNOWN_01 = 0x01  # Calibrating
     UNLOCKING = 0x02
     UNLOCKED = 0x03
     LOCKING = 0x04
     LOCKED = 0x05
-    UNKNOWN_06 = 0x06
+    UNKNOWN_06 = 0x06  # PolDiscovery
+    # STATICPOSITION = 0x07
+    # UNLATCHING = 0x09
+    # UNLATCHED = 0x0A
+    SECUREMODE = 0x0C
 
 
 VALUE_TO_LOCK_STATUS = {status.value: status for status in LockStatus}
 
 
 class DoorStatus(Enum):
-    UNKNOWN = 0x00
+    UNKNOWN = 0x00  # Init
     CLOSED = 0x01
-    UNKNOWN_02 = 0x02
+    AJAR = 0x02
     OPENED = 0x03
-    UNKNOWN_04 = 0x04
+    UNKNOWN_04 = 0x04  # Unknown
 
 
 VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}

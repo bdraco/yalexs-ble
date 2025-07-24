@@ -1,6 +1,52 @@
 # CHANGELOG
 
 
+## v3.0.0 (2025-05-02)
+
+### Chores
+
+- Update dependabot.yml to fix missing ecosystem
+  ([`2222340`](https://github.com/bdraco/yalexs-ble/commit/222234098d8e46b3791d42a3ec05caaf3aaadafb))
+
+- **ci**: Bump the github-actions group with 6 updates
+  ([#211](https://github.com/bdraco/yalexs-ble/pull/211),
+  [`10fd4ea`](https://github.com/bdraco/yalexs-ble/commit/10fd4eadb3132bbe820c3d86888fbed827ba4fb9))
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps-dev**: Bump pytest from 7.4.4 to 8.3.5
+  ([#213](https://github.com/bdraco/yalexs-ble/pull/213),
+  [`b993286`](https://github.com/bdraco/yalexs-ble/commit/b99328695c30171b0bc1289e52ecbe9d65600535))
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps-dev**: Bump pytest-asyncio from 0.19.0 to 0.26.0
+  ([#214](https://github.com/bdraco/yalexs-ble/pull/214),
+  [`0950da5`](https://github.com/bdraco/yalexs-ble/commit/0950da58bf88c020fe0647ff7fc540df23615f29))
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps-dev**: Bump pytest-cov from 3.0.0 to 6.1.1
+  ([#210](https://github.com/bdraco/yalexs-ble/pull/210),
+  [`cd4416f`](https://github.com/bdraco/yalexs-ble/commit/cd4416fcfceee3f648ded7f374e15f2a1c73a8f0))
+
+Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+
+- **pre-commit.ci**: Pre-commit autoupdate ([#206](https://github.com/bdraco/yalexs-ble/pull/206),
+  [`aad8410`](https://github.com/bdraco/yalexs-ble/commit/aad8410a33271974398447efef416f8a98499cd9))
+
+Co-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
+
+Co-authored-by: J. Nick Koston <nick@koston.org>
+
+### Features
+
+- Add Deadlock (SecureMode) support ([#216](https://github.com/bdraco/yalexs-ble/pull/216),
+  [`3bff4ac`](https://github.com/bdraco/yalexs-ble/commit/3bff4ac1f59b66cc64cc3f41d99c05d3114dc9d5))
+
+Co-authored-by: J. Nick Koston <nick+github@koston.org>
+
+
 ## v2.6.0 (2025-04-21)
 
 ### Chores
@@ -652,7 +698,7 @@ Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.c
 
 BREAKING CHANGE: wait_for_first_update needs to be called after calling start before using the lock
 
-### BREAKING CHANGES
+### Breaking Changes
 
 - Wait_for_first_update needs to be called after calling start before using the lock
 
@@ -1112,7 +1158,7 @@ BREAKING CHANGE: wait_for_first_update needs to be called after calling start be
 BREAKING CHANGE: The arguments for PushLock are now all keyword. Either a unique local_name or an
   address must be provided
 
-### BREAKING CHANGES
+### Breaking Changes
 
 - The arguments for PushLock are now all keyword. Either a unique local_name or an address must be
   provided
