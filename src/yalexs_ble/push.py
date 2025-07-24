@@ -26,11 +26,14 @@ from .const import (
     HAP_FIRST_BYTE,
     YALE_MFR_ID,
     AuthState,
+    AutoLockMode,
+    AutoLockState,
     BatteryState,
     ConnectionInfo,
     DoorStatus,
     LockInfo,
     LockState,
+    LockStateValue,
     LockStatus,
 )
 from .lock import Lock
@@ -105,6 +108,8 @@ NO_BATTERY_SUPPORT_MODELS = {
     "SL-103",  # Linus L2
     "CERES",  # Smart code handle
 }
+
+AUTO_LOCK_DEFAULT_DURATION = 90
 
 
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
@@ -282,7 +287,7 @@ class PushLock:
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._seen_this_session: set[
-            type[LockStatus | DoorStatus | BatteryState | AuthState]
+            type[LockStatus | DoorStatus | BatteryState | AuthState | AutoLockState]
         ] = set()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._keep_alive_timer: asyncio.TimerHandle | None = None
@@ -338,6 +343,16 @@ class PushLock:
     def auth(self) -> AuthState | None:
         """Return the current auth state."""
         return self._lock_state.auth if self._lock_state else None
+
+    @property
+    def auto_lock(self) -> AutoLockState | None:
+        """Return the current auto lock state."""
+        return self._lock_state.auto_lock if self._lock_state else None
+
+    @property
+    def auto_lock_prev(self) -> AutoLockState | None:
+        """Return the previous auto lock state."""
+        return self._lock_state.auto_lock_prev if self._lock_state else None
 
     @property
     def lock_state(self) -> LockState | None:
@@ -644,13 +659,81 @@ class PushLock:
         _LOGGER.debug("%s: Finished %s", self.name, complete_state)
         now = time.monotonic()
         self._last_lock_operation_complete_time = now
+        self._complete_operation(now)
+
+    @property
+    def auto_lock_durations(self) -> list[int]:
+        return [0, 10, 30, 60, 90, 120, 150, 180, 240, 300, 600, 1200, 1800]
+
+    @property
+    def auto_lock_modes(self) -> list[str]:
+        return ["off", "instant", "timer"]
+
+    async def set_auto_lock_mode(self, mode: AutoLockMode) -> None:
+        """Set auto lock setting."""
+        if mode == AutoLockMode.OFF:
+            if self.auto_lock and self.auto_lock.mode == AutoLockMode.OFF:
+                _LOGGER.debug("%s: Auto lock is already off", self.name)
+                return
+            await self._set_auto_lock(AutoLockMode.OFF, 0)
+            return
+
+        duration = AUTO_LOCK_DEFAULT_DURATION
+        if self.auto_lock and self.auto_lock.mode != AutoLockMode.OFF:
+            duration = self.auto_lock.duration
+        elif self.auto_lock_prev and self.auto_lock_prev.mode != AutoLockMode.OFF:
+            # If the auto lock is currently off, use the previous duration
+            duration = self.auto_lock_prev.duration
+        await self._set_auto_lock(mode, duration)
+
+    async def set_auto_lock_duration(self, duration: int) -> None:
+        """Set auto lock setting."""
+        if duration == 0:
+            if self.auto_lock and self.auto_lock.mode == AutoLockMode.OFF:
+                _LOGGER.debug("%s: Auto lock is already off", self.name)
+                return
+            await self._set_auto_lock(AutoLockMode.OFF, 0)
+            return
+
+        mode = AutoLockMode.TIMER
+        if self.auto_lock and self.auto_lock.mode != AutoLockMode.OFF:
+            mode = self.auto_lock.mode
+        elif self.auto_lock_prev and self.auto_lock_prev.mode != AutoLockMode.OFF:
+            # If the auto lock is currently off, use the previous mode
+            mode = self.auto_lock_prev.mode
+        await self._set_auto_lock(mode, duration)
+
+    @retry_bluetooth_connection_error
+    async def _set_auto_lock(self, mode: AutoLockMode, duration: int) -> None:
+        """Set auto lock setting."""
+        if not self._running:
+            raise RuntimeError(
+                f"{self.name}: Set auto lock operation not possible because not running"
+            )
+        # Duration validation
+        if duration not in self.auto_lock_durations:
+            raise ValueError(f"Invalid auto lock duration: {duration}")
+        try:
+            lock = await self._ensure_connected()
+            self._cancel_future_update()
+            await lock.set_auto_lock(mode, duration)
+        except Exception as ex:
+            _LOGGER.debug(
+                "%s: Failed to execute set auto lock operation due to %s, "
+                "forcing disconnect",
+                self.name,
+                ex,
+            )
+            raise
+        self._complete_operation(time.monotonic())
+
+    def _complete_operation(self, now: float) -> None:
+        """Mark an operation as complete and reset timers."""
         self._last_operation_complete_time = now
         self._reset_disconnect_timer()
         self._reschedule_next_keep_alive()
 
-    def _state_callback(
-        self, states: Iterable[LockStatus | DoorStatus | BatteryState]
-    ) -> None:
+    def _state_callback(self, states: Iterable[LockStateValue]) -> None:
         """Handle state change."""
         self._reset_disconnect_timer()
         self._update_any_state(states)
@@ -658,12 +741,15 @@ class PushLock:
     def _get_current_state(self) -> LockState:
         """Get the current state of the lock."""
         return self._lock_state or LockState(
-            self.lock_status, self.door_status, self.battery, self.auth
+            self.lock_status,
+            self.door_status,
+            self.battery,
+            self.auth,
+            self.auto_lock,
+            self.auto_lock_prev,
         )
 
-    def _update_any_state(
-        self, states: Iterable[LockStatus | DoorStatus | BatteryState | AuthState]
-    ) -> None:
+    def _update_any_state(self, states: Iterable[LockStateValue | AuthState]) -> None:
         _LOGGER.debug("%s: State changed: %s", self.name, states)
         lock_state = self._get_current_state()
         original_lock_status = lock_state.lock
@@ -690,6 +776,10 @@ class PushLock:
                     continue
                 if lock_state.battery != state:
                     changes["battery"] = state
+            elif isinstance(state, AutoLockState):
+                if lock_state.auto_lock != state:
+                    changes["auto_lock"] = state
+                    changes["auto_lock_prev"] = lock_state.auto_lock
             else:
                 raise ValueError(f"Unexpected state type: {state}")
 
@@ -760,6 +850,17 @@ class PushLock:
             door_status = await lock.door_status()
             _AUTH_FAILURE_HISTORY.auth_success(self.address)
             state = replace(state, door=door_status, auth=AuthState(successful=True))
+
+        if AutoLockState not in self._seen_this_session:
+            made_request = True
+            auto_lock_state = await lock.auto_lock_status()
+            _AUTH_FAILURE_HISTORY.auth_success(self.address)
+            state = replace(
+                state,
+                auto_lock=auto_lock_state,
+                auto_lock_prev=state.auto_lock,
+                auth=AuthState(successful=True),
+            )
 
         # Only ask for the lock status if we haven't seen
         # it this session since notify callbacks will happen

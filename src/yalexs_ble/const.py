@@ -27,9 +27,22 @@ NO_DOOR_SENSE_MODELS = {"ASL-02", "ASL-01"}
 
 class Commands(IntEnum):
     GETSTATUS = 0x02
+    WRITESETTING = 0x03
+    READSETTING = 0x04
     UNLOCK = 0x0A
     LOCK = 0x0B
     LOCK_ACTIVITY = 0x2D
+
+
+class StatusType(IntEnum):
+    LOCK_ONLY = 0x02
+    DOOR_ONLY = 0x2E
+    DOOR_AND_LOCK = 0x2F
+    BATTERY = 0x0F
+
+
+class SettingType(IntEnum):
+    AUTOLOCK = 0x28
 
 
 class LockStatus(Enum):
@@ -60,6 +73,16 @@ class DoorStatus(Enum):
 VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 
 
+class AutoLockMode(IntEnum):
+    INSTANT = 0x00
+    TIMER = 0x5A
+    # Not a valid value from the lock, but used to signal that auto lock is disabled
+    OFF = 0xFF
+
+
+VALUE_TO_AUTO_LOCK_MODE = {status.value: status for status in AutoLockMode}
+
+
 class LockActivityType(Enum):
     LOCK = 0x00
     DOOR = 0x20
@@ -74,11 +97,24 @@ class BatteryState:
 
 
 @dataclass
+class AutoLockState:
+    mode: AutoLockMode
+    duration: int
+
+
+@dataclass
 class LockState:
     lock: LockStatus
     door: DoorStatus
     battery: BatteryState | None
     auth: AuthState | None
+    auto_lock: AutoLockState | None
+    # Hold the previous auto lock state so that it can be restored if auto lock
+    # is enabled
+    auto_lock_prev: AutoLockState | None
+
+
+LockStateValue = LockStatus | DoorStatus | BatteryState | AutoLockState
 
 
 @dataclass

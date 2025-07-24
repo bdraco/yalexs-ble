@@ -18,10 +18,22 @@ def _simple_checksum(buf: bytes) -> int:
     return (-cs) & 0xFF
 
 
+def _bytes_to_int(buffer: bytes) -> int:
+    """Convert a byte buffer to an integer."""
+    return int.from_bytes(buffer, byteorder="little", signed=False)
+
+
+def _int_to_bytes(value: int, length: int) -> bytes:
+    """Convert an integer to a byte buffer."""
+    if length < 1 or length > 8:
+        raise ValueError("Length must be between 1 and 8 bytes.")
+    return value.to_bytes(length, byteorder="little", signed=False)
+
+
 def _security_checksum(buffer: bytes) -> int:
-    val1 = int.from_bytes(buffer[0x00:0x04], byteorder="little", signed=False)
-    val2 = int.from_bytes(buffer[0x04:0x08], byteorder="little", signed=False)
-    val3 = int.from_bytes(buffer[0x08:0x12], byteorder="little", signed=False)
+    val1 = _bytes_to_int(buffer[0x00:0x04])
+    val2 = _bytes_to_int(buffer[0x04:0x08])
+    val3 = _bytes_to_int(buffer[0x08:0x12])
 
     return (0 - (val1 + val2 + val3)) & 0xFFFFFFFF
 
