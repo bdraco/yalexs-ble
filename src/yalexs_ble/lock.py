@@ -154,7 +154,7 @@ class Lock:
                 ble_device_callback=self.ble_device_callback,
                 max_attempts=max_attempts,
             )
-        except (asyncio.TimeoutError, BleakError) as err:
+        except (TimeoutError, BleakError) as err:
             _LOGGER.error("%s: Failed to connect to the lock: %s", self.name, err)
             raise err
         _LOGGER.debug("%s: Connected", self.name)
@@ -443,14 +443,14 @@ class Lock:
             timestamp = self._parse_unix_timestamp(response[0x05:0x09])
             door_status = self._parse_door_status(response[0x09])
             return DoorActivity(timestamp, door_status)
-        elif activity_type == LockActivityType.LOCK.value:
+        if activity_type == LockActivityType.LOCK.value:
             # Timestamp is at 0x08-0x0B
             # Lock status is at 0x06
             timestamp = self._parse_unix_timestamp(response[0x08:0x0C])
             lock_status = self._parse_lock_status(response[0x06])
 
             return LockActivity(timestamp, lock_status)
-        elif activity_type == LockActivityType.PIN.value:
+        if activity_type == LockActivityType.PIN.value:
             # Timestamp is at 0x05-0x08
             # Slot is at 0x10
             # Lock status seems to be at lower half of 0x0C
@@ -508,7 +508,7 @@ class Lock:
         except (AuthError, DisconnectedError):
             # Lock already disconnected us
             return
-        except (BleakError, asyncio.TimeoutError, EOFError) as err:
+        except (TimeoutError, BleakError, EOFError) as err:
             if not util.is_disconnected_error(err):
                 _LOGGER.debug(
                     "%s: Failed to cleanly disconnect from lock: %s", self.name, err

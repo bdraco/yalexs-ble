@@ -27,7 +27,7 @@ def _security_checksum(buffer: bytes) -> int:
 
 
 def _copy(dest: bytearray, src: bytes, destLocation: int = 0) -> None:
-    dest[destLocation : (destLocation + len(src))] = src  # noqa: E203
+    dest[destLocation : (destLocation + len(src))] = src
 
 
 def serial_to_local_name(serial: str) -> str:
@@ -95,6 +95,6 @@ def local_name_is_unique(local_name: str | None) -> bool:
 
 
 if sys.version_info[:2] < (3, 11):
-    from async_timeout import timeout as asyncio_timeout  # noqa: F401
+    from async_timeout import timeout as asyncio_timeout
 else:
     from asyncio import timeout as asyncio_timeout  # noqa: F401

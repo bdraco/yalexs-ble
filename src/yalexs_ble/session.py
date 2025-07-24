@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from async_interrupt import interrupt
 from bleak import BleakClient
@@ -240,10 +240,8 @@ class Session:
             await self.client.stop_notify(self.read_characteristic)
         except EOFError as err:
             _LOGGER.debug("%s: D-Bus stopping notify: %s", self.name, err)
-            pass
         except BleakError as err:
             _LOGGER.debug("%s: Bleak error stopping notify: %s", self.name, err)
-            pass
 
     async def execute(self, command: bytearray, command_name: str) -> bytes:
         """Execute command."""

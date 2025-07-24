@@ -9,6 +9,8 @@ from collections.abc import Callable, Coroutine, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
+from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakDBusError, BleakError
 from bleak_retry_connector import (
     BLEAK_RETRY_EXCEPTIONS,
     MAX_CONNECT_ATTEMPTS,
@@ -17,9 +19,6 @@ from bleak_retry_connector import (
     get_device,
 )
 from lru import LRU  # pylint: disable=no-name-in-module
-
-from bleak.backends.scanner import AdvertisementData
-from bleak.exc import BleakDBusError, BleakError
 
 from .const import (
     APPLE_MFR_ID,
@@ -282,7 +281,7 @@ class PushLock:
         self._client: Lock | None = None
         self._connect_lock = asyncio.Lock()
         self._seen_this_session: set[
-            type[LockStatus] | type[DoorStatus] | type[BatteryState] | type[AuthState]
+            type[LockStatus | DoorStatus | BatteryState | AuthState]
         ] = set()
         self._disconnect_timer: asyncio.TimerHandle | None = None
         self._keep_alive_timer: asyncio.TimerHandle | None = None
