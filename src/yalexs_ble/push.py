@@ -233,6 +233,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                     max_attempts,
                     exc_info=True,
                 )
+        return None
 
     return cast(WrapFuncType, _async_wrap_retry_bluetooth_connection_error)
 
@@ -584,7 +585,7 @@ class PushLock:
                     _LOGGER.exception(
                         "%s: Failed to disconnect after failed connect", self.name
                     )
-                raise ex
+                raise
             self._next_disconnect_delay = self._idle_disconnect_delay
             self._reset_disconnect_timer()
             self._seen_this_session.clear()
@@ -1056,11 +1057,9 @@ class PushLock:
             self._set_update_state(None)
         except AuthError as ex:
             self._set_update_state(ex)
-            _LOGGER.error(
-                "%s: Auth error: key or slot (key index) is incorrect: %s",
+            _LOGGER.exception(
+                "%s: Auth error: key or slot (key index) is incorrect",
                 self.name,
-                ex,
-                exc_info=True,
             )
         except asyncio.CancelledError:
             self._set_update_state(RuntimeError("Update was canceled"))

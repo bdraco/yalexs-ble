@@ -116,6 +116,8 @@ ignore = [
     "PYI041",  # breaks Cython
     "PERF401", # Cython: closures inside cpdef functions not yet supported
     "TRY400", # use logging.exception as is
+    "ASYNC109", # timeout parameter is fine
+    "TRY004", # ValueError is appropriate here
 ]
 select = [
     "ASYNC", # async rules
