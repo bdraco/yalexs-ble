@@ -659,9 +659,7 @@ class PushLock:
         _LOGGER.debug("%s: Finished %s", self.name, complete_state)
         now = time.monotonic()
         self._last_lock_operation_complete_time = now
-        self._last_operation_complete_time = now
-        self._reset_disconnect_timer()
-        self._reschedule_next_keep_alive()
+        self._complete_operation(now)
 
     @property
     def auto_lock_durations(self) -> list[int]:
@@ -727,7 +725,10 @@ class PushLock:
                 ex,
             )
             raise
-        now = time.monotonic()
+        self._complete_operation(time.monotonic())
+
+    def _complete_operation(self, now: float) -> None:
+        """Mark an operation as complete and reset timers."""
         self._last_operation_complete_time = now
         self._reset_disconnect_timer()
         self._reschedule_next_keep_alive()
