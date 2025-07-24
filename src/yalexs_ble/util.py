@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import sys
+from asyncio import timeout as asyncio_timeout  # noqa: F401
 from dataclasses import dataclass
 
 from bleak import BleakError
@@ -92,9 +92,3 @@ def unique_id_from_local_name_address(local_name: str, address: str) -> str:
 def local_name_is_unique(local_name: str | None) -> bool:
     """Check if the local name is unique."""
     return bool(local_name and len(local_name) == UNIQUE_LOCAL_NAME_LEN)
-
-
-if sys.version_info[:2] < (3, 11):
-    from async_timeout import timeout as asyncio_timeout
-else:
-    from asyncio import timeout as asyncio_timeout  # noqa: F401
