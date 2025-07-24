@@ -3,9 +3,9 @@ import asyncio
 import pytest
 
 from yalexs_ble.push import (
+    NO_BATTERY_SUPPORT_MODELS,
     operation_lock,
     retry_bluetooth_connection_error,
-    NO_BATTERY_SUPPORT_MODELS,
 )
 
 
@@ -67,7 +67,7 @@ async def test_operation_lock_with_retry_bluetooth_connection_error():
             counter += 1
             try:
                 await asyncio.sleep(0.001)
-                raise asyncio.TimeoutError()
+                raise TimeoutError
             finally:
                 counter -= 1
 
@@ -111,7 +111,7 @@ async def test_retry_bluetooth_connection_error_with_operation_lock():
             counter += 1
             try:
                 await asyncio.sleep(0.001)
-                raise asyncio.TimeoutError()
+                raise TimeoutError
             finally:
                 counter -= 1
 
