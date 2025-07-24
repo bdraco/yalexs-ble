@@ -5,7 +5,7 @@ description = "Bluetooth control of Yale and August locks"
 authors = [{ name = "J. Nick Koston", email = "nick@koston.org" }]
 license = "GPL-3.0-only"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dynamic = ["classifiers", "dependencies"]
 
 [project.urls]
@@ -27,7 +27,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.14"
+python = ">=3.11,<3.14"
 
 # Documentation Dependencies
 bleak = ">=0.19.0"
