@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum, IntEnum
 from typing import TypedDict
 
@@ -30,6 +31,7 @@ class Commands(IntEnum):
     READSETTING = 0x04
     UNLOCK = 0x0A
     LOCK = 0x0B
+    LOCK_ACTIVITY = 0x2D
 
 
 class StatusType(IntEnum):
@@ -80,6 +82,13 @@ class AutoLockMode(IntEnum):
 VALUE_TO_AUTO_LOCK_MODE = {status.value: status for status in AutoLockMode}
 
 
+class LockActivityType(Enum):
+    LOCK = 0x00
+    DOOR = 0x20
+    PIN = 0x0E
+    NONE = 0x80
+
+
 @dataclass
 class BatteryState:
     voltage: float
@@ -105,6 +114,19 @@ class LockState:
 
 
 LockStateValue = LockStatus | DoorStatus | BatteryState | AutoLockState
+
+
+@dataclass
+class LockActivity:
+    timestamp: datetime
+    status: LockStatus
+    slot: int | None = None
+
+
+@dataclass
+class DoorActivity:
+    timestamp: datetime
+    status: DoorStatus
 
 
 @dataclass
