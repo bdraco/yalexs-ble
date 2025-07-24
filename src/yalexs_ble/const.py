@@ -76,7 +76,8 @@ VALUE_TO_DOOR_STATUS = {status.value: status for status in DoorStatus}
 class AutoLockMode(IntEnum):
     INSTANT = 0x00
     TIMER = 0x5A
-    OFF = 0xFF  # Not a valid value from the lock, but used to signal that auto lock is disabled
+    # Not a valid value from the lock, but used to signal that auto lock is disabled
+    OFF = 0xFF
 
 
 VALUE_TO_AUTO_LOCK_MODE = {status.value: status for status in AutoLockMode}
@@ -108,9 +109,9 @@ class LockState:
     battery: BatteryState | None
     auth: AuthState | None
     auto_lock: AutoLockState | None
-    auto_lock_prev: (
-        AutoLockState | None
-    )  # Hold the previous auto lock state so that it can be restored if auto lock is enabled
+    # Hold the previous auto lock state so that it can be restored if auto lock
+    # is enabled
+    auto_lock_prev: AutoLockState | None
 
 
 LockStateValue = LockStatus | DoorStatus | BatteryState | AutoLockState

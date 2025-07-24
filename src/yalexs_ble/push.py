@@ -714,14 +714,15 @@ class PushLock:
             )
         # Duration validation
         if duration not in self.auto_lock_durations:
-            duration = AUTO_LOCK_DEFAULT_DURATION
+            raise ValueError(f"Invalid auto lock duration: {duration}")
         try:
             lock = await self._ensure_connected()
             self._cancel_future_update()
             await lock.set_auto_lock(mode, duration)
         except Exception as ex:
             _LOGGER.debug(
-                "%s: Failed to execute set auto lock operation due to %s, forcing disconnect",
+                "%s: Failed to execute set auto lock operation due to %s, "
+                "forcing disconnect",
                 self.name,
                 ex,
             )
