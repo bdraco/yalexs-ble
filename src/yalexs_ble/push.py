@@ -5,12 +5,10 @@ import contextlib
 import logging
 import struct
 import time
-from collections.abc import Coroutine, Callable, Iterable
+from collections.abc import Callable, Coroutine, Iterable
 from dataclasses import replace
 from typing import Any, TypeVar, cast
 
-from bleak.backends.scanner import AdvertisementData
-from bleak.exc import BleakDBusError, BleakError
 from bleak_retry_connector import (
     BLEAK_RETRY_EXCEPTIONS,
     MAX_CONNECT_ATTEMPTS,
@@ -19,6 +17,9 @@ from bleak_retry_connector import (
     get_device,
 )
 from lru import LRU  # pylint: disable=no-name-in-module
+
+from bleak.backends.scanner import AdvertisementData
+from bleak.exc import BleakDBusError, BleakError
 
 from .const import (
     APPLE_MFR_ID,
@@ -144,7 +145,8 @@ _AUTH_FAILURE_HISTORY = AuthFailureHistory()
 
 
 def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
-    """Define a wrapper to retry on bleak error.
+    """
+    Define a wrapper to retry on bleak error.
 
     The accessory is allowed to disconnect us any time so
     we need to retry the operation.
@@ -195,7 +197,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                         exc_info=True,
                     )
                     if is_disconnected_error(err):
-                        raise DisconnectedError(str(err))
+                        raise DisconnectedError(str(err)) from err
                     raise
                 _LOGGER.debug(
                     "%s: %s error calling %s, backing off %ss, retrying (%s/%s)...",
@@ -221,7 +223,7 @@ def retry_bluetooth_connection_error(func: WrapFuncType) -> WrapFuncType:
                         exc_info=True,
                     )
                     if is_disconnected_error(err):
-                        raise DisconnectedError(str(err))
+                        raise DisconnectedError(str(err)) from err
                     raise
                 _LOGGER.debug(
                     "%s: %s error calling %s, retrying  (%s/%s)...",
@@ -484,7 +486,8 @@ class PushLock:
         await self._execute_disconnect()
 
     def _disconnect_with_timer(self, timeout: float) -> None:
-        """Disconnect from device.
+        """
+        Disconnect from device.
 
         This should only ever be called from _reset_disconnect_timer
         """
@@ -874,7 +877,12 @@ class PushLock:
                 # Encrypted data, we don't know how to decrypt it
                 # but we know its a state change so we schedule an update
                 next_update = HK_UPDATE_COALESCE_SECONDS
-        if YALE_MFR_ID in mfr_data:
+        # Only track the single 0/1 value from the advertisement
+        # as we can get an storm of metadata we don't know how to
+        # decode that starts with b'\x00\x00' and will cause us to
+        # connect over and over again when active scanning is enabled.
+        # b'\x00\x00\x80\x15\xd0\x11\xf7\xa5\x43\x1f\x85\xd7\xff\x23\x5f\x1e\x75\x46'
+        if YALE_MFR_ID in mfr_data and len(mfr_data[YALE_MFR_ID]) == 1:
             current_value = mfr_data[YALE_MFR_ID][0]
             if not next_update:
                 if self._last_adv_value == -1:
@@ -956,7 +964,7 @@ class PushLock:
         try:
             async with asyncio_timeout(timeout):
                 await self._first_update_future
-        except (asyncio.TimeoutError, asyncio.CancelledError) as ex:
+        except (TimeoutError, asyncio.CancelledError) as ex:
             self._first_update_future.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._first_update_future
@@ -1059,7 +1067,7 @@ class PushLock:
             self._set_update_state(RuntimeError("Update was canceled"))
             _LOGGER.debug("%s: In-progress update canceled", self.name)
             raise
-        except asyncio.TimeoutError as ex:
+        except TimeoutError as ex:
             self._set_update_state(ex)
             _LOGGER.exception("%s: Timed out updating", self.name)
         except BleakNotFoundError as ex:
