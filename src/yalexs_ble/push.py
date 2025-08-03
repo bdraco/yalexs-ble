@@ -984,12 +984,13 @@ class PushLock:
         # decode that starts with b'\x00\x00' and will cause us to
         # connect over and over again when active scanning is enabled.
         # b'\x00\x00\x80\x15\xd0\x11\xf7\xa5\x43\x1f\x85\xd7\xff\x23\x5f\x1e\x75\x46'
+        is_first_advertisement = self._last_adv_value == -1
         if YALE_MFR_ID in mfr_data and (
-            len(mfr_data[YALE_MFR_ID]) == 1 or self._last_adv_value == -1
+            len(mfr_data[YALE_MFR_ID]) == 1 or is_first_advertisement
         ):
             current_value = mfr_data[YALE_MFR_ID][0]
             if not next_update:
-                if self._last_adv_value == -1:
+                if is_first_advertisement:
                     # We haven't seen a valid value yet so we schedule an update
                     next_update = FIRST_UPDATE_COALESCE_SECONDS
                 elif (
