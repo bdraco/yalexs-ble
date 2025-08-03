@@ -986,7 +986,6 @@ class PushLock:
         # b'\x00\x00\x80\x15\xd0\x11\xf7\xa5\x43\x1f\x85\xd7\xff\x23\x5f\x1e\x75\x46'
         if (
             YALE_MFR_ID in mfr_data
-            and len(mfr_data[YALE_MFR_ID]) > 0
             and (len(mfr_data[YALE_MFR_ID]) == 1 or self._last_adv_value == -1)
         ):
             current_value = mfr_data[YALE_MFR_ID][0]
