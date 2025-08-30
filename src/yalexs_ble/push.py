@@ -7,6 +7,7 @@ import struct
 import time
 from collections.abc import Callable, Coroutine, Iterable
 from dataclasses import replace
+from functools import partial
 from typing import Any, TypeVar, cast
 
 from bleak.backends.scanner import AdvertisementData
@@ -30,7 +31,9 @@ from .const import (
     AutoLockState,
     BatteryState,
     ConnectionInfo,
+    DoorActivity,
     DoorStatus,
+    LockActivity,
     LockInfo,
     LockState,
     LockStateValue,
@@ -282,6 +285,9 @@ class PushLock:
         self._callbacks: list[
             Callable[[LockState, LockInfo, ConnectionInfo], None]
         ] = []
+        self._activity_callbacks: list[
+            Callable[[DoorActivity | LockActivity], None]
+        ] = []
         self._update_task: asyncio.Task[None] | None = None
         self.loop = asyncio._get_running_loop()
         self._cancel_deferred_update: asyncio.TimerHandle | None = None
@@ -401,6 +407,15 @@ class PushLock:
 
         self._callbacks.append(callback)
         return unregister_callback
+
+    def register_activity_callback(
+        self, callback: Callable[[DoorActivity | LockActivity], None]
+    ) -> Callable[[], None]:
+        """Register an activity callback to be called when the lock state changes."""
+
+        self._activity_callbacks.append(callback)
+
+        return partial(self._activity_callbacks.remove, callback)
 
     def set_lock_key(self, key: str, slot: int) -> None:
         """Set the lock key."""

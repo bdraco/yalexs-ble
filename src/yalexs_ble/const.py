@@ -130,6 +130,9 @@ class DoorActivity:
     status: DoorStatus
 
 
+LockActivityValue = DoorActivity | LockActivity
+
+
 @dataclass
 class AuthState:
     successful: bool
