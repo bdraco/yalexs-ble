@@ -508,10 +508,10 @@ class Lock:
             return LockActivity(timestamp, lock_status)
         if activity_type == LockActivityType.PIN.value:
             # Timestamp is at 0x05-0x08
-            # Slot is at 0x10
+            # Slot is at 0x0A
             # Lock status seems to be at lower half of 0x0C
             timestamp = self._parse_unix_timestamp(response[0x05:0x09])
-            pin_slot = response[0x10]
+            pin_slot = response[0x0A]
             lock_status = self._parse_lock_status(response[0x0C] & 0x0F)
 
             return LockActivity(timestamp, lock_status, pin_slot)
